@@ -118,3 +118,17 @@ export async function getForm(id: string) {
         elements: mappedElements
     } as Form;
 }
+
+export async function saveResponse(formId: string, responses: Record<string, any>) {
+    const { data, error } = await supabase
+        .from('form_responses')
+        .insert({
+            form_id: formId,
+            responses
+        })
+        .select()
+        .single();
+
+    if (error) throw error;
+    return data;
+}
