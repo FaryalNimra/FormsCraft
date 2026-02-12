@@ -8,7 +8,10 @@ import {
     Calendar,
     Upload,
     CheckCircle2,
-    Loader2
+    Loader2,
+    ChevronDown,
+    ArrowRight,
+    XCircle
 } from 'lucide-react';
 
 export default function ViewForm() {
@@ -61,7 +64,7 @@ export default function ViewForm() {
             setSubmitted(true);
         } catch (err: any) {
             console.error('Error submitting form:', err);
-            alert('Failed to submit form. Please try again.');
+            alert('Failed to submit form: ' + (err.message || 'Unknown error'));
         } finally {
             setIsSubmitting(false);
         }
@@ -69,7 +72,7 @@ export default function ViewForm() {
 
     if (isLoading) {
         return (
-            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+            <div className="min-h-screen bg-[#FDFDFF] flex items-center justify-center">
                 <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
             </div>
         );
@@ -77,12 +80,15 @@ export default function ViewForm() {
 
     if (error || !form) {
         return (
-            <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
-                <div className="bg-white p-8 rounded-2xl shadow-sm text-center max-w-md w-full">
-                    <h1 className="text-xl font-bold text-gray-900 mb-2">Form Not Found</h1>
-                    <p className="text-gray-500 mb-6">{error || 'This form might have been deleted or the link is incorrect.'}</p>
-                    <a href="/" className="inline-block px-6 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors">
-                        Go Home
+            <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center p-6">
+                <div className="bg-white p-10 rounded-2xl shadow-sm text-center max-w-sm w-full border border-gray-100">
+                    <div className="w-16 h-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <XCircle size={32} />
+                    </div>
+                    <h1 className="text-xl font-bold text-gray-900 mb-2 uppercase tracking-tight">Form Not Found</h1>
+                    <p className="text-gray-400 text-xs mb-8">{error || 'The link you followed might be broken.'}</p>
+                    <a href="/" className="inline-block px-8 py-3 bg-blue-600 text-white rounded-lg font-bold text-[10px] uppercase tracking-widest transition-all">
+                        Return Home
                     </a>
                 </div>
             </div>
@@ -91,48 +97,50 @@ export default function ViewForm() {
 
     if (submitted) {
         return (
-            <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
-                <div className="bg-white p-12 rounded-3xl shadow-xl shadow-blue-100/50 text-center max-w-xl w-full animate-in fade-in zoom-in duration-500">
-                    <div className="w-20 h-20 bg-green-50 text-green-500 rounded-full flex items-center justify-center mx-auto mb-8">
-                        <CheckCircle2 size={48} />
+            <div className="min-h-screen bg-[#FDFDFF] flex items-center justify-center p-6">
+                <div className="bg-white p-12 rounded-[2rem] shadow-sm text-center max-w-lg w-full border border-gray-50 animate-in fade-in zoom-in duration-700">
+                    <div className="w-20 h-20 bg-green-50 text-green-500 rounded-2xl flex items-center justify-center mx-auto mb-8 shadow-sm">
+                        <CheckCircle2 size={40} />
                     </div>
-                    <h1 className="text-3xl font-bold text-gray-900 mb-4">Response Submitted!</h1>
-                    <p className="text-gray-500 text-lg mb-10">Your response has been recorded. Thank you for taking the time to fill out this form.</p>
-                    <button
-                        onClick={() => {
-                            setSubmitted(false);
-                            setResponses({});
-                        }}
-                        className="text-blue-600 font-semibold hover:underline"
-                    >
-                        Submit another response
-                    </button>
+                    <h1 className="text-3xl font-bold text-gray-900 uppercase tracking-tight mb-2">Success!</h1>
+                    <p className="text-gray-500 text-sm font-medium mb-10 leading-relaxed">Your response has been securely transmitted.</p>
+                    <div className="flex flex-col items-center gap-4">
+                        <button
+                            onClick={() => {
+                                setSubmitted(false);
+                                setResponses({});
+                            }}
+                            className="px-10 py-3 bg-blue-600 text-white rounded-lg font-bold text-[10px] uppercase tracking-widest hover:bg-blue-700 transition-all shadow-sm"
+                        >
+                            Submit New Response
+                        </button>
+                    </div>
                 </div>
             </div>
         );
     }
 
     return (
-        <div className="min-h-screen bg-gray-50 pb-24">
-            <div className="max-w-3xl mx-auto pt-12 px-6">
+        <div className="min-h-screen bg-[#F8FAFC] pb-24">
+            <div className="max-w-2xl mx-auto pt-12 px-6">
                 <form onSubmit={handleSubmit} className="space-y-6">
-                    {/* Form Header */}
-                    <div className="bg-purple-600 rounded-2xl p-8 text-white shadow-xl shadow-purple-200/50 relative overflow-hidden">
-                        <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 blur-3xl"></div>
+                    {/* Compact Form Header */}
+                    <div className="bg-white rounded-2xl p-8 shadow-sm border border-gray-100 relative overflow-hidden group mb-8">
+                        <div className="absolute top-0 left-0 w-full h-1.5 bg-blue-600"></div>
                         <div className="relative">
-                            <h1 className="text-3xl font-bold mb-3">{form.title}</h1>
-                            {form.description && <p className="text-purple-100 text-lg">{form.description}</p>}
+                            <h1 className="text-2xl font-bold text-gray-900 tracking-tight mb-2 uppercase">{form.title}</h1>
+                            {form.description && <p className="text-gray-400 text-xs font-medium leading-relaxed">{form.description}</p>}
                         </div>
-                        <div className="absolute bottom-0 left-0 w-full h-1.5 bg-white/20"></div>
                     </div>
 
-                    {/* Form Elements */}
+                    {/* Dynamically Rendered Elements */}
                     <div className="space-y-4">
-                        {form.elements.map((el) => (
-                            <div key={el.id} className="bg-white rounded-2xl p-8 shadow-sm border border-gray-100">
-                                <label className="block text-lg font-semibold text-gray-900 mb-4">
+                        {form.elements.map((el, index) => (
+                            <div key={el.id} className="bg-white rounded-xl p-8 shadow-sm border border-gray-50 transition-all hover:bg-gray-50/10">
+                                <label className="block text-sm font-bold text-gray-900 mb-6 tracking-tight">
+                                    <span className="text-blue-500 mr-2 opacity-40 uppercase">{(index + 1).toString().padStart(2, '0')}.</span>
                                     {el.label}
-                                    {el.required && <span className="text-red-500 ml-1">*</span>}
+                                    {el.required && <span className="text-blue-600 ml-1 font-black">*</span>}
                                 </label>
 
                                 {el.type === 'short_answer' && (
@@ -142,7 +150,7 @@ export default function ViewForm() {
                                         placeholder={el.placeholder}
                                         value={responses[el.id] || ''}
                                         onChange={(e) => handleInputChange(el.id, e.target.value)}
-                                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all outline-none"
+                                        className="w-full px-5 py-3.5 bg-gray-50 border border-gray-100 rounded-xl focus:ring-1 focus:ring-blue-600 focus:bg-white transition-all outline-none font-semibold text-gray-900 text-sm"
                                     />
                                 )}
 
@@ -153,16 +161,18 @@ export default function ViewForm() {
                                         rows={4}
                                         value={responses[el.id] || ''}
                                         onChange={(e) => handleInputChange(el.id, e.target.value)}
-                                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all outline-none resize-none"
+                                        className="w-full px-5 py-4 bg-gray-50 border border-gray-100 rounded-xl focus:ring-1 focus:ring-blue-600 focus:bg-white transition-all outline-none resize-none font-semibold text-gray-900 text-sm leading-relaxed"
                                     />
                                 )}
 
                                 {(el.type === 'multiple_choice') && (
-                                    <div className="space-y-3">
+                                    <div className="grid grid-cols-1 gap-2">
                                         {el.options?.map((opt, i) => (
-                                            <label key={i} className="flex items-center gap-3 p-3 rounded-xl border border-transparent hover:bg-gray-50 cursor-pointer transition-colors group">
-                                                <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${responses[el.id] === opt ? 'border-blue-500 bg-blue-500' : 'border-gray-300'}`}>
-                                                    {responses[el.id] === opt && <div className="w-2 h-2 bg-white rounded-full"></div>}
+                                            <label key={i} className={`flex items-center gap-3 p-4 rounded-xl border transition-all cursor-pointer ${responses[el.id] === opt ? 'bg-blue-50/30 border-blue-600 shadow-sm' : 'bg-gray-50/50 border-gray-50 hover:border-gray-100 hover:bg-gray-50'
+                                                }`}>
+                                                <div className={`w-4 h-4 rounded-full border flex items-center justify-center transition-all ${responses[el.id] === opt ? 'border-blue-600 bg-blue-600' : 'border-gray-200'
+                                                    }`}>
+                                                    {responses[el.id] === opt && <div className="w-1.5 h-1.5 bg-white rounded-full"></div>}
                                                 </div>
                                                 <input
                                                     type="radio"
@@ -172,7 +182,7 @@ export default function ViewForm() {
                                                     checked={responses[el.id] === opt}
                                                     onChange={() => handleInputChange(el.id, opt)}
                                                 />
-                                                <span className={`text-base font-medium transition-colors ${responses[el.id] === opt ? 'text-blue-600' : 'text-gray-600'}`}>
+                                                <span className={`text-xs font-bold transition-colors ${responses[el.id] === opt ? 'text-blue-600' : 'text-gray-600'}`}>
                                                     {opt}
                                                 </span>
                                             </label>
@@ -181,15 +191,17 @@ export default function ViewForm() {
                                 )}
 
                                 {el.type === 'checkboxes' && (
-                                    <div className="space-y-3">
+                                    <div className="grid grid-cols-1 gap-2">
                                         {el.options?.map((opt, i) => {
                                             const currentValues = responses[el.id] || [];
                                             const isChecked = currentValues.includes(opt);
 
                                             return (
-                                                <label key={i} className="flex items-center gap-3 p-3 rounded-xl border border-transparent hover:bg-gray-50 cursor-pointer transition-colors group">
-                                                    <div className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all ${isChecked ? 'border-blue-500 bg-blue-500' : 'border-gray-300'}`}>
-                                                        {isChecked && <div className="w-3 h-3 text-white"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg></div>}
+                                                <label key={i} className={`flex items-center gap-3 p-4 rounded-xl border transition-all cursor-pointer ${isChecked ? 'bg-blue-50/30 border-blue-600 shadow-sm' : 'bg-gray-50/50 border-gray-50 hover:border-gray-100 hover:bg-gray-50'
+                                                    }`}>
+                                                    <div className={`w-4 h-4 rounded-sm border flex items-center justify-center transition-all ${isChecked ? 'border-blue-600 bg-blue-600' : 'border-gray-200'
+                                                        }`}>
+                                                        {isChecked && <Check size={10} strokeWidth={4} className="text-white" />}
                                                     </div>
                                                     <input
                                                         type="checkbox"
@@ -202,7 +214,7 @@ export default function ViewForm() {
                                                             handleInputChange(el.id, newValue);
                                                         }}
                                                     />
-                                                    <span className={`text-base font-medium transition-colors ${isChecked ? 'text-blue-600' : 'text-gray-600'}`}>
+                                                    <span className={`text-xs font-bold transition-colors ${isChecked ? 'text-blue-600' : 'text-gray-600'}`}>
                                                         {opt}
                                                     </span>
                                                 </label>
@@ -212,51 +224,34 @@ export default function ViewForm() {
                                 )}
 
                                 {el.type === 'dropdown' && (
-                                    <select
-                                        required={el.required}
-                                        value={responses[el.id] || ''}
-                                        onChange={(e) => handleInputChange(el.id, e.target.value)}
-                                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all outline-none appearance-none"
-                                    >
-                                        <option value="" disabled>{el.placeholder || 'Select an option'}</option>
-                                        {el.options?.map((opt, i) => (
-                                            <option key={i} value={opt}>{opt}</option>
-                                        ))}
-                                    </select>
-                                )}
-
-                                {el.type === 'date' && (
                                     <div className="relative">
-                                        <input
-                                            type="date"
+                                        <select
                                             required={el.required}
                                             value={responses[el.id] || ''}
                                             onChange={(e) => handleInputChange(el.id, e.target.value)}
-                                            className="w-full px-12 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all outline-none"
-                                        />
-                                        <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 text-blue-500 pointer-events-none" size={20} />
+                                            className="w-full px-5 py-3.5 bg-gray-50 border border-gray-100 rounded-xl focus:ring-1 focus:ring-blue-600 focus:bg-white transition-all outline-none appearance-none font-bold text-gray-900 text-xs"
+                                        >
+                                            <option value="" disabled>{el.placeholder || 'Select...'}</option>
+                                            {el.options?.map((opt, i) => (
+                                                <option key={i} value={opt}>{opt}</option>
+                                            ))}
+                                        </select>
+                                        <ChevronDown className="absolute right-5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={16} />
                                     </div>
                                 )}
 
-                                {el.type === 'file_upload' && (
-                                    <div className="w-full p-8 bg-gray-50 border-2 border-dashed border-gray-200 rounded-2xl flex flex-col items-center justify-center gap-3 text-gray-400">
-                                        <Upload size={24} className="text-blue-500" />
-                                        <div className="text-center">
-                                            <span className="text-sm font-bold text-gray-500 uppercase tracking-widest block mb-1">Upload functionality</span>
-                                            <span className="text-xs text-gray-400">(Saving files coming soon - enter file name for now)</span>
-                                        </div>
-                                        <input
-                                            type="text"
-                                            placeholder="Enter filename..."
-                                            value={responses[el.id] || ''}
-                                            onChange={(e) => handleInputChange(el.id, e.target.value)}
-                                            className="mt-2 w-full max-w-xs px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500"
-                                        />
-                                    </div>
+                                {el.type === 'date' && (
+                                    <input
+                                        type="date"
+                                        required={el.required}
+                                        value={responses[el.id] || ''}
+                                        onChange={(e) => handleInputChange(el.id, e.target.value)}
+                                        className="w-full px-5 py-3.5 bg-gray-50 border border-gray-100 rounded-xl focus:ring-1 focus:ring-blue-600 focus:bg-white transition-all outline-none font-bold text-gray-900 text-xs"
+                                    />
                                 )}
 
                                 {el.type === 'rating_scale' && (
-                                    <div className="flex flex-wrap gap-3">
+                                    <div className="flex flex-wrap gap-2">
                                         {Array.from({ length: el.maxRating || 5 }).map((_, i) => {
                                             const rating = i + 1;
                                             const isSelected = responses[el.id] >= rating;
@@ -265,47 +260,80 @@ export default function ViewForm() {
                                                     key={i}
                                                     type="button"
                                                     onClick={() => handleInputChange(el.id, rating)}
-                                                    className={`w-12 h-12 rounded-xl flex items-center justify-center transition-all duration-200 ${isSelected
-                                                            ? 'bg-yellow-50 text-yellow-500 border-yellow-200 shadow-sm'
-                                                            : 'bg-gray-50 text-gray-300 border-gray-100 hover:text-yellow-400 hover:bg-yellow-50'
-                                                        } border`}
+                                                    className={`w-10 h-10 rounded-lg flex items-center justify-center transition-all ${isSelected
+                                                        ? 'bg-blue-600 text-white shadow-sm'
+                                                        : 'bg-gray-50 text-gray-300 border border-gray-50 hover:text-yellow-400 hover:bg-yellow-50'
+                                                        }`}
                                                 >
-                                                    <Star size={24} fill={isSelected ? 'currentColor' : 'none'} />
+                                                    <Star size={20} fill={isSelected ? 'currentColor' : 'none'} strokeWidth={isSelected ? 0 : 2} />
                                                 </button>
                                             );
                                         })}
-                                        {responses[el.id] && (
-                                            <span className="ml-2 flex items-center text-sm font-bold text-yellow-600">
-                                                {responses[el.id]} / {el.maxRating || 5}
-                                            </span>
-                                        )}
                                     </div>
                                 )}
                             </div>
                         ))}
                     </div>
 
-                    <div className="pt-8">
+                    <div className="pt-10 flex flex-col items-center gap-8">
                         <button
                             type="submit"
                             disabled={isSubmitting}
-                            className="w-full py-5 bg-blue-600 text-white rounded-2xl font-bold text-xl hover:bg-blue-700 transition-all shadow-xl shadow-blue-200 hover:shadow-blue-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3"
+                            className="w-full max-w-xs py-4 bg-blue-600 text-white rounded-xl font-bold text-sm uppercase tracking-widest hover:bg-blue-700 transition-all shadow-sm flex items-center justify-center gap-3 disabled:opacity-50"
                         >
                             {isSubmitting ? (
                                 <>
-                                    <Loader2 size={24} className="animate-spin" />
-                                    <span>Submitting...</span>
+                                    <Loader2 size={18} className="animate-spin" />
+                                    <span>Syncing...</span>
                                 </>
                             ) : (
-                                <span>Submit Form</span>
+                                <>
+                                    <span>Submit Data</span>
+                                    <ArrowRight size={18} />
+                                </>
                             )}
                         </button>
-                        <p className="text-center text-gray-400 text-sm mt-6">
-                            Powered by <span className="font-bold text-gray-600">Formcraft</span>
-                        </p>
+
+                        <div className="flex items-center gap-2 opacity-30 select-none">
+                            <div className="w-5 h-5 bg-gray-900 rounded flex items-center justify-center text-white text-[8px] font-black">F</div>
+                            <span className="text-[10px] font-black text-gray-900 tracking-tighter uppercase">Formcraft</span>
+                        </div>
                     </div>
                 </form>
             </div>
+
+            {/* Minimal Progress indicator */}
+            {form.elements.length > 0 && (
+                <div className="fixed bottom-6 right-6 z-[100] hidden md:block">
+                    <div className="bg-white/90 backdrop-blur-md px-4 py-3 rounded-2xl border border-gray-100 shadow-sm flex items-center gap-4">
+                        <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">{Object.keys(responses).length} / {form.elements.length}</span>
+                        <div className="w-24 h-1 px bg-gray-100 rounded-full overflow-hidden">
+                            <div
+                                className="h-full bg-blue-600 transition-all duration-500"
+                                style={{ width: `${(Object.keys(responses).length / form.elements.length) * 100}%` }}
+                            />
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
+    );
+}
+
+function Check({ size, strokeWidth, className }: { size: number, strokeWidth: number, className?: string }) {
+    return (
+        <svg
+            width={size}
+            height={size}
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={strokeWidth}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className={className}
+        >
+            <polyline points="20 6 9 17 4 12" />
+        </svg>
     );
 }
