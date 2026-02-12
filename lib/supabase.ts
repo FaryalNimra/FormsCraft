@@ -50,3 +50,9 @@ export function generateUploadPath(formId: string, fileName: string): string {
   const extension = fileName.split('.').pop() || '';
   return `${formId}/${timestamp}-${randomSuffix}.${extension}`;
 }
+import { createClient } from '@supabase/supabase-js';
+
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+
+export const supabase = createClient(supabaseUrl, supabaseAnonKey);
