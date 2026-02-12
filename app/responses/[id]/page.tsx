@@ -86,8 +86,8 @@ export default function ResponseDashboard() {
                     <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
                         <div className="space-y-2">
                             <div className="flex items-center gap-2">
-                                <div className="w-6 h-1 bg-blue-600 rounded-full"></div>
-                                <span className="text-[10px] font-bold text-blue-600 uppercase tracking-widest">Insights</span>
+                                <div className="w-6 h-1 rounded-full" style={{ backgroundColor: (!data.form.theme_color || data.form.theme_color === '#2563eb') ? 'var(--primary-600)' : data.form.theme_color }}></div>
+                                <span className="text-[10px] font-bold uppercase tracking-widest" style={{ color: (!data.form.theme_color || data.form.theme_color === '#2563eb') ? 'var(--primary-600)' : data.form.theme_color }}>Insights</span>
                             </div>
                             <h1 className="text-3xl font-bold text-gray-900 tracking-tight leading-tight">{data.form.title}</h1>
                         </div>
@@ -102,23 +102,18 @@ export default function ResponseDashboard() {
                     </div>
                 </header>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-10">
-                    <div className="bg-blue-600 rounded-2xl p-6 text-white shadow-sm relative overflow-hidden">
+                <div className="grid grid-cols-1 md:grid-cols-1 gap-4 mb-10">
+                    <div
+                        className="rounded-2xl p-6 text-white shadow-sm relative overflow-hidden transition-all"
+                        style={{
+                            backgroundColor: (!data.form.theme_color || data.form.theme_color === '#2563eb')
+                                ? 'var(--primary-600)'
+                                : data.form.theme_color
+                        }}
+                    >
                         <p className="text-[9px] font-bold uppercase tracking-widest opacity-60 mb-4">Reach</p>
                         <h2 className="text-4xl font-black tracking-tighter mb-1">{data.responsesWithAnswers.length}</h2>
                         <span className="text-[10px] font-medium opacity-60 uppercase">Entries</span>
-                    </div>
-
-                    <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
-                        <p className="text-[9px] font-bold uppercase tracking-widest text-indigo-500 mb-4">Completion</p>
-                        <h2 className="text-4xl font-black tracking-tighter mb-1 text-gray-900">94%</h2>
-                        <span className="text-[10px] font-medium text-gray-400 uppercase">Average</span>
-                    </div>
-
-                    <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
-                        <p className="text-[9px] font-bold uppercase tracking-widest text-purple-500 mb-4">Engage</p>
-                        <h2 className="text-4xl font-black tracking-tighter mb-1 text-gray-900">1.2m</h2>
-                        <span className="text-[10px] font-medium text-gray-400 uppercase">Avg. Time</span>
                     </div>
                 </div>
 
@@ -142,8 +137,8 @@ export default function ResponseDashboard() {
                                     <div
                                         key={resp.id}
                                         className={`bg-white rounded-2xl border transition-all duration-300 ${isExpanded
-                                                ? 'border-blue-300 shadow-lg'
-                                                : 'border-gray-50 hover:border-gray-100'
+                                            ? 'border-blue-300 shadow-lg'
+                                            : 'border-gray-50 hover:border-gray-100'
                                             }`}
                                     >
                                         <div

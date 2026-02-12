@@ -5,6 +5,24 @@
   --color-foreground: var(--foreground);
   --font-sans: "Inter", var(--font-geist-sans);
 
+  /* Global Theme Variables */
+  --primary-600: #2563eb;
+  --primary-700: #1d4ed8;
+  --primary-50: #eff6ff;
+
+  /* Comprehensive Blue scale overrides for Workspace themes */
+  --color-blue-50: var(--primary-50);
+  --color-blue-100: color-mix(in srgb, var(--primary-600) 10%, white);
+  --color-blue-200: color-mix(in srgb, var(--primary-600) 20%, white);
+  --color-blue-300: color-mix(in srgb, var(--primary-600) 40%, white);
+  --color-blue-400: color-mix(in srgb, var(--primary-600) 60%, white);
+  --color-blue-500: var(--primary-600);
+  --color-blue-600: var(--primary-600);
+  --color-blue-700: var(--primary-700);
+  --color-blue-800: color-mix(in srgb, var(--primary-600) 80%, black);
+  --color-blue-900: color-mix(in srgb, var(--primary-600) 90%, black);
+  --color-blue-950: color-mix(in srgb, var(--primary-600) 95%, black);
+
   --color-brand-blue: #2563eb;
   --color-brand-indigo: #4f46e5;
   --color-brand-purple: #7c3aed;
