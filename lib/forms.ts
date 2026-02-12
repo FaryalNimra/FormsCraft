@@ -120,15 +120,107 @@ export async function getForm(id: string) {
 }
 
 export async function saveResponse(formId: string, responses: Record<string, any>) {
-    const { data, error } = await supabase
-        .from('form_responses')
+    // 1. Create a record in the 'responses' table
+    const { data: responseData, error: responseError } = await supabase
+        .from('responses')
         .insert({
             form_id: formId,
-            responses
+            submitted_at: new Date().toISOString()
         })
         .select()
         .single();
 
-    if (error) throw error;
-    return data;
+    if (responseError) throw responseError;
+
+    const responseId = responseData.id;
+
+    // 2. Map form responses to 'response_answers' table format
+    const answersToInsert = Object.entries(responses).map(([elementId, answer]) => ({
+        response_id: responseId,
+        element_id: elementId,
+        answer: Array.isArray(answer) ? answer.join(', ') : String(answer),
+    }));
+
+    // 3. Insert all answers into the 'response_answers' table
+    if (answersToInsert.length > 0) {
+        const { error: answersError } = await supabase
+            .from('response_answers')
+            .insert(answersToInsert);
+
+        if (answersError) throw answersError;
+    }
+
+    return responseData;
+}
+
+export async function getAllFormsWithStats() {
+    // 1. Fetch all forms
+    const { data: forms, error: formsError } = await supabase
+        .from('forms')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+    if (formsError) throw formsError;
+
+    // 2. Fetch response counts for all forms
+    const { data: counts, error: countsError } = await supabase
+        .from('responses')
+        .select('form_id');
+
+    if (countsError) throw countsError;
+
+    // 3. Map counts to forms
+    const statsMap = counts.reduce((acc: Record<string, number>, curr: any) => {
+        acc[curr.form_id] = (acc[curr.form_id] || 0) + 1;
+        return acc;
+    }, {});
+
+    return forms.map(form => ({
+        ...form,
+        response_count: statsMap[form.id] || 0
+    }));
+}
+
+export async function getResponseDetails(formId: string) {
+    // 1. Fetch form metadata and elements
+    const form = await getForm(formId);
+
+    // 2. Fetch all responses for this form
+    const { data: responses, error: responsesError } = await supabase
+        .from('responses')
+        .select('*')
+        .eq('form_id', formId)
+        .order('submitted_at', { ascending: false });
+
+    if (responsesError) throw responsesError;
+
+    if (responses.length === 0) return { form, responsesWithAnswers: [] };
+
+    // 3. Fetch all answers for these responses
+    const responseIds = responses.map(r => r.id);
+    const { data: answers, error: answersError } = await supabase
+        .from('response_answers')
+        .select('*')
+        .in('response_id', responseIds);
+
+    if (answersError) throw answersError;
+
+    // 4. Map answers to responses
+    const responsesWithAnswers = responses.map(r => {
+        const responseAnswers = answers.filter(a => a.response_id === r.id);
+        const answersMap = responseAnswers.reduce((acc: Record<string, string>, curr: any) => {
+            acc[curr.element_id] = curr.answer;
+            return acc;
+        }, {});
+
+        return {
+            ...r,
+            answers: answersMap
+        };
+    });
+
+    return {
+        form,
+        responsesWithAnswers
+    };
 }

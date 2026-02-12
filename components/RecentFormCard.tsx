@@ -1,14 +1,19 @@
 import { FileText } from 'lucide-react';
 
 interface RecentFormCardProps {
+    id: string;
     name: string;
     time: string;
     responses: number;
+    onClick?: () => void;
 }
 
-export default function RecentFormCard({ name, time, responses }: RecentFormCardProps) {
+export default function RecentFormCard({ id, name, time, responses, onClick }: RecentFormCardProps) {
     return (
-        <div className="p-5 bg-white border border-gray-100 rounded-2xl shadow-sm hover:shadow-md transition-shadow cursor-pointer flex flex-col gap-4 relative">
+        <div
+            onClick={onClick}
+            className="p-5 bg-white border border-gray-100 rounded-2xl shadow-sm hover:shadow-md transition-shadow cursor-pointer flex flex-col gap-4 relative group"
+        >
             <div className="absolute top-4 right-4 text-xs text-gray-400 font-medium">
                 {time}
             </div>

@@ -1,4 +1,4 @@
-import { LucideIcon } from 'lucide-react';
+import { LucideIcon, ArrowUpRight } from 'lucide-react';
 
 interface ActionCardProps {
     icon: LucideIcon;
@@ -13,14 +13,20 @@ export default function ActionCard({ icon: Icon, title, description, iconBgColor
     return (
         <div
             onClick={onClick}
-            className="p-6 bg-white border border-gray-100 rounded-2xl shadow-sm hover:shadow-md transition-shadow cursor-pointer flex flex-col gap-4"
+            className="p-5 bg-white border border-gray-100 rounded-xl shadow-sm hover:shadow-md hover:border-blue-100 transition-all cursor-pointer flex flex-col gap-4 group"
         >
-            <div className={`w-12 h-12 flex items-center justify-center rounded-xl ${iconBgColor} ${iconColor}`}>
-                <Icon size={24} />
+            <div className="flex items-start justify-between">
+                <div className={`w-10 h-10 flex items-center justify-center rounded-lg ${iconBgColor} ${iconColor} transition-transform group-hover:scale-105`}>
+                    <Icon size={20} />
+                </div>
+                <div className="text-gray-300 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <ArrowUpRight size={14} />
+                </div>
             </div>
-            <div>
-                <h3 className="text-lg font-bold text-gray-900">{title}</h3>
-                <p className="text-sm text-gray-500">{description}</p>
+
+            <div className="space-y-1">
+                <h3 className="text-xs font-bold text-gray-900 uppercase tracking-widest">{title}</h3>
+                <p className="text-gray-400 text-[10px] font-medium leading-relaxed line-clamp-1">{description}</p>
             </div>
         </div>
     );
