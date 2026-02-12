@@ -13,7 +13,7 @@ export default function ActionCard({ icon: Icon, title, description, iconBgColor
     return (
         <div
             onClick={onClick}
-            className="p-5 bg-white border border-gray-100 rounded-xl shadow-sm hover:shadow-md hover:border-blue-100 transition-all cursor-pointer flex flex-col gap-4 group"
+            className="p-5 bg-white border border-gray-100 rounded-xl shadow-sm hover:shadow-md transition-all cursor-pointer flex flex-col gap-4 group hover:border-[var(--primary-600)]"
         >
             <div className="flex items-start justify-between">
                 <div className={`w-10 h-10 flex items-center justify-center rounded-lg ${iconBgColor} ${iconColor} transition-transform group-hover:scale-105`}>

@@ -5,7 +5,7 @@ import ActionCard from '@/components/ActionCard';
 import { Plus, Layout, BarChart2, Loader2, FileText, Eye, Edit2, MessageSquare, MoreVertical, Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
-import { getAllFormsWithStats } from '@/lib/forms';
+import { getAllFormsWithStats, deleteForm } from '@/lib/forms';
 
 export default function Home() {
   const router = useRouter();
@@ -27,6 +27,18 @@ export default function Home() {
     }
   };
 
+  const handleDelete = async (id: string, title: string) => {
+    if (confirm(`Are you sure you want to delete "${title}"? This cannot be undone.`)) {
+      try {
+        await deleteForm(id);
+        fetchForms();
+      } catch (error) {
+        console.error('Failed to delete form:', error);
+        alert('Failed to delete form. Please check console for details.');
+      }
+    }
+  };
+
   const formatTime = (dateString: string) => {
     const now = new Date();
     const date = new Date(dateString);
@@ -45,7 +57,7 @@ export default function Home() {
       <main className="max-w-6xl mx-auto px-6 py-8">
         <header className="mb-8">
           <div className="flex items-center gap-2 mb-2">
-            <div className="w-8 h-1 bg-blue-600 rounded-full"></div>
+            <div className="w-8 h-1 rounded-full" style={{ backgroundColor: 'var(--primary-600)' }}></div>
             <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Workspace Overview</span>
           </div>
           <h1 className="text-3xl font-extrabold text-gray-900 mb-2 tracking-tight">
@@ -69,15 +81,15 @@ export default function Home() {
             icon={Layout}
             title="Templates"
             description="Start with a layout"
-            iconBgColor="bg-indigo-50"
-            iconColor="text-indigo-600"
+            iconBgColor="bg-blue-50"
+            iconColor="text-blue-600"
           />
           <ActionCard
             icon={BarChart2}
             title="Insights"
             description="Deep dive into data"
-            iconBgColor="bg-purple-50"
-            iconColor="text-purple-600"
+            iconBgColor="bg-blue-50"
+            iconColor="text-blue-600"
           />
         </div>
 
@@ -154,8 +166,8 @@ export default function Home() {
                         </td>
                         <td className="px-4 py-4">
                           <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider border ${form.status === 'published'
-                              ? 'bg-green-50 text-green-600 border-green-100'
-                              : 'bg-amber-50 text-amber-600 border-amber-100'
+                            ? 'bg-green-50 text-green-600 border-green-100'
+                            : 'bg-amber-50 text-amber-600 border-amber-100'
                             }`}>
                             {form.status}
                           </span>
@@ -170,23 +182,24 @@ export default function Home() {
                           </div>
                         </td>
                         <td className="px-6 py-4 text-right">
-                          <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <div className="flex items-center justify-end gap-2">
                             <button
                               onClick={(e) => { e.stopPropagation(); router.push(`/responses/${form.id}`); }}
-                              className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
+                              className="p-2 text-black hover:bg-gray-100 rounded-lg transition-all"
                               title="View"
                             >
                               <Eye size={16} />
                             </button>
                             <button
                               onClick={(e) => { e.stopPropagation(); router.push(`/builder?id=${form.id}`); }}
-                              className="p-2 text-gray-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-all"
+                              className="p-2 text-black hover:bg-gray-100 rounded-lg transition-all"
                               title="Edit"
                             >
                               <Edit2 size={16} />
                             </button>
                             <button
-                              className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
+                              onClick={(e) => { e.stopPropagation(); handleDelete(form.id, form.title); }}
+                              className="p-2 text-black hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
                               title="Delete"
                             >
                               <Trash2 size={16} />

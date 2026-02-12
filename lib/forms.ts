@@ -18,6 +18,7 @@ export interface Form {
     description?: string;
     elements: FormElement[];
     status: 'draft' | 'published';
+    theme_color?: string;
 }
 
 export async function saveForm(form: Form) {
@@ -31,6 +32,7 @@ export async function saveForm(form: Form) {
                 title: form.title,
                 description: form.description,
                 status: form.status,
+                theme_color: form.theme_color || '#2563eb',
                 updated_at: new Date().toISOString()
             })
             .eq('id', formId);
@@ -42,7 +44,8 @@ export async function saveForm(form: Form) {
             .insert({
                 title: form.title,
                 description: form.description,
-                status: form.status
+                status: form.status,
+                theme_color: form.theme_color || '#2563eb'
             })
             .select()
             .single();
@@ -223,4 +226,42 @@ export async function getResponseDetails(formId: string) {
         form,
         responsesWithAnswers
     };
+}
+export async function deleteForm(id: string) {
+    // 1. Delete associated data first (to handle potential lack of CASCADE)
+
+    // Delete response answers
+    const { data: responses } = await supabase
+        .from('responses')
+        .select('id')
+        .eq('form_id', id);
+
+    if (responses && responses.length > 0) {
+        const responseIds = responses.map(r => r.id);
+        await supabase
+            .from('response_answers')
+            .delete()
+            .in('response_id', responseIds);
+
+        await supabase
+            .from('responses')
+            .delete()
+            .eq('form_id', id);
+    }
+
+    // Delete elements
+    await supabase
+        .from('form_elements')
+        .delete()
+        .eq('form_id', id);
+
+    // 2. Finally delete the form
+    const { error } = await supabase
+        .from('forms')
+        .delete()
+        .eq('id', id);
+
+    if (error) throw error;
+
+    return { success: true };
 }

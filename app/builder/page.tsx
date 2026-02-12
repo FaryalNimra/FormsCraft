@@ -22,8 +22,9 @@ import {
     Check
 } from 'lucide-react';
 import Link from 'next/link';
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { saveForm, FormElement, ElementType } from '@/lib/forms';
+import { useSearchParams } from 'next/navigation';
+import { useState, useEffect, useCallback, useRef, Suspense } from 'react';
+import { saveForm, getForm, FormElement, ElementType } from '@/lib/forms';
 
 const ELEMENT_ICONS: Record<ElementType, any> = {
     short_answer: Type,
@@ -47,15 +48,26 @@ const ELEMENT_LABELS: Record<ElementType, string> = {
     rating_scale: 'Rating Scale',
 };
 
-export default function FormBuilder() {
+export default function FormBuilderPage() {
+    return (
+        <Suspense fallback={<div>Loading...</div>}>
+            <FormBuilder />
+        </Suspense>
+    );
+}
+
+function FormBuilder() {
     const [formId, setFormId] = useState<string | null>(null);
     const [title, setTitle] = useState('Untitled Form');
     const [description, setDescription] = useState('Collect valuable feedback with ease.');
     const [status, setStatus] = useState<'draft' | 'published'>('draft');
+    const [themeColor, setThemeColor] = useState('#2563eb');
     const [isPreview, setIsPreview] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
     const [lastSaved, setLastSaved] = useState<Date | null>(null);
     const [isMounted, setIsMounted] = useState(false);
+    const searchParams = useSearchParams();
+    const editId = searchParams.get('id');
     const [isSendModalOpen, setIsSendModalOpen] = useState(false);
     const [copySuccess, setCopySuccess] = useState(false);
     const [isLocalSaved, setIsLocalSaved] = useState(false);
@@ -71,16 +83,37 @@ export default function FormBuilder() {
         const savedProgress = localStorage.getItem('formcraft_progress');
         if (savedProgress && !formId) {
             try {
-                const { title: st, description: sd, elements: se } = JSON.parse(savedProgress);
+                const { title: st, description: sd, elements: se, themeColor: stc } = JSON.parse(savedProgress);
                 setTitle(st);
                 setDescription(sd);
                 setFormElements(se);
+                if (stc) setThemeColor(stc);
                 if (se.length > 0) setActiveElementId(se[0].id);
             } catch (e) {
                 console.error('Failed to load local progress:', e);
             }
         }
     }, [formId]);
+
+    useEffect(() => {
+        if (editId) {
+            const fetchForm = async () => {
+                setFormId(editId);
+                try {
+                    const form = await getForm(editId);
+                    setTitle(form.title);
+                    setDescription(form.description || '');
+                    setFormElements(form.elements);
+                    setStatus(form.status);
+                    if (form.theme_color) setThemeColor(form.theme_color);
+                    if (form.elements.length > 0) setActiveElementId(form.elements[0].id);
+                } catch (error) {
+                    console.error("Failed to load form", error);
+                }
+            };
+            fetchForm();
+        }
+    }, [editId]);
 
     const triggerSave = useCallback(async (currentData: { id: string | null, title: string, description: string, elements: FormElement[], status: 'draft' | 'published' }) => {
         setIsSaving(true);
@@ -90,14 +123,15 @@ export default function FormBuilder() {
                 title: currentData.title,
                 description: currentData.description,
                 elements: currentData.elements,
-                status: currentData.status
+                status: currentData.status,
+                theme_color: themeColor
             });
             if (!currentData.id) setFormId(saved.id ?? null);
             setLastSaved(new Date());
             setIsLocalSaved(false);
             localStorage.removeItem('formcraft_progress');
         } catch (error: any) {
-            console.error('Save failed:', error.message || error);
+            console.error('Save failed:', error);
         } finally {
             setIsSaving(false);
         }
@@ -108,7 +142,7 @@ export default function FormBuilder() {
         if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
 
         autoSaveTimerRef.current = setTimeout(() => {
-            const progress = { title, description, elements: formElements };
+            const progress = { title, description, elements: formElements, themeColor };
             localStorage.setItem('formcraft_progress', JSON.stringify(progress));
             setIsLocalSaved(true);
         }, 2000);
@@ -124,17 +158,28 @@ export default function FormBuilder() {
     };
 
     const handleSend = async () => {
+        setIsSaving(true);
         setStatus('published');
-        const saved = await saveForm({
-            id: formId || undefined,
-            title,
-            description,
-            elements: formElements,
-            status: 'published'
-        });
-        if (!formId) setFormId(saved.id ?? null);
-        setLastSaved(new Date());
-        setIsSendModalOpen(true);
+        try {
+            const saved = await saveForm({
+                id: formId || undefined,
+                title,
+                description,
+                elements: formElements,
+                status: 'published',
+                theme_color: themeColor
+            });
+            if (!formId) setFormId(saved.id ?? null);
+            setLastSaved(new Date());
+            setIsLocalSaved(false);
+            localStorage.removeItem('formcraft_progress');
+            setIsSendModalOpen(true);
+        } catch (error: any) {
+            console.error('Publish failed:', error);
+            alert(`Publish failed: ${error.message || 'Unknown error'}. Check console for details.`);
+        } finally {
+            setIsSaving(false);
+        }
     };
 
     const copyLink = () => {
@@ -294,23 +339,34 @@ export default function FormBuilder() {
                 <main className="flex-1 overflow-y-auto p-6 lg:p-10 flex justify-center bg-[#F8FAFC]">
                     <div className="w-full max-w-xl space-y-6 pb-24">
                         {/* Interactive Form Header */}
-                        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 relative overflow-hidden group">
-                            <div className="absolute top-0 left-0 w-full h-1 bg-blue-600"></div>
-                            <div className="relative">
+                        <div
+                            className="rounded-2xl shadow-lg border border-transparent relative overflow-hidden group transition-all"
+                            style={{
+                                backgroundColor: themeColor === '#2563eb' ? 'var(--primary-600)' : themeColor,
+                                backgroundImage: themeColor === '#2563eb'
+                                    ? 'linear-gradient(135deg, var(--primary-600) 0%, var(--primary-700) 100%)'
+                                    : `linear-gradient(135deg, ${themeColor} 0%, ${themeColor}ee 100%)`
+                            }}
+                        >
+                            <div className="absolute top-0 left-0 w-full h-1 bg-white/20"></div>
+                            <div className="p-8 pb-10">
                                 <input
                                     type="text"
                                     value={title}
                                     onChange={(e) => setTitle(e.target.value)}
-                                    className="text-2xl font-bold text-gray-900 bg-transparent border-none outline-none w-full placeholder:text-gray-200 block transition-all tracking-tight"
-                                    placeholder="Form Title"
+                                    className="text-3xl font-extrabold text-white bg-transparent border-none outline-none w-full placeholder:text-white/40 block transition-all tracking-tight leading-tight"
+                                    placeholder="Untitled Form"
                                 />
-                                <input
-                                    type="text"
-                                    value={description}
-                                    onChange={(e) => setDescription(e.target.value)}
-                                    className="text-gray-400 text-xs font-medium bg-transparent border-none outline-none w-full placeholder:text-gray-200 block mt-1"
-                                    placeholder="Description..."
-                                />
+                                <div className="mt-3 relative group/desc">
+                                    <textarea
+                                        value={description}
+                                        onChange={(e) => setDescription(e.target.value)}
+                                        className="text-white/80 text-sm font-medium bg-transparent border-none outline-none w-full placeholder:text-white/40 block resize-none min-h-[24px] leading-relaxed"
+                                        placeholder="Add a description..."
+                                        rows={1}
+                                    />
+                                    <div className="absolute bottom-0 left-0 w-12 h-0.5 bg-white/10 group-hover/desc:bg-white/30 transition-colors"></div>
+                                </div>
                             </div>
                         </div>
 
@@ -320,13 +376,90 @@ export default function FormBuilder() {
                                 const Icon = ELEMENT_ICONS[el.type];
                                 const isActive = activeElementId === el.id;
 
+                                if (isPreview) {
+                                    return (
+                                        <div key={el.id} className="bg-white rounded-lg p-6 shadow-sm border border-gray-200 transition-all">
+                                            <label className="block text-base font-medium text-gray-900 mb-6 leading-normal">
+                                                {el.label}
+                                                {el.required && <span className="text-red-600 ml-1">*</span>}
+                                            </label>
+
+                                            {el.type === 'short_answer' && (
+                                                <input
+                                                    disabled
+                                                    placeholder="Short answer text"
+                                                    className="w-full border-b border-gray-300 py-2 text-sm text-gray-900 placeholder:text-gray-400 bg-transparent"
+                                                />
+                                            )}
+
+                                            {el.type === 'multiple_choice' && (
+                                                <div className="space-y-4">
+                                                    {el.options?.map((opt, i) => (
+                                                        <div key={i} className="flex items-center gap-3">
+                                                            <div className="w-5 h-5 rounded-full border-2 border-gray-300"></div>
+                                                            <span className="text-sm font-normal text-gray-800">{opt}</span>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+
+                                            {el.type === 'paragraph' && (
+                                                <textarea
+                                                    disabled
+                                                    placeholder="Long answer text"
+                                                    className="w-full border-b border-gray-300 py-2 text-sm text-gray-900 placeholder:text-gray-400 bg-transparent resize-none"
+                                                />
+                                            )}
+
+                                            {el.type === 'checkboxes' && (
+                                                <div className="space-y-4">
+                                                    {el.options?.map((opt, i) => (
+                                                        <div key={i} className="flex items-center gap-3">
+                                                            <div className="w-5 h-5 rounded border-2 border-gray-300 transition-all"></div>
+                                                            <span className="text-sm font-normal text-gray-800">{opt}</span>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+
+                                            {el.type === 'dropdown' && (
+                                                <div className="relative max-w-xs">
+                                                    <div className="w-full px-3 py-3 bg-white border border-gray-300 rounded text-sm text-gray-400 flex items-center justify-between">
+                                                        <span>Select option</span>
+                                                        <ChevronDown size={18} />
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {el.type === 'date' && (
+                                                <div className="w-full max-w-xs px-3 py-2 bg-white border border-gray-300 rounded text-sm text-gray-400 flex items-center justify-between">
+                                                    <span>mm/dd/yyyy</span>
+                                                    <Calendar size={16} />
+                                                </div>
+                                            )}
+
+                                            {el.type === 'rating_scale' && (
+                                                <div className="flex flex-wrap gap-4 items-center">
+                                                    <div className="flex gap-1">
+                                                        {Array.from({ length: el.maxRating || 5 }).map((_, i) => (
+                                                            <div key={i} className="w-10 h-10 rounded-full border border-gray-100 bg-gray-50 flex items-center justify-center text-gray-300">
+                                                                <span className="text-xs font-bold">{i + 1}</span>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    );
+                                }
+
                                 return (
                                     <div
                                         key={el.id}
                                         onClick={() => setActiveElementId(el.id)}
                                         className={`bg-white rounded-xl p-6 shadow-sm relative group cursor-pointer border transition-all ${isActive
-                                                ? 'border-blue-400 ring-4 ring-blue-50'
-                                                : 'border-transparent hover:border-gray-100'
+                                            ? 'border-[var(--primary-600)] ring-4 ring-[var(--primary-50)]'
+                                            : 'border-transparent hover:border-gray-100'
                                             }`}
                                     >
                                         <div className="absolute -left-8 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-all cursor-grab hidden md:flex text-gray-300">
@@ -336,10 +469,14 @@ export default function FormBuilder() {
                                         <div className="flex items-center justify-between mb-4">
                                             <div className="flex items-center gap-2">
                                                 <div className={`w-7 h-7 rounded-lg flex items-center justify-center transition-all ${isActive ? 'bg-blue-600 text-white shadow-sm' : 'bg-gray-50 text-gray-400 group-hover:bg-blue-50 group-hover:text-blue-600'
-                                                    }`}>
+                                                    }`}
+                                                    style={isActive ? { backgroundColor: 'var(--primary-600)' } : {}}
+                                                >
                                                     <Icon size={14} />
                                                 </div>
-                                                <span className={`text-[9px] font-bold uppercase tracking-widest ${isActive ? 'text-blue-600' : 'text-gray-400'}`}>
+                                                <span className={`text-[9px] font-bold uppercase tracking-widest ${isActive ? '' : 'text-gray-400'}`}
+                                                    style={isActive ? { color: 'var(--primary-600)' } : {}}
+                                                >
                                                     {ELEMENT_LABELS[el.type]}
                                                 </span>
                                             </div>
@@ -363,7 +500,10 @@ export default function FormBuilder() {
                                         </div>
 
                                         <div className="space-y-4">
-                                            <h3 className="text-sm font-bold text-gray-900 tracking-tight leading-snug">{el.label}</h3>
+                                            <h3 className="text-sm font-bold text-gray-900 tracking-tight leading-snug">
+                                                {el.label}
+                                                {el.required && <span className="text-red-500 ml-1">*</span>}
+                                            </h3>
 
                                             {(el.type === 'short_answer' || el.type === 'paragraph') && (
                                                 <div className={`w-full bg-gray-50 border border-gray-100 rounded-lg px-4 flex items-center text-gray-300 text-xs italic ${el.type === 'paragraph' ? 'h-20 py-3 items-start' : 'h-10'}`}>
@@ -424,7 +564,7 @@ export default function FormBuilder() {
                                 <div className="space-y-6 animate-in fade-in duration-300">
                                     <div className="flex items-center justify-between">
                                         <h2 className="text-[10px] font-bold text-gray-900 uppercase tracking-widest">Configuration</h2>
-                                        <button onClick={() => setActiveElementId(null)} className="p-1.5 text-gray-300 hover:text-gray-900"><X size={16} /></button>
+                                        <button onClick={() => setActiveElementId(null)} className="p-1.5 text-gray-300 hover:text-gray-900 transition-colors"><X size={16} /></button>
                                     </div>
 
                                     <div className="space-y-6">
@@ -483,8 +623,41 @@ export default function FormBuilder() {
                                     </div>
                                 </div>
                             ) : (
-                                <div className="flex flex-col items-center justify-center p-10 text-center text-gray-300">
-                                    <h3 className="text-[9px] font-bold uppercase tracking-widest">Select Layer</h3>
+                                <div className="space-y-6 animate-in fade-in duration-300">
+                                    <div className="space-y-4">
+                                        <h2 className="text-[10px] font-bold text-gray-900 uppercase tracking-widest">Global Style</h2>
+                                        <div className="space-y-3">
+                                            <label className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Theme Color</label>
+                                            <div className="grid grid-cols-6 gap-2">
+                                                {['#2563eb', '#4f46e5', '#7c3aed', '#db2777', '#dc2626', '#ea580c', '#16a34a', '#0891b2', '#18181b'].map((color) => (
+                                                    <button
+                                                        key={color}
+                                                        onClick={() => setThemeColor(color)}
+                                                        className={`w-8 h-8 rounded-full border-2 transition-all ${themeColor === color ? 'border-gray-900 scale-110 shadow-sm' : 'border-transparent hover:scale-105'
+                                                            }`}
+                                                        style={{ backgroundColor: color }}
+                                                    />
+                                                ))}
+                                                <div className="relative group">
+                                                    <input
+                                                        type="color"
+                                                        value={themeColor}
+                                                        onChange={(e) => setThemeColor(e.target.value)}
+                                                        className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                                                    />
+                                                    <div
+                                                        className="w-8 h-8 rounded-full border border-gray-100 flex items-center justify-center bg-white text-gray-400 group-hover:bg-gray-50 bg-gradient-to-br from-gray-50 to-white"
+                                                    >
+                                                        <Plus size={12} />
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="pt-6 border-t border-gray-50 flex flex-col items-center justify-center p-6 text-center text-gray-300">
+                                        <h3 className="text-[9px] font-bold uppercase tracking-widest">Select an element to configure</h3>
+                                    </div>
                                 </div>
                             )
                         ) : (
