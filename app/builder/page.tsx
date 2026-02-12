@@ -78,10 +78,14 @@ function FormBuilder() {
     ]);
     const [activeElementId, setActiveElementId] = useState<string | null>('1');
 
+    // EFF: User requested "always empty form" on new creation.
+    // Disabling auto-restore of drafts.
+    /*
     useEffect(() => {
         setIsMounted(true);
         const savedProgress = localStorage.getItem('formcraft_progress');
-        if (savedProgress && !formId) {
+        // Only load draft if we are NOT in edit mode (no editId) and no formId is set yet
+        if (savedProgress && !formId && !editId) {
             try {
                 const { title: st, description: sd, elements: se, themeColor: stc } = JSON.parse(savedProgress);
                 setTitle(st);
@@ -93,7 +97,9 @@ function FormBuilder() {
                 console.error('Failed to load local progress:', e);
             }
         }
-    }, [formId]);
+    }, [formId, editId]);
+    */
+    useEffect(() => { setIsMounted(true); }, []);
 
     useEffect(() => {
         if (editId) {
@@ -141,6 +147,10 @@ function FormBuilder() {
         if (!isMounted) return;
         if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
 
+        // If we are editing an existing form (formId is present), DO NOT overwrite the "new form" draft in localStorage.
+        // We only use localStorage for completely new, unsaved forms.
+        if (formId) return;
+
         autoSaveTimerRef.current = setTimeout(() => {
             const progress = { title, description, elements: formElements, themeColor };
             localStorage.setItem('formcraft_progress', JSON.stringify(progress));
@@ -150,7 +160,16 @@ function FormBuilder() {
         return () => {
             if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
         };
-    }, [title, description, formElements, isMounted]);
+    }, [title, description, formElements, isMounted, formId]);
+
+    const clearDraft = () => {
+        localStorage.removeItem('formcraft_progress');
+        setTitle('Untitled Form');
+        setDescription('Collect valuable feedback with ease.');
+        setFormElements([{ id: '1', type: 'short_answer', label: 'What is your name?', placeholder: 'e.g. John Doe', required: true }]);
+        setActiveElementId('1');
+        setIsLocalSaved(false);
+    };
 
     const handleSaveDraft = async () => {
         setStatus('draft');
@@ -298,6 +317,15 @@ function FormBuilder() {
                             <Save size={14} />
                             Save
                         </button>
+                        {!formId && (
+                            <button
+                                onClick={clearDraft}
+                                className="flex items-center gap-1.5 px-3 py-1 text-gray-400 hover:text-red-600 hover:bg-white rounded-md transition-all disabled:opacity-50 text-[10px] font-bold uppercase"
+                                title="Clear Draft / Reset"
+                            >
+                                <Trash2 size={14} />
+                            </button>
+                        )}
                         <button
                             onClick={handleSend}
                             disabled={isSaving}
