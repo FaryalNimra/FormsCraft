@@ -141,6 +141,244 @@ FormsCraft/
 
 ---
 
+## 🎨 UI COMPONENT LIBRARY: shadcn/ui
+
+> **Why shadcn/ui?** Google Forms has a clean, minimal, professional UI. shadcn/ui provides beautiful, accessible components that we can customize to match that aesthetic.
+
+### 📦 Initial Setup (Do this FIRST before Phase 2)
+
+```bash
+# Run in terminal (Huzaifa does this once)
+npx shadcn@latest init
+
+# When prompted, select:
+# ✔ TypeScript: Yes
+# ✔ Style: Default
+# ✔ Base color: Neutral (or Slate for Google-like gray)
+# ✔ CSS variables: Yes
+# ✔ Tailwind config: tailwind.config.ts
+# ✔ Components path: @/components/ui
+# ✔ Utils path: @/lib/utils
+```
+
+### 📋 Components to Install by Phase
+
+```
+╔═══════════════════════════════════════════════════════════════════════════╗
+║                     SHADCN/UI COMPONENTS BY PHASE                         ║
+╠═══════════════════════════════════════════════════════════════════════════╣
+║                                                                           ║
+║  PHASE 2 - Auth, Analytics, Collaboration                                 ║
+║  ─────────────────────────────────────────                                ║
+║  npx shadcn@latest add button input label card avatar                     ║
+║  npx shadcn@latest add dropdown-menu dialog sheet tabs                    ║
+║  npx shadcn@latest add form select checkbox radio-group                   ║
+║  npx shadcn@latest add table badge separator skeleton                     ║
+║  npx shadcn@latest add toast sonner alert popover tooltip                 ║
+║                                                                           ║
+║  PHASE 3 - Integrations                                                   ║
+║  ─────────────────────────────────────────                                ║
+║  npx shadcn@latest add switch toggle command scroll-area                  ║
+║                                                                           ║
+║  PHASE 4 - Advanced Features                                              ║
+║  ─────────────────────────────────────────                                ║
+║  npx shadcn@latest add accordion collapsible slider progress textarea     ║
+║  npx shadcn@latest add calendar date-picker color-picker                  ║
+║                                                                           ║
+╚═══════════════════════════════════════════════════════════════════════════╝
+```
+
+### 🎯 Component Mapping - What to Use Where
+
+```
+╔═══════════════════════════════════════════════════════════════════════════╗
+║                 FEATURE → SHADCN COMPONENT MAPPING                        ║
+╠═══════════════════════════════════════════════════════════════════════════╣
+║                                                                           ║
+║  AUTH PAGES                                                               ║
+║  ───────────────────────────────────────────────────────────────────      ║
+║  Login Form         → Card, Input, Label, Button, Form (react-hook-form) ║
+║  Signup Form        → Card, Input, Label, Button, Checkbox               ║
+║  Password Input     → Input (with eye toggle using Button)               ║
+║  Social Login       → Button (variant="outline"), icons                  ║
+║  Error Messages     → Alert (variant="destructive")                      ║
+║  Loading States     → Button (with Loader2 spinner)                      ║
+║                                                                           ║
+║  NAVBAR & LAYOUT                                                          ║
+║  ───────────────────────────────────────────────────────────────────      ║
+║  User Menu          → DropdownMenu, Avatar, Button                       ║
+║  Workspace Selector → Select or DropdownMenu                             ║
+║  Navigation Items   → Button (variant="ghost")                           ║
+║  Mobile Menu        → Sheet (slide-in sidebar)                           ║
+║                                                                           ║
+║  FORMS & INPUTS                                                           ║
+║  ───────────────────────────────────────────────────────────────────      ║
+║  Text Input         → Input, Label                                       ║
+║  Text Area          → Textarea, Label                                    ║
+║  Dropdown           → Select                                             ║
+║  Multi-select       → Command (combobox pattern)                         ║
+║  Checkboxes         → Checkbox                                           ║
+║  Radio Buttons      → RadioGroup                                         ║
+║  Date Picker        → Calendar, Popover                                  ║
+║  File Upload        → Input (type="file"), custom styling                ║
+║  Rating Scale       → RadioGroup (styled as stars/numbers)               ║
+║                                                                           ║
+║  ANALYTICS DASHBOARD                                                      ║
+║  ───────────────────────────────────────────────────────────────────      ║
+║  Stats Cards        → Card, CardHeader, CardTitle, CardContent           ║
+║  Data Tables        → Table, TableHeader, TableBody, TableRow            ║
+║  Charts Container   → Card (wrapping Recharts)                           ║
+║  Tabs Navigation    → Tabs, TabsList, TabsTrigger, TabsContent           ║
+║  Date Range         → Calendar, Popover, Button                          ║
+║  Export Buttons     → Button, DropdownMenu                               ║
+║                                                                           ║
+║  WORKSPACE & MEMBERS                                                      ║
+║  ───────────────────────────────────────────────────────────────────      ║
+║  Member List        → Table or Card grid                                 ║
+║  Role Badge         → Badge                                              ║
+║  Invite Modal       → Dialog, Input, Select                              ║
+║  Confirm Delete     → AlertDialog                                        ║
+║  Settings Panels    → Card, Separator                                    ║
+║                                                                           ║
+║  INTEGRATIONS                                                             ║
+║  ───────────────────────────────────────────────────────────────────      ║
+║  Integration Card   → Card, Switch, Badge                                ║
+║  Connect Button     → Button (variant="default" or "outline")            ║
+║  Status Indicator   → Badge (variant="success"/"destructive")            ║
+║  Config Form        → Dialog, Form, Input, Select                        ║
+║  Webhook Logs       → Table, Badge, ScrollArea                           ║
+║                                                                           ║
+║  MODALS & DIALOGS                                                         ║
+║  ───────────────────────────────────────────────────────────────────      ║
+║  Create Form        → Dialog                                             ║
+║  Confirm Action     → AlertDialog                                        ║
+║  Share Form         → Dialog, Tabs                                       ║
+║  Settings           → Sheet (for large settings panels)                  ║
+║                                                                           ║
+║  FEEDBACK & STATES                                                        ║
+║  ───────────────────────────────────────────────────────────────────      ║
+║  Toast Messages     → Sonner (toast notifications)                       ║
+║  Loading Skeleton   → Skeleton                                           ║
+║  Empty States       → Card with illustration                             ║
+║  Error States       → Alert (variant="destructive")                      ║
+║  Tooltips           → Tooltip                                            ║
+║                                                                           ║
+║  FORM BUILDER (Advanced)                                                  ║
+║  ───────────────────────────────────────────────────────────────────      ║
+║  Logic Builder      → Card, Select, Button                               ║
+║  Section Breaks     → Separator, custom styling                          ║
+║  Drag Handle        → Custom (using dnd-kit)                             ║
+║  Settings Panel     → Sheet, Accordion                                   ║
+║                                                                           ║
+║  AI FEATURES                                                              ║
+║  ───────────────────────────────────────────────────────────────────      ║
+║  Chat Interface     → Card, ScrollArea, Input, Button                    ║
+║  AI Response        → Card with typing animation                         ║
+║  Insights Panel     → Card, Tabs, Progress                               ║
+║  Loading AI         → Skeleton, Progress (indeterminate)                 ║
+║                                                                           ║
+╚═══════════════════════════════════════════════════════════════════════════╝
+```
+
+### 🎨 Google Forms-Like Theme Configuration
+
+```typescript
+// tailwind.config.ts - Add these colors for Google Forms aesthetic
+const config = {
+  theme: {
+    extend: {
+      colors: {
+        // Google Forms purple accent
+        primary: {
+          DEFAULT: "#673AB7",  // Deep Purple
+          50: "#EDE7F6",
+          100: "#D1C4E9",
+          500: "#673AB7",
+          600: "#5E35B1",
+          700: "#512DA8",
+        },
+        // Clean grays like Google
+        muted: {
+          DEFAULT: "#F8F9FA",
+          foreground: "#5F6368",
+        },
+        // Google's border color
+        border: "#DADCE0",
+      },
+      borderRadius: {
+        'google': '8px',  // Google's rounded corners
+      },
+      boxShadow: {
+        'google': '0 1px 2px 0 rgba(60,64,67,.3), 0 1px 3px 1px rgba(60,64,67,.15)',
+        'google-hover': '0 1px 3px 0 rgba(60,64,67,.3), 0 4px 8px 3px rgba(60,64,67,.15)',
+      }
+    }
+  }
+}
+```
+
+### 📁 Component Folder Structure (After Installing shadcn)
+
+```
+components/
+├── ui/                          # shadcn/ui components (auto-generated)
+│   ├── button.tsx               # Button variants
+│   ├── card.tsx                 # Card, CardHeader, CardContent
+│   ├── dialog.tsx               # Modal dialogs
+│   ├── dropdown-menu.tsx        # User menu, actions menu
+│   ├── form.tsx                 # react-hook-form integration
+│   ├── input.tsx                # Text inputs
+│   ├── label.tsx                # Form labels
+│   ├── select.tsx               # Dropdowns
+│   ├── table.tsx                # Data tables
+│   ├── tabs.tsx                 # Tab navigation
+│   ├── toast.tsx                # Toast notifications
+│   └── ... (other shadcn components)
+│
+├── auth/                        # 🟢 HUZAIFA - Auth components
+│   ├── LoginForm.tsx            # Uses: Card, Input, Button, Form
+│   ├── SignupForm.tsx           # Uses: Card, Input, Button, Checkbox
+│   └── UserMenu.tsx             # Uses: DropdownMenu, Avatar, Button
+│
+├── analytics/                   # 🟢 HUZAIFA - Analytics components
+│   ├── StatsCard.tsx            # Uses: Card
+│   ├── PieChart.tsx             # Uses: Card (wrapper) + Recharts
+│   ├── BarChart.tsx             # Uses: Card (wrapper) + Recharts
+│   └── ResponsesTable.tsx       # Uses: Table, Badge, Button
+│
+├── workspace/                   # 🟢 HUZAIFA - Workspace components
+│   ├── WorkspaceSelector.tsx    # Uses: Select or DropdownMenu
+│   ├── MembersList.tsx          # Uses: Table, Avatar, Badge
+│   └── InviteMemberModal.tsx    # Uses: Dialog, Input, Select, Button
+│
+├── integrations/                # 🟢 HUZAIFA - Integration components
+│   ├── IntegrationCard.tsx      # Uses: Card, Switch, Badge, Button
+│   └── WebhookLogs.tsx          # Uses: Table, Badge, ScrollArea
+│
+└── shared/                      # 🔒 SHARED - Common components
+    ├── LoadingSpinner.tsx       # Uses: Loader2 icon
+    ├── EmptyState.tsx           # Uses: Card, Button
+    └── ConfirmDialog.tsx        # Uses: AlertDialog
+```
+
+### 🔥 Quick Reference: Most Used Components
+
+| Component | Import | Common Usage |
+|-----------|--------|-------------|
+| `Button` | `@/components/ui/button` | CTAs, form submit, actions |
+| `Card` | `@/components/ui/card` | Container for sections, stats |
+| `Input` | `@/components/ui/input` | Text fields, search |
+| `Dialog` | `@/components/ui/dialog` | Modals, confirmations |
+| `DropdownMenu` | `@/components/ui/dropdown-menu` | User menu, action menus |
+| `Select` | `@/components/ui/select` | Dropdowns, selectors |
+| `Table` | `@/components/ui/table` | Data display, lists |
+| `Tabs` | `@/components/ui/tabs` | Navigation, content sections |
+| `Badge` | `@/components/ui/badge` | Status, labels, counts |
+| `Skeleton` | `@/components/ui/skeleton` | Loading states |
+| `Sonner/Toast` | `sonner` | Notifications |
+
+---
+
 ## Executive Summary
 
 FormCraft has completed Phase 1 (core form creation + response collection). This plan outlines the architecture and execution strategy for Phases 2-4, focusing on collaboration, analytics, integrations, and advanced AI features.
