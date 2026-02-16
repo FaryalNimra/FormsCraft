@@ -156,7 +156,9 @@ export default function ResponseDashboard() {
                                                             {new Date(resp.submitted_at).toLocaleDateString()}
                                                         </span>
                                                     </div>
-                                                    <p className="text-sm font-bold text-gray-900 tracking-tight uppercase">Anonymous Data</p>
+                                                    <p className="text-sm font-bold text-gray-900 tracking-tight uppercase">
+                                                        {resp.user_email || 'Anonymous Data'}
+                                                    </p>
                                                 </div>
                                             </div>
 
