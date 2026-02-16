@@ -12,8 +12,11 @@ import {
     ChevronDown,
     ArrowRight,
     XCircle,
-    Check
+    Check,
+    FormInput,
+    Clock
 } from 'lucide-react';
+import { FormElementRenderer } from '@/components/form-elements';
 
 export default function ViewForm() {
     const { id } = useParams();
@@ -35,6 +38,12 @@ export default function ViewForm() {
     const fetchForm = async () => {
         try {
             const data = await getForm(id as string);
+            console.log('Form fetched. Expiration:', data?.expires_at);
+            if (data?.expires_at && new Date(data.expires_at) < new Date()) {
+                console.log('Form expired! Current time:', new Date().toISOString(), 'Expires at:', data.expires_at);
+                setError('Time is up. This form is no longer accepting responses.');
+                return;
+            }
             setForm(data);
         } catch (err: any) {
             console.error('Error fetching form:', err);
@@ -61,6 +70,8 @@ export default function ViewForm() {
             return;
         }
 
+        if (form?.expires_at && new Date(form.expires_at) < new Date()) {
+            alert('Time is up. This form is no longer accepting responses.');
         // Email validation if required
         if (form?.collect_email && !userEmail) {
             alert(`Please enter your email address`);
@@ -183,7 +194,16 @@ export default function ViewForm() {
                         <div className="p-8 pt-10 text-white">
                             <h1 className="text-3xl font-extrabold mb-3 tracking-tight">{form.title}</h1>
                             {form.description && (
-                                <p className="text-sm font-medium text-white/80 leading-relaxed">{form.description}</p>
+                                <p className="text-sm font-medium text-white/80 leading-relaxed whitespace-pre-wrap">{form.description}</p>
+                            )}
+                            {form.expires_at && (
+                                <div className="mt-4 flex items-center gap-2 text-white/60 text-[10px] font-bold uppercase tracking-wider bg-black/10 w-fit px-3 py-1 rounded-md border border-white/5">
+                                    <Clock size={10} className="text-white/40" />
+                                    <span>Deadline: {new Date(form.expires_at).toLocaleString([], {
+                                        dateStyle: 'medium',
+                                        timeStyle: 'short'
+                                    })}</span>
+                                </div>
                             )}
                             <div className="mt-4 pt-4 border-t border-white/10 flex items-center gap-1.5 text-xs text-white/60">
                                 <span className="text-white/80">*</span> Indicates required question
@@ -219,177 +239,17 @@ export default function ViewForm() {
                     {/* Question Cards (Google Style) */}
                     <div className="space-y-3">
                         {form.elements.map((el) => (
-                            <div key={el.id} className="bg-white rounded-lg p-6 shadow-sm border border-gray-200 transition-all">
-                                <label className="block text-base font-medium text-gray-900 mb-6 leading-normal">
-                                    {el.label}
-                                    {el.required && <span className="text-red-600 ml-1">*</span>}
-                                </label>
-
-                                {el.type === 'short_answer' && (
-                                    <div className="group relative">
-                                        <input
-                                            type="text"
-                                            required={el.required}
-                                            placeholder="Your answer"
-                                            value={responses[el.id] || ''}
-                                            onChange={(e) => handleInputChange(el.id, e.target.value)}
-                                            className="w-full border-b border-gray-300 py-2 focus:border-b-2 focus:outline-none transition-all text-sm font-normal text-gray-900 placeholder:text-gray-400 bg-transparent"
-                                            style={{
-                                                borderBottomColor: responses[el.id]
-                                                    ? ((!form.theme_color || form.theme_color === '#2563eb') ? 'var(--primary-600)' : form.theme_color)
-                                                    : undefined
-                                            }}
-                                        />
-                                    </div>
-                                )}
-
-                                {el.type === 'paragraph' && (
-                                    <div className="group relative">
-                                        <textarea
-                                            required={el.required}
-                                            placeholder="Your answer"
-                                            rows={1}
-                                            value={responses[el.id] || ''}
-                                            onChange={(e) => handleInputChange(el.id, e.target.value)}
-                                            className="w-full border-b border-gray-300 py-2 focus:border-b-2 focus:outline-none transition-all text-sm font-normal text-gray-900 placeholder:text-gray-400 bg-transparent overflow-hidden resize-none min-h-[40px] leading-relaxed"
-                                            style={{
-                                                borderBottomColor: responses[el.id]
-                                                    ? ((!form.theme_color || form.theme_color === '#2563eb') ? 'var(--primary-600)' : form.theme_color)
-                                                    : undefined
-                                            }}
-                                        />
-                                    </div>
-                                )}
-
-                                {(el.type === 'multiple_choice') && (
-                                    <div className="space-y-4">
-                                        {el.options?.map((opt, i) => (
-                                            <label key={i} className="flex items-center gap-3 cursor-pointer group w-fit">
-                                                <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${responses[el.id] === opt ? '' : 'border-gray-300 group-hover:border-gray-400'
-                                                    }`}
-                                                    style={{
-                                                        borderColor: responses[el.id] === opt
-                                                            ? ((!form.theme_color || form.theme_color === '#2563eb') ? 'var(--primary-600)' : form.theme_color)
-                                                            : undefined
-                                                    }}
-                                                >
-                                                    {responses[el.id] === opt && <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: (!form.theme_color || form.theme_color === '#2563eb') ? 'var(--primary-600)' : form.theme_color }}></div>}
-                                                </div>
-                                                <input
-                                                    type="radio"
-                                                    name={el.id}
-                                                    required={el.required}
-                                                    className="hidden"
-                                                    checked={responses[el.id] === opt}
-                                                    onChange={() => handleInputChange(el.id, opt)}
-                                                />
-                                                <span className="text-sm font-normal text-gray-800">{opt}</span>
-                                            </label>
-                                        ))}
-                                    </div>
-                                )}
-
-                                {el.type === 'checkboxes' && (
-                                    <div className="space-y-4">
-                                        {el.options?.map((opt, i) => {
-                                            const currentValues = responses[el.id] || [];
-                                            const isChecked = currentValues.includes(opt);
-
-                                            return (
-                                                <label key={i} className="flex items-center gap-3 cursor-pointer group w-fit">
-                                                    <div className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all ${isChecked ? '' : 'border-gray-300 group-hover:border-gray-400'
-                                                        }`}
-                                                        style={{
-                                                            borderColor: isChecked ? ((!form.theme_color || form.theme_color === '#2563eb') ? 'var(--primary-600)' : form.theme_color) : undefined,
-                                                            backgroundColor: isChecked ? ((!form.theme_color || form.theme_color === '#2563eb') ? 'var(--primary-600)' : form.theme_color) : undefined
-                                                        }}
-                                                    >
-                                                        {isChecked && <Check size={14} strokeWidth={4} className="text-white" />}
-                                                    </div>
-                                                    <input
-                                                        type="checkbox"
-                                                        className="hidden"
-                                                        checked={isChecked}
-                                                        onChange={(e) => {
-                                                            const newValue = e.target.checked
-                                                                ? [...currentValues, opt]
-                                                                : currentValues.filter((v: string) => v !== opt);
-                                                            handleInputChange(el.id, newValue);
-                                                        }}
-                                                    />
-                                                    <span className="text-sm font-normal text-gray-800">{opt}</span>
-                                                </label>
-                                            );
-                                        })}
-                                    </div>
-                                )}
-
-                                {el.type === 'dropdown' && (
-                                    <div className="relative max-w-xs">
-                                        <select
-                                            required={el.required}
-                                            value={responses[el.id] || ''}
-                                            onChange={(e) => handleInputChange(el.id, e.target.value)}
-                                            className="w-full pl-3 pr-10 py-3 bg-white border border-gray-300 rounded focus:outline-none appearance-none text-sm font-normal text-gray-800"
-                                            style={{
-                                                borderColor: responses[el.id]
-                                                    ? ((!form.theme_color || form.theme_color === '#2563eb') ? 'var(--primary-600)' : form.theme_color)
-                                                    : undefined
-                                            }}
-                                        >
-                                            <option value="" disabled>Choose</option>
-                                            {el.options?.map((opt, i) => (
-                                                <option key={i} value={opt}>{opt}</option>
-                                            ))}
-                                        </select>
-                                        <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" size={18} />
-                                    </div>
-                                )}
-
-                                {el.type === 'date' && (
-                                    <input
-                                        type="date"
-                                        required={el.required}
-                                        value={responses[el.id] || ''}
-                                        onChange={(e) => handleInputChange(el.id, e.target.value)}
-                                        className="w-full max-w-xs px-3 py-2 bg-white border border-gray-300 rounded focus:outline-none text-sm font-normal text-gray-800"
-                                        style={{
-                                            borderColor: responses[el.id]
-                                                ? ((!form.theme_color || form.theme_color === '#2563eb') ? 'var(--primary-600)' : form.theme_color)
-                                                : undefined
-                                        }}
-                                    />
-                                )}
-
-                                {el.type === 'rating_scale' && (
-                                    <div className="flex flex-wrap gap-4 items-center">
-                                        <span className="text-xs text-gray-500">Poor</span>
-                                        <div className="flex gap-1">
-                                            {Array.from({ length: el.maxRating || 5 }).map((_, i) => {
-                                                const rating = i + 1;
-                                                const isSelected = responses[el.id] === rating;
-                                                return (
-                                                    <button
-                                                        key={i}
-                                                        type="button"
-                                                        onClick={() => handleInputChange(el.id, rating)}
-                                                        className={`w-10 h-10 rounded-full flex flex-col items-center justify-center transition-all ${isSelected ? 'text-white' : 'hover:bg-gray-100 text-gray-600'
-                                                            }`}
-                                                        style={{
-                                                            backgroundColor: isSelected
-                                                                ? ((!form.theme_color || form.theme_color === '#2563eb') ? 'var(--primary-600)' : form.theme_color)
-                                                                : undefined
-                                                        }}
-                                                    >
-                                                        <span className="text-xs font-medium">{rating}</span>
-                                                    </button>
-                                                );
-                                            })}
-                                        </div>
-                                        <span className="text-xs text-gray-500">Excellent</span>
-                                    </div>
-                                )}
-                            </div>
+                            <FormElementRenderer
+                                key={el.id}
+                                element={{
+                                    ...el,
+                                    // Ensure it matches the renderer's expected interface (which uses snake_case for some fields)
+                                    max_rating: el.maxRating || null,
+                                    word_limit: el.wordLimit || null
+                                } as any}
+                                value={responses[el.id] || null}
+                                onChange={(val) => handleInputChange(el.id, val)}
+                            />
                         ))}
                     </div>
 

@@ -1,6 +1,3 @@
-// types/database.ts
-// SHARED FILE - Both team members use these types
-// Last Updated: February 10, 2026
 
 /**
  * Element types supported by the form builder
@@ -35,6 +32,7 @@ export interface Form {
   created_by: string | null;
   created_at: string;
   updated_at: string;
+  expires_at: string | null;
 }
 
 /**
@@ -50,6 +48,7 @@ export interface FormElement {
   required: boolean;
   options: string[] | null;  // For MCQ, Checkboxes, Dropdown
   max_rating: number | null; // For Rating Scale
+  word_limit: number | null; // For Paragraph
   order_index: number;
   created_at: string;
 }

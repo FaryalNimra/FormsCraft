@@ -10,6 +10,7 @@ export interface FormElement {
     required: boolean;
     options?: string[];
     maxRating?: number;
+    wordLimit?: number;
 }
 
 export interface Form {
@@ -19,6 +20,7 @@ export interface Form {
     elements: FormElement[];
     status: 'draft' | 'published';
     theme_color?: string;
+    expires_at?: string | null;
     collect_email?: boolean;
     created_by?: string;
 }
@@ -35,6 +37,7 @@ export async function saveForm(form: Form) {
                 description: form.description,
                 status: form.status,
                 theme_color: form.theme_color || '#2563eb',
+                expires_at: form.expires_at || null,
                 collect_email: form.collect_email || false,
                 updated_at: new Date().toISOString()
             })
@@ -52,6 +55,7 @@ export async function saveForm(form: Form) {
                 description: form.description,
                 status: form.status,
                 theme_color: form.theme_color || '#2563eb',
+                expires_at: form.expires_at || null
                 collect_email: form.collect_email || false,
                 // IMPORTANT: Ensure you have run: ALTER TABLE forms ADD COLUMN IF NOT EXISTS created_by UUID REFERENCES auth.users(id);
                 created_by: user.id
@@ -81,6 +85,7 @@ export async function saveForm(form: Form) {
         required: el.required,
         options: el.options,
         max_rating: el.maxRating,
+        word_limit: el.wordLimit || null,
         order_index: index
     }));
 
@@ -122,7 +127,8 @@ export async function getForm(id: string) {
         placeholder: el.placeholder,
         required: el.required,
         options: el.options,
-        maxRating: el.max_rating
+        maxRating: el.max_rating,
+        wordLimit: el.word_limit || undefined
     }));
 
     return {

@@ -30,7 +30,7 @@ export default function FileUpload({
 
   const handleFile = (file: File | null) => {
     setLocalError(null);
-    
+
     if (file) {
       // Validate file size
       const maxSizeBytes = maxSizeMB * 1024 * 1024;
@@ -38,7 +38,7 @@ export default function FileUpload({
         setLocalError(`File size must be less than ${maxSizeMB}MB`);
         return;
       }
-      
+
       // Validate file type
       const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'application/pdf'];
       if (!allowedTypes.includes(file.type)) {
@@ -46,7 +46,7 @@ export default function FileUpload({
         return;
       }
     }
-    
+
     onChange(file);
   };
 
@@ -64,7 +64,7 @@ export default function FileUpload({
     e.preventDefault();
     e.stopPropagation();
     setDragActive(false);
-    
+
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
       handleFile(e.dataTransfer.files[0]);
     }
@@ -102,13 +102,8 @@ export default function FileUpload({
 
   return (
     <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-      <div className="flex items-center gap-2 mb-3">
-        <Upload size={16} className="text-blue-500" />
-        <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-blue-600/70">
-          File Upload
-        </span>
-      </div>
-      
+
+
       <p className="text-lg font-semibold text-gray-900 mb-4">
         {label}
         {required && <span className="text-red-500 ml-1">*</span>}
@@ -121,15 +116,14 @@ export default function FileUpload({
           onDragOver={handleDrag}
           onDrop={handleDrop}
           onClick={() => inputRef.current?.click()}
-          className={`w-full py-10 border-2 border-dashed rounded-2xl flex flex-col items-center justify-center gap-3 cursor-pointer transition-all ${
-            dragActive
-              ? 'border-blue-500 bg-blue-50'
-              : displayError
+          className={`w-full py-10 border-2 border-dashed rounded-2xl flex flex-col items-center justify-center gap-3 cursor-pointer transition-all ${dragActive
+            ? 'border-blue-500 bg-blue-50'
+            : displayError
               ? 'border-red-300 bg-red-50'
               : 'border-gray-200 bg-gray-50 hover:border-blue-300 hover:bg-blue-50/30'
-          }`}
+            }`}
         >
-          <Upload size={32} className={dragActive ? 'text-blue-500' : 'text-gray-400'} />
+          <Upload size={32} className={dragActive ? 'text-blue-500' : 'text-black font-bold'} />
           <div className="text-center">
             <p className="text-sm font-semibold text-gray-600">
               Click or drag file to upload
@@ -164,7 +158,7 @@ export default function FileUpload({
         onChange={handleInputChange}
         className="hidden"
       />
-      
+
       {displayError && (
         <p className="mt-3 text-sm text-red-500 font-medium">{displayError}</p>
       )}
