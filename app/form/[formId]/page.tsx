@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { FileText, Send, CheckCircle, AlertCircle, ArrowLeft, Loader2 } from 'lucide-react';
+import { FileText, Send, CheckCircle, AlertCircle, ArrowLeft, Loader2, Clock } from 'lucide-react';
 import { supabase, generateUploadPath, handleSupabaseError } from '@/lib/supabase';
 import { Form, FormElement, TABLES, STORAGE_BUCKETS } from '@/types/database';
 import FormElementRenderer from '@/components/form-elements/FormElementRenderer';
@@ -45,6 +45,13 @@ export default function FormResponsePage() {
         } else {
           setFetchError(handleSupabaseError(formError));
         }
+        return;
+      }
+
+      console.log('Form fetched. Expiration:', formData.expires_at);
+      if (formData.expires_at && new Date(formData.expires_at) < new Date()) {
+        console.log('Form expired! Current time:', new Date().toISOString(), 'Expires at:', formData.expires_at);
+        setFetchError('Time is up. This form is no longer accepting responses.');
         return;
       }
 
@@ -112,7 +119,7 @@ export default function FormResponsePage() {
     elements.forEach((element) => {
       if (element.required) {
         const value = values[element.id];
-        
+
         if (element.type === 'checkboxes') {
           if (!Array.isArray(value) || value.length === 0) {
             newErrors[element.id] = 'Please select at least one option';
@@ -153,7 +160,7 @@ export default function FormResponsePage() {
   // Upload file to Supabase Storage
   const uploadFile = async (file: File): Promise<string | null> => {
     const filePath = generateUploadPath(formId, file.name);
-    
+
     const { error } = await supabase.storage
       .from(STORAGE_BUCKETS.FORM_UPLOADS)
       .upload(filePath, file);
@@ -175,6 +182,11 @@ export default function FormResponsePage() {
     e.preventDefault();
 
     if (!validateForm()) return;
+
+    if (form?.expires_at && new Date(form.expires_at) < new Date()) {
+      alert('Time is up. This form is no longer accepting responses.');
+      return;
+    }
 
     try {
       setSubmitting(true);
@@ -337,7 +349,18 @@ export default function FormResponsePage() {
             <div className="relative">
               <h1 className="text-2xl font-bold mb-2">{form?.title}</h1>
               {form?.description && (
-                <p className="text-purple-100 text-sm">{form.description}</p>
+                <p className="text-purple-100 text-sm whitespace-pre-wrap">{form.description}</p>
+              )}
+              {form?.expires_at && (
+                <div className="mt-4 flex items-center gap-2 text-white/70 text-xs font-semibold bg-white/10 w-fit px-3 py-1.5 rounded-full border border-white/10 backdrop-blur-sm">
+                  <Clock size={12} className="text-white/80" />
+                  <span>
+                    Deadline: {new Date(form.expires_at).toLocaleString([], {
+                      dateStyle: 'medium',
+                      timeStyle: 'short'
+                    })}
+                  </span>
+                </div>
               )}
             </div>
             <div className="absolute bottom-0 left-0 w-full h-1.5 bg-white/20"></div>

@@ -10,6 +10,7 @@ export interface FormElement {
     required: boolean;
     options?: string[];
     maxRating?: number;
+    wordLimit?: number;
 }
 
 export interface Form {
@@ -19,6 +20,7 @@ export interface Form {
     elements: FormElement[];
     status: 'draft' | 'published';
     theme_color?: string;
+    expires_at?: string | null;
 }
 
 export async function saveForm(form: Form) {
@@ -33,6 +35,7 @@ export async function saveForm(form: Form) {
                 description: form.description,
                 status: form.status,
                 theme_color: form.theme_color || '#2563eb',
+                expires_at: form.expires_at || null,
                 updated_at: new Date().toISOString()
             })
             .eq('id', formId);
@@ -45,7 +48,8 @@ export async function saveForm(form: Form) {
                 title: form.title,
                 description: form.description,
                 status: form.status,
-                theme_color: form.theme_color || '#2563eb'
+                theme_color: form.theme_color || '#2563eb',
+                expires_at: form.expires_at || null
             })
             .select()
             .single();
@@ -72,6 +76,7 @@ export async function saveForm(form: Form) {
         required: el.required,
         options: el.options,
         max_rating: el.maxRating,
+        word_limit: el.wordLimit || null,
         order_index: index
     }));
 
@@ -113,7 +118,8 @@ export async function getForm(id: string) {
         placeholder: el.placeholder,
         required: el.required,
         options: el.options,
-        maxRating: el.max_rating
+        maxRating: el.max_rating,
+        wordLimit: el.word_limit || undefined
     }));
 
     return {
