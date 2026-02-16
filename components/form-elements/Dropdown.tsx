@@ -1,62 +1,98 @@
 'use client';
 
-import { ChevronDown } from 'lucide-react';
+import { useState, useRef, useEffect } from 'react';
+import { ChevronDown, Check } from 'lucide-react';
 
 interface DropdownProps {
-  id: string;
-  label: string;
-  placeholder?: string;
-  options: string[];
-  required?: boolean;
-  value: string;
-  onChange: (value: string) => void;
-  error?: string;
+    id: string;
+    label: string;
+    placeholder?: string;
+    options: string[];
+    required?: boolean;
+    value: string;
+    onChange: (value: string) => void;
+    error?: string;
 }
 
 export default function Dropdown({
-  id,
-  label,
-  placeholder = 'Select an option',
-  options = [],
-  required = false,
-  value,
-  onChange,
-  error,
+    id,
+    label,
+    placeholder = 'Select an option',
+    options,
+    required = false,
+    value,
+    onChange,
+    error,
 }: DropdownProps) {
-  return (
-    <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+    const [isOpen, setIsOpen] = useState(false);
+    const dropdownRef = useRef<HTMLDivElement>(null);
 
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+                setIsOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
 
-      <label htmlFor={id} className="block text-lg font-semibold text-gray-900 mb-4">
-        {label}
-        {required && <span className="text-red-500 ml-1">*</span>}
-      </label>
+    return (
+        <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-200 transition-all">
+            <p className="text-base font-medium text-gray-900 mb-4 leading-normal">
+                {label}
+                {required && <span className="text-red-600 ml-1">*</span>}
+            </p>
+            <div className="relative max-w-sm" ref={dropdownRef}>
+                <button
+                    type="button"
+                    onClick={() => setIsOpen(!isOpen)}
+                    className={`w-full px-4 py-3 bg-white border rounded-lg text-sm text-left flex items-center justify-between transition-all ${isOpen ? 'border-blue-500 ring-2 ring-blue-100' : 'border-gray-300 hover:border-gray-400'
+                        }`}
+                >
+                    <span className={value ? 'text-gray-900 font-normal' : 'text-gray-400'}>
+                        {value || placeholder}
+                    </span>
+                    <ChevronDown
+                        size={18}
+                        className={`text-gray-400 transition-transform ${isOpen ? 'rotate-180' : ''}`}
+                    />
+                </button>
 
-      <div className="relative">
-        <select
-          id={id}
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          className={`w-full h-12 px-4 pr-10 bg-gray-50 border-2 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:bg-white focus:border-blue-500 transition-all outline-none appearance-none cursor-pointer placeholder:text-gray-500 ${error ? 'border-red-300 bg-red-50' : 'border-gray-200'} ${!value ? 'text-gray-500' : 'text-gray-900 font-medium'}`}
-        >
-          <option value="" disabled>
-            {placeholder}
-          </option>
-          {options.map((option, index) => (
-            <option key={index} value={option}>
-              {option}
-            </option>
-          ))}
-        </select>
-        <ChevronDown
-          size={20}
-          className="absolute right-3 top-1/2 -translate-y-1/2 text-black pointer-events-none"
-        />
-      </div>
-
-      {error && (
-        <p className="mt-2 text-sm text-red-500 font-medium">{error}</p>
-      )}
-    </div>
-  );
+                {isOpen && (
+                    <div className="absolute z-50 mt-1 w-full bg-white rounded-lg shadow-lg border border-gray-200 py-1 max-h-60 overflow-y-auto animate-in fade-in slide-in-from-top-2 duration-200">
+                        {options.map((option, index) => (
+                            <button
+                                key={index}
+                                type="button"
+                                onClick={() => {
+                                    onChange(option);
+                                    setIsOpen(false);
+                                }}
+                                className={`w-full text-left px-4 py-2.5 text-sm transition-all flex items-center justify-between ${value === option
+                                        ? 'bg-blue-50 text-blue-700 font-medium'
+                                        : 'text-gray-700 hover:bg-gray-50'
+                                    }`}
+                            >
+                                {option}
+                                {value === option && <Check size={16} className="text-blue-600" />}
+                            </button>
+                        ))}
+                    </div>
+                )}
+            </div>
+            {value && (
+                <button
+                    type="button"
+                    onClick={() => onChange('')}
+                    className="mt-3 text-xs font-medium text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                    Clear selection
+                </button>
+            )}
+            {error && (
+                <p className="mt-2 text-sm text-red-500 font-medium">{error}</p>
+            )}
+        </div>
+    );
 }

@@ -198,22 +198,31 @@ export async function saveResponse(formId: string, responses: Record<string, any
 }
 
 export async function getAllFormsWithStats() {
-    // 1. Fetch all forms
+    // 1. Get current user
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return [];
+
+    // 2. Fetch forms created by this user
     const { data: forms, error: formsError } = await supabase
         .from('forms')
         .select('*')
+        .eq('created_by', user.id)
         .order('created_at', { ascending: false });
 
     if (formsError) throw formsError;
 
-    // 2. Fetch response counts for all forms
+    // 3. Fetch response counts for these forms
+    const formIds = forms.map(f => f.id);
+    if (formIds.length === 0) return [];
+
     const { data: counts, error: countsError } = await supabase
         .from('responses')
-        .select('form_id');
+        .select('form_id')
+        .in('form_id', formIds);
 
     if (countsError) throw countsError;
 
-    // 3. Map counts to forms
+    // 4. Map counts to forms
     const statsMap = counts.reduce((acc: Record<string, number>, curr: any) => {
         acc[curr.form_id] = (acc[curr.form_id] || 0) + 1;
         return acc;
@@ -226,10 +235,19 @@ export async function getAllFormsWithStats() {
 }
 
 export async function getResponseDetails(formId: string) {
-    // 1. Fetch form metadata and elements
+    // 1. Get current user
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('UNAUTHORIZED');
+
+    // 2. Fetch form metadata and elements
     const form = await getForm(formId);
 
-    // 2. Fetch all responses for this form
+    // 3. SECURE: Check if current user is the creator
+    if (form.created_by !== user.id) {
+        throw new Error('UNAUTHORIZED');
+    }
+
+    // 4. Fetch all responses for this form
     const { data: responses, error: responsesError } = await supabase
         .from('responses')
         .select('*')
@@ -240,7 +258,7 @@ export async function getResponseDetails(formId: string) {
 
     if (responses.length === 0) return { form, responsesWithAnswers: [] };
 
-    // 3. Fetch all answers for these responses
+    // 5. Fetch all answers for these responses
     const responseIds = responses.map(r => r.id);
     const { data: answers, error: answersError } = await supabase
         .from('response_answers')
@@ -249,7 +267,7 @@ export async function getResponseDetails(formId: string) {
 
     if (answersError) throw answersError;
 
-    // 4. Map answers to responses
+    // 6. Map answers to responses
     const responsesWithAnswers = responses.map(r => {
         const responseAnswers = answers.filter(a => a.response_id === r.id);
         const answersMap = responseAnswers.reduce((acc: Record<string, string>, curr: any) => {
