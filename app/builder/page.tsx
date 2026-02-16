@@ -62,6 +62,7 @@ function FormBuilder() {
     const [description, setDescription] = useState('Collect valuable feedback with ease.');
     const [status, setStatus] = useState<'draft' | 'published'>('draft');
     const [themeColor, setThemeColor] = useState('#2563eb');
+    const [collectEmail, setCollectEmail] = useState(false);
     const [isPreview, setIsPreview] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
     const [lastSaved, setLastSaved] = useState<Date | null>(null);
@@ -112,6 +113,7 @@ function FormBuilder() {
                     setFormElements(form.elements);
                     setStatus(form.status);
                     if (form.theme_color) setThemeColor(form.theme_color);
+                    if (form.collect_email !== undefined) setCollectEmail(form.collect_email);
                     if (form.elements.length > 0) setActiveElementId(form.elements[0].id);
                 } catch (error) {
                     console.error("Failed to load form", error);
@@ -121,7 +123,7 @@ function FormBuilder() {
         }
     }, [editId]);
 
-    const triggerSave = useCallback(async (currentData: { id: string | null, title: string, description: string, elements: FormElement[], status: 'draft' | 'published' }) => {
+    const triggerSave = useCallback(async (currentData: { id: string | null, title: string, description: string, elements: FormElement[], status: 'draft' | 'published', collect_email?: boolean }) => {
         setIsSaving(true);
         try {
             const saved = await saveForm({
@@ -130,7 +132,8 @@ function FormBuilder() {
                 description: currentData.description,
                 elements: currentData.elements,
                 status: currentData.status,
-                theme_color: themeColor
+                theme_color: themeColor,
+                collect_email: collectEmail
             });
             if (!currentData.id) setFormId(saved.id ?? null);
             setLastSaved(new Date());
@@ -152,7 +155,7 @@ function FormBuilder() {
         if (formId) return;
 
         autoSaveTimerRef.current = setTimeout(() => {
-            const progress = { title, description, elements: formElements, themeColor };
+            const progress = { title, description, elements: formElements, themeColor, collectEmail };
             localStorage.setItem('formcraft_progress', JSON.stringify(progress));
             setIsLocalSaved(true);
         }, 2000);
@@ -160,7 +163,7 @@ function FormBuilder() {
         return () => {
             if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
         };
-    }, [title, description, formElements, isMounted, formId]);
+    }, [title, description, formElements, isMounted, formId, collectEmail]);
 
     const clearDraft = () => {
         localStorage.removeItem('formcraft_progress');
@@ -173,7 +176,7 @@ function FormBuilder() {
 
     const handleSaveDraft = async () => {
         setStatus('draft');
-        await triggerSave({ id: formId, title, description, elements: formElements, status: 'draft' });
+        await triggerSave({ id: formId, title, description, elements: formElements, status: 'draft', collect_email: collectEmail });
     };
 
     const handleSend = async () => {
@@ -186,7 +189,8 @@ function FormBuilder() {
                 description,
                 elements: formElements,
                 status: 'published',
-                theme_color: themeColor
+                theme_color: themeColor,
+                collect_email: collectEmail
             });
             if (!formId) setFormId(saved.id ?? null);
             setLastSaved(new Date());
@@ -680,6 +684,22 @@ function FormBuilder() {
                                                     </div>
                                                 </div>
                                             </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="pt-6 border-t border-gray-50 flex flex-col gap-4">
+                                        <h2 className="text-[10px] font-bold text-gray-900 uppercase tracking-widest">Form Settings</h2>
+                                        <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                                            <div className="flex flex-col">
+                                                <span className="text-[10px] font-bold text-gray-900 uppercase tracking-widest">Collect Email</span>
+                                                <span className="text-[8px] text-gray-500 uppercase tracking-tight">Prevent duplicate entries</span>
+                                            </div>
+                                            <button
+                                                onClick={() => setCollectEmail(!collectEmail)}
+                                                className={`w-8 h-4 rounded-full relative transition-all ${collectEmail ? 'bg-blue-600' : 'bg-gray-200'}`}
+                                            >
+                                                <div className={`absolute top-0.5 w-3 h-3 bg-white rounded-full transition-all ${collectEmail ? 'left-4.5' : 'left-0.5'}`}></div>
+                                            </button>
                                         </div>
                                     </div>
 

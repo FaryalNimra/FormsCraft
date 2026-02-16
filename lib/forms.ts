@@ -19,6 +19,8 @@ export interface Form {
     elements: FormElement[];
     status: 'draft' | 'published';
     theme_color?: string;
+    collect_email?: boolean;
+    created_by?: string;
 }
 
 export async function saveForm(form: Form) {
@@ -33,19 +35,26 @@ export async function saveForm(form: Form) {
                 description: form.description,
                 status: form.status,
                 theme_color: form.theme_color || '#2563eb',
+                collect_email: form.collect_email || false,
                 updated_at: new Date().toISOString()
             })
             .eq('id', formId);
 
         if (error) throw error;
     } else {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error('User not authenticated');
+
         const { data, error } = await supabase
             .from('forms')
             .insert({
                 title: form.title,
                 description: form.description,
                 status: form.status,
-                theme_color: form.theme_color || '#2563eb'
+                theme_color: form.theme_color || '#2563eb',
+                collect_email: form.collect_email || false,
+                // IMPORTANT: Ensure you have run: ALTER TABLE forms ADD COLUMN IF NOT EXISTS created_by UUID REFERENCES auth.users(id);
+                created_by: user.id
             })
             .select()
             .single();
@@ -122,12 +131,28 @@ export async function getForm(id: string) {
     } as Form;
 }
 
-export async function saveResponse(formId: string, responses: Record<string, any>) {
+export async function saveResponse(formId: string, responses: Record<string, any>, userEmail?: string) {
+    // 0. Check for duplicate submission if email collection is enabled
+    if (userEmail) {
+        const { data: existingResponse, error: checkError } = await supabase
+            .from('responses')
+            .select('id')
+            .eq('form_id', formId)
+            .eq('user_email', userEmail)
+            .maybeSingle();
+
+        if (checkError) throw checkError;
+        if (existingResponse) {
+            throw new Error("ALREADY_SUBMITTED");
+        }
+    }
+
     // 1. Create a record in the 'responses' table
     const { data: responseData, error: responseError } = await supabase
         .from('responses')
         .insert({
             form_id: formId,
+            user_email: userEmail,
             submitted_at: new Date().toISOString()
         })
         .select()
