@@ -40,14 +40,11 @@ export default function Home() {
   };
 
   const formatTime = (dateString: string) => {
-    const now = new Date();
     const date = new Date(dateString);
-    const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
-
-    if (diffInSeconds < 60) return 'Just now';
-    if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
-    if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`;
-    return `${Math.floor(diffInSeconds / 86400)}d ago`;
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const year = String(date.getFullYear()).slice(-2);
+    return `${month}/${day}/${year}`;
   };
 
   return (
@@ -141,7 +138,7 @@ export default function Home() {
                     <tr className="bg-gray-50/50 border-b border-gray-50 text-[10px] font-bold text-gray-400 uppercase tracking-widest">
                       <th className="px-6 py-4">Project</th>
                       <th className="px-4 py-4">Status</th>
-                      <th className="px-4 py-4">Activity</th>
+                      <th className="px-4 py-4">Creation Date</th>
                       <th className="px-4 py-4">Submissions</th>
                       <th className="px-6 py-4 text-right">Actions</th>
                     </tr>

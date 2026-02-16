@@ -45,6 +45,7 @@ export default function FormElementRenderer({
           value={(value as string) || ''}
           onChange={(v) => onChange(v)}
           error={error}
+          wordLimit={element.word_limit || undefined}
         />
       );
 

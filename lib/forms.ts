@@ -77,17 +77,27 @@ export async function saveForm(form: Form) {
     if (deleteError) throw deleteError;
 
     // Insert new elements
-    const elementsToInsert = form.elements.map((el, index) => ({
-        form_id: formId,
-        type: el.type,
-        label: el.label,
-        placeholder: el.placeholder,
-        required: el.required,
-        options: el.options,
-        max_rating: el.maxRating,
-        word_limit: el.wordLimit || null,
-        order_index: index
-    }));
+    const elementsToInsert = form.elements.map((el, index) => {
+        const element: any = {
+            form_id: formId,
+            type: el.type,
+            label: el.label,
+            placeholder: el.placeholder,
+            required: el.required,
+            options: el.options,
+            max_rating: el.maxRating,
+            word_limit: el.wordLimit || null,
+            order_index: index
+        };
+
+        // Only include ID if it's a valid UUID (to preserve it)
+        // If it's a temp ID like '1' from the builder, omit it to let DB generate one
+        if (el.id && el.id.length > 10) {
+            element.id = el.id;
+        }
+
+        return element;
+    });
 
     if (elementsToInsert.length > 0) {
         const { error: insertError } = await supabase

@@ -81,10 +81,19 @@ function FormBuilder() {
     const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
     const [draggingType, setDraggingType] = useState<ElementType | null>(null);
 
-    const [formElements, setFormElements] = useState<FormElement[]>([
-        { id: '1', type: 'short_answer', label: 'What is your name?', placeholder: 'e.g. John Doe', required: true }
-    ]);
-    const [activeElementId, setActiveElementId] = useState<string | null>('1');
+    const [formElements, setFormElements] = useState<FormElement[]>([]);
+    const [activeElementId, setActiveElementId] = useState<string | null>(null);
+
+    // Initialize with one element if empty
+    useEffect(() => {
+        if (isMounted && formElements.length === 0 && !editId) {
+            const initialId = crypto.randomUUID();
+            setFormElements([
+                { id: initialId, type: 'short_answer', label: 'What is your name?', placeholder: 'e.g. John Doe', required: true }
+            ]);
+            setActiveElementId(initialId);
+        }
+    }, [isMounted, formElements.length, editId]);
     const [advancedOpen, setAdvancedOpen] = useState(false);
     const [optionDragIndex, setOptionDragIndex] = useState<number | null>(null);
     const [optionDragOverIndex, setOptionDragOverIndex] = useState<number | null>(null);
@@ -181,8 +190,9 @@ function FormBuilder() {
         localStorage.removeItem('formcraft_progress');
         setTitle('Untitled Form');
         setDescription('Collect valuable feedback with ease.');
-        setFormElements([{ id: '1', type: 'short_answer', label: 'What is your name?', placeholder: 'e.g. John Doe', required: true }]);
-        setActiveElementId('1');
+        const initialId = crypto.randomUUID();
+        setFormElements([{ id: initialId, type: 'short_answer', label: 'What is your name?', placeholder: 'e.g. John Doe', required: true }]);
+        setActiveElementId(initialId);
         setIsLocalSaved(false);
     };
 
@@ -227,7 +237,7 @@ function FormBuilder() {
     };
 
     const addElement = (type: ElementType) => {
-        const newId = Math.random().toString(36).substring(7);
+        const newId = crypto.randomUUID();
         const hasOptions = ['multiple_choice', 'checkboxes', 'dropdown'].includes(type);
 
         const newElement: FormElement = {
@@ -257,7 +267,7 @@ function FormBuilder() {
         if (index === -1) return;
 
         const original = formElements[index];
-        const newId = Math.random().toString(36).substring(7);
+        const newId = crypto.randomUUID();
         const duplicate: FormElement = { ...original, id: newId };
 
         const newElements = [...formElements];
@@ -288,13 +298,12 @@ function FormBuilder() {
 
     const removeOption = (elementId: string, index: number) => {
         setFormElements(formElements.map(el => {
-            if (el.id === elementId && el.options) {
+            if (el.id === elementId && el.options && el.options.length > 2) {
                 return { ...el, options: el.options.filter((_, i) => i !== index) };
             }
             return el;
         }));
     };
-
     const activeElement = formElements.find(el => el.id === activeElementId);
 
     const handleDragStart = (index: number) => {
@@ -322,7 +331,7 @@ function FormBuilder() {
     };
 
     const addElementAtIndex = (type: ElementType, index: number) => {
-        const newId = Math.random().toString(36).substring(7);
+        const newId = crypto.randomUUID();
         const hasOptions = ['multiple_choice', 'checkboxes', 'dropdown'].includes(type);
         const newElement: FormElement = {
             id: newId,
@@ -421,7 +430,6 @@ function FormBuilder() {
                         <div className="w-7 h-7 bg-blue-600 rounded-lg flex items-center justify-center text-white">
                             <ArrowLeft size={14} />
                         </div>
-                        <span className="text-[10px] font-bold text-gray-900 group-hover:text-blue-600 transition-colors uppercase tracking-widest hidden sm:block">Exit</span>
                     </Link>
                     <div className="h-3 w-px bg-gray-100"></div>
                     <div className="flex items-center gap-2">
@@ -512,7 +520,7 @@ function FormBuilder() {
                         </button>
                     </div>
                 </div>
-            </header>
+            </header >
 
             <div className="flex flex-1 overflow-hidden relative">
                 {/* Dense Elements Sidebar */}
@@ -548,7 +556,7 @@ function FormBuilder() {
                     onDragOver={(e) => { if (draggingType) e.preventDefault(); }}
                     onDrop={handleCanvasDrop}
                 >
-                    <div className="w-full max-w-xl space-y-6 pb-24">
+                    <div className="w-full max-w-xl space-y-6 pb-64">
                         {/* Interactive Form Header */}
                         <div
                             onClick={() => setActiveElementId('header')}
@@ -598,11 +606,20 @@ function FormBuilder() {
                                             </label>
 
                                             {el.type === 'short_answer' && (
-                                                <input
-                                                    disabled
-                                                    placeholder="Short answer text"
-                                                    className="w-full border-b border-gray-300 py-2 text-sm text-gray-900 placeholder:text-gray-400 bg-transparent"
-                                                />
+                                                <div className="space-y-2">
+                                                    <input
+                                                        disabled
+                                                        placeholder="Short answer text"
+                                                        className="w-full border-b border-gray-300 py-2 text-sm text-gray-900 placeholder:text-gray-400 bg-transparent"
+                                                    />
+                                                    {el.wordLimit && (
+                                                        <div className="flex justify-end pt-1">
+                                                            <span className="text-[10px] font-bold text-gray-400 bg-gray-50 px-2 py-0.5 rounded-md">
+                                                                0 / {el.wordLimit} · {el.wordLimit} left
+                                                            </span>
+                                                        </div>
+                                                    )}
+                                                </div>
                                             )}
 
                                             {el.type === 'multiple_choice' && (
@@ -617,11 +634,20 @@ function FormBuilder() {
                                             )}
 
                                             {el.type === 'paragraph' && (
-                                                <textarea
-                                                    disabled
-                                                    placeholder="Long answer text"
-                                                    className="w-full border-b border-gray-300 py-2 text-sm text-gray-900 placeholder:text-gray-400 bg-transparent resize-none"
-                                                />
+                                                <div className="space-y-2">
+                                                    <textarea
+                                                        disabled
+                                                        placeholder="Long answer text"
+                                                        className="w-full border-b border-gray-300 py-2 text-sm text-gray-900 placeholder:text-gray-400 bg-transparent resize-none"
+                                                    />
+                                                    {el.wordLimit && (
+                                                        <div className="flex justify-end pt-1">
+                                                            <span className="text-[10px] font-bold text-gray-400 bg-gray-50 px-2 py-0.5 rounded-md">
+                                                                0 / {el.wordLimit} · {el.wordLimit} left
+                                                            </span>
+                                                        </div>
+                                                    )}
+                                                </div>
                                             )}
 
                                             {el.type === 'checkboxes' && (
@@ -734,7 +760,7 @@ function FormBuilder() {
                                                     <div className={`w-full bg-gray-50 border-2 border-gray-200 rounded-lg px-4 flex items-center text-gray-500 text-xs italic font-medium ${el.type === 'paragraph' ? 'h-20 py-3 items-start' : 'h-10'}`}>
                                                         {el.placeholder || 'Answer...'}
                                                     </div>
-                                                    {el.type === 'paragraph' && el.wordLimit && (
+                                                    {(el.type === 'paragraph' || el.type === 'short_answer') && el.wordLimit && (
                                                         <div className="flex justify-end mt-2">
                                                             <span className="text-[10px] font-bold text-gray-400 bg-gray-50 px-2 py-0.5 rounded-md">
                                                                 0 / {el.wordLimit} · {el.wordLimit} left
@@ -769,6 +795,7 @@ function FormBuilder() {
                                 );
                             })}
                         </div>
+                        <div className="h-32" /> {/* Handsome padding at the bottom */}
                     </div>
                 </main>
 
@@ -820,6 +847,21 @@ function FormBuilder() {
                                                 className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-xs font-medium text-gray-900 focus:ring-1 focus:ring-blue-600 focus:bg-white outline-none resize-none"
                                             />
                                         </div>
+
+                                        <div className="pt-4 border-t border-gray-50">
+                                            <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                                                <div className="flex flex-col">
+                                                    <span className="text-[10px] font-bold text-gray-900 uppercase tracking-widest">Collect Email</span>
+                                                    <span className="text-[8px] text-gray-500 uppercase tracking-tight">Prevent duplicate entries</span>
+                                                </div>
+                                                <button
+                                                    onClick={() => setCollectEmail(!collectEmail)}
+                                                    className={`w-8 h-4 rounded-full relative transition-all ${collectEmail ? 'bg-blue-600' : 'bg-gray-200'}`}
+                                                >
+                                                    <div className={`absolute top-0.5 w-3 h-3 bg-white rounded-full transition-all ${collectEmail ? 'left-[18px]' : 'left-0.5'}`}></div>
+                                                </button>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             ) : activeElement ? (
@@ -870,12 +912,14 @@ function FormBuilder() {
                                                                 onChange={(e) => updateOption(activeElement.id, i, e.target.value)}
                                                                 className="flex-1 px-3 py-1.5 bg-gray-50 border border-gray-200 rounded-md text-xs font-semibold text-gray-900 outline-none focus:ring-1 focus:ring-blue-600 focus:bg-white transition-all"
                                                             />
-                                                            <button
-                                                                onClick={() => removeOption(activeElement.id, i)}
-                                                                className="text-gray-400 hover:text-red-600 p-1 transition-all"
-                                                            >
-                                                                <Trash2 size={12} className="text-gray-900" />
-                                                            </button>
+                                                            {(activeElement.options?.length ?? 0) > 2 && (
+                                                                <button
+                                                                    onClick={() => removeOption(activeElement.id, i)}
+                                                                    className="text-gray-400 hover:text-red-600 p-1 transition-all"
+                                                                >
+                                                                    <Trash2 size={12} className="text-gray-900" />
+                                                                </button>
+                                                            )}
                                                         </div>
                                                     ))}
                                                 </div>
@@ -901,7 +945,7 @@ function FormBuilder() {
                                             </div>
                                         </div>
 
-                                        {activeElement.type === 'paragraph' && (
+                                        {(activeElement.type === 'paragraph' || activeElement.type === 'short_answer') && (
                                             <div className="pt-4 border-t border-gray-50">
                                                 <button
                                                     onClick={() => setAdvancedOpen(!advancedOpen)}
@@ -939,52 +983,9 @@ function FormBuilder() {
                                 </div>
                             ) : (
                                 <div className="space-y-6 animate-in fade-in duration-300">
-                                    <div className="space-y-4">
-                                        <h2 className="text-[10px] font-bold text-gray-900 uppercase tracking-widest">Global Style</h2>
-                                        <div className="space-y-3">
-                                            <label className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Theme Color</label>
-                                            <div className="grid grid-cols-6 gap-2">
-                                                {['#2563eb', '#4f46e5', '#7c3aed', '#db2777', '#dc2626', '#ea580c', '#16a34a', '#0891b2', '#18181b'].map((color) => (
-                                                    <button
-                                                        key={color}
-                                                        onClick={() => setThemeColor(color)}
-                                                        className={`w-8 h-8 rounded-full border-2 transition-all ${themeColor === color ? 'border-gray-900 scale-110 shadow-sm' : 'border-transparent hover:scale-105'
-                                                            }`}
-                                                        style={{ backgroundColor: color }}
-                                                    />
-                                                ))}
-                                                <div className="relative group">
-                                                    <input
-                                                        type="color"
-                                                        value={themeColor}
-                                                        onChange={(e) => setThemeColor(e.target.value)}
-                                                        className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
-                                                    />
-                                                    <div
-                                                        className="w-8 h-8 rounded-full border border-gray-100 flex items-center justify-center bg-white text-gray-400 group-hover:bg-gray-50 bg-gradient-to-br from-gray-50 to-white"
-                                                    >
-                                                        <Plus size={12} />
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
 
-                                    <div className="pt-6 border-t border-gray-50 flex flex-col gap-4">
-                                        <h2 className="text-[10px] font-bold text-gray-900 uppercase tracking-widest">Form Settings</h2>
-                                        <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                                            <div className="flex flex-col">
-                                                <span className="text-[10px] font-bold text-gray-900 uppercase tracking-widest">Collect Email</span>
-                                                <span className="text-[8px] text-gray-500 uppercase tracking-tight">Prevent duplicate entries</span>
-                                            </div>
-                                            <button
-                                                onClick={() => setCollectEmail(!collectEmail)}
-                                                className={`w-8 h-4 rounded-full relative transition-all ${collectEmail ? 'bg-blue-600' : 'bg-gray-200'}`}
-                                            >
-                                                <div className={`absolute top-0.5 w-3 h-3 bg-white rounded-full transition-all ${collectEmail ? 'left-4.5' : 'left-0.5'}`}></div>
-                                            </button>
-                                        </div>
-                                    </div>
+
+
 
                                     <div className="pt-6 border-t border-gray-50 flex flex-col items-center justify-center p-6 text-center text-gray-300">
                                         <h3 className="text-[9px] font-bold uppercase tracking-widest">Select an element to configure</h3>
@@ -1019,30 +1020,32 @@ function FormBuilder() {
             </div>
 
             {/* Compact Publish Modal */}
-            {isSendModalOpen && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/10 backdrop-blur-sm animate-in fade-in duration-300">
-                    <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl p-10 text-center animate-in zoom-in-95 duration-500 border border-gray-100">
-                        <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center mx-auto mb-6">
-                            <Send size={28} />
+            {
+                isSendModalOpen && (
+                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/10 backdrop-blur-sm animate-in fade-in duration-300">
+                        <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl p-10 text-center animate-in zoom-in-95 duration-500 border border-gray-100">
+                            <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center mx-auto mb-6">
+                                <Send size={28} />
+                            </div>
+                            <h2 className="text-xl font-bold text-gray-900 mb-2 uppercase tracking-tight">Form is Live</h2>
+                            <p className="text-xs text-gray-500 mb-8 max-w-xs mx-auto">Your form is now ready to collect responses.</p>
+                            <button
+                                onClick={copyLink}
+                                className={`w-full py-3 rounded-xl font-bold text-xs uppercase tracking-widest mb-4 transition-all ${copySuccess ? 'bg-green-500 text-white' : 'bg-blue-600 text-white hover:bg-blue-700'
+                                    }`}
+                            >
+                                {copySuccess ? 'Link Copied' : 'Copy Share Link'}
+                            </button>
+                            <button
+                                onClick={() => setIsSendModalOpen(false)}
+                                className="text-[10px] font-bold text-gray-400 uppercase tracking-widest hover:text-gray-900"
+                            >
+                                Back to Editor
+                            </button>
                         </div>
-                        <h2 className="text-xl font-bold text-gray-900 mb-2 uppercase tracking-tight">Form is Live</h2>
-                        <p className="text-xs text-gray-500 mb-8 max-w-xs mx-auto">Your form is now ready to collect responses.</p>
-                        <button
-                            onClick={copyLink}
-                            className={`w-full py-3 rounded-xl font-bold text-xs uppercase tracking-widest mb-4 transition-all ${copySuccess ? 'bg-green-500 text-white' : 'bg-blue-600 text-white hover:bg-blue-700'
-                                }`}
-                        >
-                            {copySuccess ? 'Link Copied' : 'Copy Share Link'}
-                        </button>
-                        <button
-                            onClick={() => setIsSendModalOpen(false)}
-                            className="text-[10px] font-bold text-gray-400 uppercase tracking-widest hover:text-gray-900"
-                        >
-                            Back to Editor
-                        </button>
                     </div>
-                </div>
-            )}
-        </div>
+                )
+            }
+        </div >
     );
 }
