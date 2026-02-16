@@ -1,24 +1,51 @@
 'use client';
 
-import { Settings, Bell, ChevronDown, FileText, Check } from 'lucide-react';
+import { Settings, Bell, ChevronDown, FileText, Check, User, LogOut, LogIn } from 'lucide-react';
 import Link from 'next/link';
 import { useTheme } from './ThemeProvider';
+import { useAuth } from './auth/AuthProvider';
 import { useState, useRef, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 
 export default function Navbar() {
   const { theme, setTheme, availableThemes } = useTheme();
+  const { user, loading, signOut } = useAuth();
+  const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const userMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setIsOpen(false);
       }
+      if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
+        setIsUserMenuOpen(false);
+      }
     }
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  const handleSignOut = async () => {
+    await signOut();
+    setIsUserMenuOpen(false);
+    router.push('/');
+  };
+
+  const getUserInitials = () => {
+    if (user?.user_metadata?.full_name) {
+      return user.user_metadata.full_name
+        .split(' ')
+        .map((n: string) => n[0])
+        .join('')
+        .toUpperCase()
+        .slice(0, 2);
+    }
+    return user?.email?.[0].toUpperCase() || 'U';
+  };
 
   return (
     <nav className="flex items-center justify-between px-6 py-3 border-b border-gray-100 bg-white/80 backdrop-blur-md sticky top-0 z-[60]">
@@ -105,6 +132,67 @@ export default function Navbar() {
               </div>
             )}
           </div>
+
+          {/* User Authentication */}
+          {loading ? (
+            <div className="w-8 h-8 rounded-full bg-gray-100 animate-pulse"></div>
+          ) : user ? (
+            <div className="relative" ref={userMenuRef}>
+              <button
+                onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
+                className="flex items-center gap-2 hover:opacity-80 transition-opacity"
+              >
+                <div className="w-8 h-8 rounded-full bg-purple-600 flex items-center justify-center text-white text-xs font-bold shadow-sm">
+                  {getUserInitials()}
+                </div>
+              </button>
+
+              {isUserMenuOpen && (
+                <div className="absolute right-0 mt-2 w-64 bg-white rounded-xl shadow-xl border border-gray-100 overflow-hidden animate-in fade-in zoom-in duration-200 z-[70]">
+                  <div className="px-4 py-3 border-b border-gray-100 bg-gray-50/50">
+                    <p className="text-sm font-semibold text-gray-900 truncate">
+                      {user.user_metadata?.full_name || 'User'}
+                    </p>
+                    <p className="text-xs text-gray-500 truncate">{user.email}</p>
+                  </div>
+                  <div className="p-2">
+                    <Link
+                      href="/dashboard"
+                      onClick={() => setIsUserMenuOpen(false)}
+                      className="flex items-center gap-3 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-lg transition-colors"
+                    >
+                      <User size={16} />
+                      <span>Dashboard</span>
+                    </Link>
+                    <Link
+                      href="/settings"
+                      onClick={() => setIsUserMenuOpen(false)}
+                      className="flex items-center gap-3 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-lg transition-colors"
+                    >
+                      <Settings size={16} />
+                      <span>Settings</span>
+                    </Link>
+                    <div className="my-1 border-t border-gray-100"></div>
+                    <button
+                      onClick={handleSignOut}
+                      className="flex items-center gap-3 w-full px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                    >
+                      <LogOut size={16} />
+                      <span>Sign out</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : (
+            <Link
+              href="/login"
+              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 rounded-lg transition-colors shadow-sm"
+            >
+              <LogIn size={16} />
+              <span>Sign in</span>
+            </Link>
+          )}
         </div>
       </div>
     </nav>
