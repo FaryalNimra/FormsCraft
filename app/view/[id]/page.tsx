@@ -26,6 +26,8 @@ export default function ViewForm() {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [submitted, setSubmitted] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [userEmail, setUserEmail] = useState('');
+    const [alreadySubmitted, setAlreadySubmitted] = useState(false);
 
     useEffect(() => {
         if (id) {
@@ -70,16 +72,23 @@ export default function ViewForm() {
 
         if (form?.expires_at && new Date(form.expires_at) < new Date()) {
             alert('Time is up. This form is no longer accepting responses.');
+        // Email validation if required
+        if (form?.collect_email && !userEmail) {
+            alert(`Please enter your email address`);
             return;
         }
 
         setIsSubmitting(true);
         try {
-            await saveResponse(id as string, responses);
+            await saveResponse(id as string, responses, form?.collect_email ? userEmail : undefined);
             setSubmitted(true);
         } catch (err: any) {
             console.error('Error submitting form:', err);
-            alert('Failed to submit form');
+            if (err.message === "ALREADY_SUBMITTED") {
+                setAlreadySubmitted(true);
+            } else {
+                alert('Failed to submit form');
+            }
         } finally {
             setIsSubmitting(false);
         }
@@ -129,11 +138,38 @@ export default function ViewForm() {
                             onClick={() => {
                                 setSubmitted(false);
                                 setResponses({});
+                                setUserEmail('');
                             }}
                             className="text-xs font-bold uppercase tracking-widest hover:opacity-80 transition-all select-none"
                             style={{ color: (!form.theme_color || form.theme_color === '#2563eb') ? 'var(--primary-600)' : form.theme_color }}
                         >
                             Submit another response
+                        </button>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    if (alreadySubmitted) {
+        return (
+            <div className="min-h-screen bg-[#F0EBF8] flex items-center justify-center p-4">
+                <div className="bg-white rounded-lg shadow-sm text-center max-w-md w-full border border-gray-200 overflow-hidden relative">
+                    <div className="absolute top-0 left-0 w-full h-2 bg-amber-500"></div>
+                    <div className="p-8">
+                        <div className="w-12 h-12 bg-amber-50 text-amber-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <XCircle size={24} />
+                        </div>
+                        <h1 className="text-lg font-bold text-gray-900 mb-2">Already Submitted</h1>
+                        <p className="text-gray-500 text-xs mb-6">You have already submitted a response for this form. Responses are limited to one per email address.</p>
+                        <button
+                            onClick={() => {
+                                setAlreadySubmitted(false);
+                            }}
+                            className="inline-block px-6 py-2 text-white rounded font-medium text-xs transition-colors hover:opacity-90 shadow-sm"
+                            style={{ backgroundColor: form?.theme_color || '#2563eb' }}
+                        >
+                            Back to Form
                         </button>
                     </div>
                 </div>
@@ -174,6 +210,31 @@ export default function ViewForm() {
                             </div>
                         </div>
                     </div>
+
+                    {/* Email Collection Field */}
+                    {form.collect_email && (
+                        <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-200 transition-all">
+                            <label className="block text-base font-medium text-gray-900 mb-4 leading-normal">
+                                Email Address <span className="text-red-600 ml-1">*</span>
+                                <p className="text-[10px] text-gray-500 font-normal mt-1 uppercase tracking-tight">Your email will be recorded with this response</p>
+                            </label>
+                            <div className="group relative">
+                                <input
+                                    type="email"
+                                    required
+                                    placeholder="your-email@example.com"
+                                    value={userEmail}
+                                    onChange={(e) => setUserEmail(e.target.value)}
+                                    className="w-full border-b border-gray-300 py-2 focus:border-b-2 focus:outline-none transition-all text-sm font-normal text-gray-900 placeholder:text-gray-400 bg-transparent"
+                                    style={{
+                                        borderBottomColor: userEmail
+                                            ? ((!form.theme_color || form.theme_color === '#2563eb') ? 'var(--primary-600)' : form.theme_color)
+                                            : undefined
+                                    }}
+                                />
+                            </div>
+                        </div>
+                    )}
 
                     {/* Question Cards (Google Style) */}
                     <div className="space-y-3">

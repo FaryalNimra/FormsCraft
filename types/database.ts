@@ -1,4 +1,8 @@
 
+/**
+ * Element types supported by the form builder
+ * IMPORTANT: Admin and User side MUST use these exact values
+ */
 export type ElementType =
   | 'short_answer'
   | 'paragraph'
@@ -23,6 +27,8 @@ export interface Form {
   title: string;
   description: string | null;
   status: FormStatus;
+  theme_color?: string; // Added theme_color
+  collect_email: boolean; // Added collect_email
   created_by: string | null;
   created_at: string;
   updated_at: string;
@@ -123,6 +129,7 @@ export interface CreateFormElementInput {
 export interface SubmitResponseInput {
   form_id: string;
   submitted_by?: string;
+  user_email?: string; // Added user_email
 }
 
 /**
