@@ -1,75 +1,68 @@
 'use client';
 
-import { Star } from 'lucide-react';
 import { useState } from 'react';
+import { Star } from 'lucide-react';
 
 interface RatingScaleProps {
-  id: string;
-  label: string;
-  maxRating?: number;
-  required?: boolean;
-  value: number;
-  onChange: (value: number) => void;
-  error?: string;
+    id: string;
+    label: string;
+    maxRating: number;
+    required?: boolean;
+    value: number;
+    onChange: (value: number) => void;
+    error?: string;
 }
 
 export default function RatingScale({
-  id,
-  label,
-  maxRating = 5,
-  required = false,
-  value,
-  onChange,
-  error,
+    id,
+    label,
+    maxRating = 5,
+    required = false,
+    value,
+    onChange,
+    error,
 }: RatingScaleProps) {
-  const [hoverValue, setHoverValue] = useState<number | null>(null);
+    const [hovered, setHovered] = useState<number | null>(null);
 
-  return (
-    <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+    return (
+        <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-200 transition-all">
+            <p className="text-base font-medium text-gray-900 mb-4 leading-normal">
+                {label}
+                {required && <span className="text-red-600 ml-1">*</span>}
+            </p>
+            <div className="flex flex-wrap gap-2 items-center">
+                {Array.from({ length: maxRating }).map((_, i) => {
+                    const rating = i + 1;
+                    const isActive = rating <= (hovered !== null ? hovered : value);
 
-
-      <p className="text-lg font-semibold text-gray-900 mb-4">
-        {label}
-        {required && <span className="text-red-500 ml-1">*</span>}
-      </p>
-
-      <div className="flex gap-2" role="radiogroup" aria-labelledby={`${id}-label`}>
-        {Array.from({ length: maxRating }).map((_, index) => {
-          const ratingValue = index + 1;
-          const isActive = (hoverValue ?? value) >= ratingValue;
-
-          return (
-            <button
-              key={index}
-              type="button"
-              onClick={() => onChange(ratingValue)}
-              onMouseEnter={() => setHoverValue(ratingValue)}
-              onMouseLeave={() => setHoverValue(null)}
-              className={`w-12 h-12 rounded-xl flex items-center justify-center transition-all duration-200 ${isActive
-                ? 'bg-gray-100 border-2 border-gray-900 text-gray-900'
-                : 'bg-gray-100/50 border-2 border-gray-200 text-gray-400 hover:border-gray-400'
-                }`}
-              aria-label={`Rate ${ratingValue} out of ${maxRating}`}
-            >
-              <Star
-                size={24}
-                fill={isActive ? 'black' : 'none'}
-                className={isActive ? 'text-black' : 'text-gray-500'}
-              />
-            </button>
-          );
-        })}
-      </div>
-
-      {value > 0 && (
-        <p className="mt-3 text-sm text-gray-500">
-          You rated: <span className="font-semibold text-yellow-600">{value}</span> out of {maxRating}
-        </p>
-      )}
-
-      {error && (
-        <p className="mt-3 text-sm text-red-500 font-medium">{error}</p>
-      )}
-    </div>
-  );
+                    return (
+                        <button
+                            key={i}
+                            type="button"
+                            onClick={() => onChange(rating === value ? 0 : rating)}
+                            onMouseEnter={() => setHovered(rating)}
+                            onMouseLeave={() => setHovered(null)}
+                            className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${isActive
+                                    ? 'bg-amber-100 text-amber-500 scale-110'
+                                    : 'bg-gray-50 text-gray-300 hover:bg-gray-100 border border-gray-100'
+                                }`}
+                            aria-label={`Rate ${rating} out of ${maxRating}`}
+                        >
+                            <Star
+                                size={20}
+                                fill={isActive ? 'currentColor' : 'none'}
+                                strokeWidth={isActive ? 0 : 1.5}
+                            />
+                        </button>
+                    );
+                })}
+                {value > 0 && (
+                    <span className="ml-2 text-xs font-bold text-gray-400">{value}/{maxRating}</span>
+                )}
+            </div>
+            {error && (
+                <p className="mt-2 text-sm text-red-500 font-medium">{error}</p>
+            )}
+        </div>
+    );
 }

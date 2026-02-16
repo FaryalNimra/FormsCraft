@@ -144,7 +144,7 @@ function FormBuilder() {
                 elements: currentData.elements,
                 status: currentData.status,
                 theme_color: themeColor,
-                expires_at: expiresAt || undefined
+                expires_at: expiresAt || undefined,
                 collect_email: collectEmail
             });
             if (!currentData.id) setFormId(saved.id ?? null);
@@ -175,8 +175,7 @@ function FormBuilder() {
         return () => {
             if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
         };
-    }, [title, description, formElements, isMounted, formId, themeColor, expiresAt]);
-    }, [title, description, formElements, isMounted, formId, collectEmail]);
+    }, [title, description, formElements, isMounted, formId, themeColor, expiresAt, collectEmail]);
 
     const clearDraft = () => {
         localStorage.removeItem('formcraft_progress');
@@ -204,7 +203,7 @@ function FormBuilder() {
                 elements: formElements,
                 status: 'published',
                 theme_color: themeColor,
-                expires_at: expiresAt || undefined
+                expires_at: expiresAt || undefined,
                 collect_email: collectEmail
             });
             if (!formId) setFormId(saved.id ?? null);

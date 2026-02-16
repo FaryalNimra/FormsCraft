@@ -1,6 +1,6 @@
 'use client';
 
-import { Settings, Bell, ChevronDown, FileText, Check, User, LogOut, LogIn } from 'lucide-react';
+import { Bell, ChevronDown, FileText, Check, LogOut, LogIn } from 'lucide-react';
 import Link from 'next/link';
 import { useTheme } from './ThemeProvider';
 import { useAuth } from './auth/AuthProvider';
@@ -156,23 +156,6 @@ export default function Navbar() {
                     <p className="text-xs text-gray-500 truncate">{user.email}</p>
                   </div>
                   <div className="p-2">
-                    <Link
-                      href="/dashboard"
-                      onClick={() => setIsUserMenuOpen(false)}
-                      className="flex items-center gap-3 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-lg transition-colors"
-                    >
-                      <User size={16} />
-                      <span>Dashboard</span>
-                    </Link>
-                    <Link
-                      href="/settings"
-                      onClick={() => setIsUserMenuOpen(false)}
-                      className="flex items-center gap-3 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-lg transition-colors"
-                    >
-                      <Settings size={16} />
-                      <span>Settings</span>
-                    </Link>
-                    <div className="my-1 border-t border-gray-100"></div>
                     <button
                       onClick={handleSignOut}
                       className="flex items-center gap-3 w-full px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors"

@@ -72,6 +72,8 @@ export default function ViewForm() {
 
         if (form?.expires_at && new Date(form.expires_at) < new Date()) {
             alert('Time is up. This form is no longer accepting responses.');
+            return;
+        }
         // Email validation if required
         if (form?.collect_email && !userEmail) {
             alert(`Please enter your email address`);
