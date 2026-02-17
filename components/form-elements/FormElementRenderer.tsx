@@ -8,6 +8,7 @@ import {
   Checkboxes,
   Dropdown,
   DatePicker,
+  TimePicker,
   FileUpload,
   RatingScale,
 } from '@/components/form-elements';
@@ -106,6 +107,19 @@ export default function FormElementRenderer({
     case 'date':
       return (
         <DatePicker
+          id={element.id}
+          label={element.label}
+          placeholder={element.placeholder || undefined}
+          required={element.required}
+          value={(value as string) || ''}
+          onChange={(v) => onChange(v)}
+          error={error}
+        />
+      );
+
+    case 'time':
+      return (
+        <TimePicker
           id={element.id}
           label={element.label}
           placeholder={element.placeholder || undefined}

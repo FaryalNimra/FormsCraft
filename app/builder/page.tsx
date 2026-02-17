@@ -35,6 +35,7 @@ const ELEMENT_ICONS: Record<ElementType, any> = {
     checkboxes: CheckSquare,
     dropdown: ChevronDown,
     date: Calendar,
+    time: Clock,
     file_upload: Upload,
     rating_scale: Star,
 };
@@ -46,6 +47,7 @@ const ELEMENT_LABELS: Record<ElementType, string> = {
     checkboxes: 'Multiple Choice',
     dropdown: 'Dropdown Select',
     date: 'Date Picker',
+    time: 'Time Picker',
     file_upload: 'File Upload',
     rating_scale: 'Rating Scale',
 };
@@ -321,6 +323,7 @@ function FormBuilder() {
 
     const handleDragOver = (e: React.DragEvent, index: number) => {
         e.preventDefault();
+        e.stopPropagation();
         // Sidebar drag — always show indicator
         if (draggingType) {
             setDragOverIndex(index);
@@ -354,6 +357,7 @@ function FormBuilder() {
 
     const handleDrop = (e: React.DragEvent, dropIndex: number) => {
         e.preventDefault();
+        e.stopPropagation();
         // Sidebar drop — insert new element
         if (draggingType) {
             addElementAtIndex(draggingType, dropIndex);
@@ -533,7 +537,7 @@ function FormBuilder() {
 
             <div className="flex flex-1 overflow-hidden relative">
                 {/* Dense Elements Sidebar */}
-                <aside className="w-60 bg-white border-r border-gray-100 overflow-y-auto p-4 hidden lg:flex flex-col">
+                <aside className="w-60 bg-white border-r border-gray-100 overflow-y-auto scrollbar-hide p-4 hidden lg:flex flex-col">
                     <div className="mb-6">
                         <h2 className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-3">Components</h2>
                         <div className="grid grid-cols-1 gap-1">
@@ -686,6 +690,13 @@ function FormBuilder() {
                                                 </div>
                                             )}
 
+                                            {el.type === 'time' && (
+                                                <div className="w-full max-w-xs px-3 py-2 bg-white border border-gray-300 rounded text-sm text-gray-400 flex items-center justify-between">
+                                                    <span>hh:mm</span>
+                                                    <Clock size={16} />
+                                                </div>
+                                            )}
+
                                             {el.type === 'rating_scale' && (
                                                 <div className="flex flex-wrap gap-4 items-center">
                                                     <div className="flex gap-1">
@@ -715,7 +726,7 @@ function FormBuilder() {
                                             : 'border-transparent hover:border-gray-100'
                                             } ${dragIndex === index ? 'opacity-40 scale-[0.97]' : ''}`}
                                     >
-                                        {dragOverIndex === index && dragIndex !== null && dragIndex !== index && (
+                                        {dragOverIndex === index && (draggingType || (dragIndex !== null && dragIndex !== index)) && (
                                             <div className="absolute -top-2.5 left-0 right-0 flex items-center gap-2 z-10 pointer-events-none">
                                                 <div className="w-3 h-3 rounded-full bg-blue-500 border-2 border-white shadow"></div>
                                                 <div className="flex-1 h-0.5 bg-blue-500 rounded-full shadow"></div>
@@ -759,17 +770,60 @@ function FormBuilder() {
                                         </div>
 
                                         <div className="space-y-4">
-                                            <h3 className="text-sm font-bold text-gray-900 tracking-tight leading-snug break-words">
-                                                {el.label}
-                                                {el.required && <span className="text-red-500 ml-1">*</span>}
-                                            </h3>
+                                            <div className="relative group/label">
+                                                <textarea
+                                                    draggable={false}
+                                                    value={el.label}
+                                                    rows={1}
+                                                    onClick={(e) => { e.stopPropagation(); setActiveElementId(el.id); }}
+                                                    onFocus={(e) => {
+                                                        const target = e.target as HTMLTextAreaElement;
+                                                        target.style.height = 'auto';
+                                                        target.style.height = target.scrollHeight + 'px';
+                                                    }}
+                                                    onChange={(e) => {
+                                                        const words = e.target.value.trim().split(/\s+/).filter(Boolean);
+                                                        const limit = el.type === 'paragraph' ? 15 : 10;
+                                                        if (words.length <= limit || e.target.value.endsWith(' ')) {
+                                                            updateElement(el.id, { label: e.target.value });
+                                                        }
+                                                        const target = e.target as HTMLTextAreaElement;
+                                                        target.style.height = 'auto';
+                                                        target.style.height = target.scrollHeight + 'px';
+                                                    }}
+                                                    onKeyDown={(e) => { if (e.key === 'Enter') e.preventDefault(); }}
+                                                    className="w-full text-sm font-bold text-gray-900 tracking-tight leading-snug break-words bg-transparent border-none outline-none resize-none p-0 focus:ring-0 transition-all hover:bg-gray-50/50 rounded-sm"
+                                                    placeholder="Enter question here..."
+                                                />
+                                                {el.required && <span className="absolute -right-3 top-0 text-red-500">*</span>}
+                                            </div>
 
                                             {(el.type === 'short_answer' || el.type === 'paragraph') && (
                                                 <div>
-                                                    <div className={`w-full bg-gray-50 border-2 border-gray-200 rounded-lg px-4 flex items-center text-gray-500 text-xs italic font-medium ${el.type === 'paragraph' ? 'h-20 py-3 items-start' : 'h-10'}`}>
-                                                        {el.placeholder || 'Answer...'}
+                                                    <div className={`w-full bg-gray-50 border-2 border-gray-200 rounded-lg px-4 flex items-center text-gray-400 text-xs italic font-medium transition-all hover:border-[var(--primary-200)] ${el.type === 'paragraph' ? 'h-24 py-3 items-start' : 'h-11'}`}>
+                                                        {el.type === 'paragraph' ? (
+                                                            <textarea
+                                                                draggable={false}
+                                                                value={el.placeholder}
+                                                                onChange={(e) => updateElement(el.id, { placeholder: e.target.value })}
+                                                                onClick={(e) => { e.stopPropagation(); setActiveElementId(el.id); }}
+                                                                className="w-full bg-transparent border-none outline-none resize-none p-0 focus:ring-0 text-gray-500 font-medium"
+                                                                placeholder="Write response..."
+                                                                rows={2}
+                                                            />
+                                                        ) : (
+                                                            <input
+                                                                draggable={false}
+                                                                type="text"
+                                                                value={el.placeholder}
+                                                                onChange={(e) => updateElement(el.id, { placeholder: e.target.value })}
+                                                                onClick={(e) => { e.stopPropagation(); setActiveElementId(el.id); }}
+                                                                className="w-full bg-transparent border-none outline-none p-0 focus:ring-0 text-gray-500 font-medium"
+                                                                placeholder="Enter answer hint..."
+                                                            />
+                                                        )}
                                                     </div>
-                                                    {(el.type === 'paragraph' || el.type === 'short_answer') && el.wordLimit && (
+                                                    {el.wordLimit && (
                                                         <div className="flex justify-end mt-2">
                                                             <span className="text-[10px] font-bold text-gray-400 bg-gray-50 px-2 py-0.5 rounded-md">
                                                                 0 / {el.wordLimit} · {el.wordLimit} left
@@ -779,14 +833,89 @@ function FormBuilder() {
                                                 </div>
                                             )}
 
-                                            {(el.type === 'multiple_choice' || el.type === 'checkboxes') && (
+                                            {(el.type === 'multiple_choice' || el.type === 'checkboxes' || el.type === 'dropdown') && (
                                                 <div className="grid grid-cols-1 gap-2">
                                                     {el.options?.map((opt, i) => (
-                                                        <div key={i} className="flex items-center gap-3 p-2.5 rounded-lg bg-gray-50/30 border border-gray-50">
-                                                            <div className={`w-3.5 h-3.5 border border-gray-200 ${el.type === 'multiple_choice' ? 'rounded-full' : 'rounded-sm'}`}></div>
-                                                            <span className="text-xs text-gray-600 font-medium break-words">{opt}</span>
+                                                        <div key={i} className="flex items-center gap-3 p-3 rounded-xl bg-gray-50/50 border border-gray-100 group/opt transition-all hover:bg-white hover:border-blue-100 hover:shadow-sm">
+                                                            <div className={`w-4 h-4 border-2 border-gray-200 flex-shrink-0 ${el.type === 'multiple_choice' ? 'rounded-full' : (el.type === 'dropdown' ? 'rounded-md bg-gray-100 border-none relative' : 'rounded-md')}`}>
+                                                                {el.type === 'dropdown' && <span className="text-[8px] font-bold text-gray-400 absolute inset-0 flex items-center justify-center">{i + 1}</span>}
+                                                            </div>
+                                                            <input
+                                                                draggable={false}
+                                                                type="text"
+                                                                value={opt}
+                                                                onClick={(e) => { e.stopPropagation(); setActiveElementId(el.id); }}
+                                                                onChange={(e) => {
+                                                                    const words = e.target.value.trim().split(/\s+/).filter(Boolean);
+                                                                    if (words.length <= 10 || e.target.value.endsWith(' ')) {
+                                                                        updateOption(el.id, i, e.target.value);
+                                                                    }
+                                                                }}
+                                                                className="flex-1 bg-transparent border-none outline-none p-0 text-xs text-gray-700 font-bold placeholder:text-gray-300 focus:ring-0"
+                                                                placeholder={`Option ${i + 1}`}
+                                                            />
+                                                            <button
+                                                                onClick={(e) => { e.stopPropagation(); removeOption(el.id, i); }}
+                                                                className={`p-1 text-gray-300 hover:text-red-500 rounded-md transition-all ${el.options && el.options.length > 2 ? 'opacity-0 group-hover/opt:opacity-100' : 'hidden'}`}
+                                                            >
+                                                                <X size={12} />
+                                                            </button>
                                                         </div>
                                                     ))}
+                                                    <button
+                                                        onClick={(e) => { e.stopPropagation(); addOption(el.id); }}
+                                                        className="flex items-center gap-2 px-3 py-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-all w-fit group"
+                                                    >
+                                                        <div className="p-0.5 rounded-full bg-blue-100 group-hover:bg-blue-600 group-hover:text-white transition-all">
+                                                            <Plus size={10} />
+                                                        </div>
+                                                        <span className="text-[10px] font-bold uppercase tracking-widest">Add Option</span>
+                                                    </button>
+                                                </div>
+                                            )}
+
+                                            {el.type === 'date' && (
+                                                <div className="w-full max-w-xs px-4 py-2.5 bg-gray-50 border-2 border-gray-100 rounded-xl flex items-center justify-between group/date transition-all hover:border-blue-100 hover:bg-white">
+                                                    <input
+                                                        draggable={false}
+                                                        type="text"
+                                                        value={el.placeholder}
+                                                        onChange={(e) => updateElement(el.id, { placeholder: e.target.value })}
+                                                        onClick={(e) => { e.stopPropagation(); setActiveElementId(el.id); }}
+                                                        className="w-full bg-transparent border-none outline-none p-0 focus:ring-0 text-xs text-gray-400 font-medium"
+                                                        placeholder="mm/dd/yyyy"
+                                                    />
+                                                    <Calendar size={14} className="text-gray-300 group-hover/date:text-blue-500 transition-colors" />
+                                                </div>
+                                            )}
+
+                                            {el.type === 'time' && (
+                                                <div className="w-full max-w-xs px-4 py-2.5 bg-gray-50 border-2 border-gray-100 rounded-xl flex items-center justify-between group/time transition-all hover:border-blue-100 hover:bg-white">
+                                                    <input
+                                                        draggable={false}
+                                                        type="text"
+                                                        value={el.placeholder}
+                                                        onChange={(e) => updateElement(el.id, { placeholder: e.target.value })}
+                                                        onClick={(e) => { e.stopPropagation(); setActiveElementId(el.id); }}
+                                                        className="w-full bg-transparent border-none outline-none p-0 focus:ring-0 text-xs text-gray-400 font-medium"
+                                                        placeholder="hh:mm"
+                                                    />
+                                                    <Clock size={14} className="text-gray-300 group-hover/time:text-blue-500 transition-colors" />
+                                                </div>
+                                            )}
+
+                                            {el.type === 'file_upload' && (
+                                                <div className="w-full bg-gray-50 border-2 border-dashed border-gray-200 rounded-xl p-4 flex flex-col items-center justify-center gap-2 group/file transition-all hover:border-blue-200 hover:bg-blue-50/10">
+                                                    <Upload size={18} className="text-gray-300 group-hover/file:text-blue-500 transition-colors" />
+                                                    <input
+                                                        draggable={false}
+                                                        type="text"
+                                                        value={el.placeholder}
+                                                        onChange={(e) => updateElement(el.id, { placeholder: e.target.value })}
+                                                        onClick={(e) => { e.stopPropagation(); setActiveElementId(el.id); }}
+                                                        className="w-full bg-transparent border-none outline-none p-0 focus:ring-0 text-xs text-center text-gray-400 font-medium"
+                                                        placeholder="Click or drag file to upload"
+                                                    />
                                                 </div>
                                             )}
 
@@ -809,7 +938,7 @@ function FormBuilder() {
                 </main>
 
                 {/* Intelligent Settings Sidebar */}
-                <aside className="w-72 bg-white border-l border-gray-100 overflow-y-auto hidden xl:flex flex-col">
+                <aside className="w-72 bg-white border-l border-gray-100 overflow-y-auto scrollbar-hide hidden xl:flex flex-col">
                     <div className="p-2 border-b border-gray-50 flex gap-0.5 sticky top-0 bg-white z-20">
                         <button
                             onClick={() => setIsPreview(false)}
@@ -1042,7 +1171,7 @@ function FormBuilder() {
                         )}
                     </div>
                 </aside>
-            </div>
+            </div >
 
             {/* Compact Publish Modal */}
             {
