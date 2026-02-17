@@ -39,7 +39,7 @@ export default function Dropdown({
 
     return (
         <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-200 transition-all">
-            <p className="text-base font-medium text-gray-900 mb-4 leading-normal">
+            <p className="text-base font-medium text-gray-900 mb-4 leading-normal break-words">
                 {label}
                 {required && <span className="text-red-600 ml-1">*</span>}
             </p>
@@ -50,7 +50,7 @@ export default function Dropdown({
                     className={`w-full px-4 py-3 bg-white border rounded-lg text-sm text-left flex items-center justify-between transition-all ${isOpen ? 'border-blue-500 ring-2 ring-blue-100' : 'border-gray-300 hover:border-gray-400'
                         }`}
                 >
-                    <span className={value ? 'text-gray-900 font-normal' : 'text-gray-400'}>
+                    <span className={`break-words ${value ? 'text-gray-900 font-normal' : 'text-gray-400'}`}>
                         {value || placeholder}
                     </span>
                     <ChevronDown
@@ -70,11 +70,11 @@ export default function Dropdown({
                                     setIsOpen(false);
                                 }}
                                 className={`w-full text-left px-4 py-2.5 text-sm transition-all flex items-center justify-between ${value === option
-                                        ? 'bg-blue-50 text-blue-700 font-medium'
-                                        : 'text-gray-700 hover:bg-gray-50'
+                                    ? 'bg-blue-50 text-blue-700 font-medium'
+                                    : 'text-gray-700 hover:bg-gray-50'
                                     }`}
                             >
-                                {option}
+                                <span className="break-words">{option}</span>
                                 {value === option && <Check size={16} className="text-blue-600" />}
                             </button>
                         ))}
