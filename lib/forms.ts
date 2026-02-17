@@ -23,6 +23,8 @@ export interface Form {
     expires_at?: string | null;
     collect_email?: boolean;
     created_by?: string;
+    created_at?: string;
+    updated_at?: string;
 }
 
 export async function saveForm(form: Form) {
@@ -68,16 +70,21 @@ export async function saveForm(form: Form) {
     }
 
     // 2. Save Form Elements
-    // Delete existing elements first
-    const { error: deleteError } = await supabase
-        .from('form_elements')
-        .delete()
-        .eq('form_id', formId);
+    const keeperIds = form.elements
+        .filter(el => el.id && el.id.length > 10)
+        .map(el => el.id);
 
+    // Delete elements that are no longer in the form
+    const deleteQuery = supabase.from('form_elements').delete().eq('form_id', formId);
+    if (keeperIds.length > 0) {
+        deleteQuery.not('id', 'in', `(${keeperIds.join(',')})`);
+    }
+
+    const { error: deleteError } = await deleteQuery;
     if (deleteError) throw deleteError;
 
-    // Insert new elements
-    const elementsToInsert = form.elements.map((el, index) => {
+    // Insert or update current elements
+    const elementsToUpsert = form.elements.map((el, index) => {
         const element: any = {
             form_id: formId,
             type: el.type,
@@ -90,8 +97,6 @@ export async function saveForm(form: Form) {
             order_index: index
         };
 
-        // Only include ID if it's a valid UUID (to preserve it)
-        // If it's a temp ID like '1' from the builder, omit it to let DB generate one
         if (el.id && el.id.length > 10) {
             element.id = el.id;
         }
@@ -99,12 +104,12 @@ export async function saveForm(form: Form) {
         return element;
     });
 
-    if (elementsToInsert.length > 0) {
-        const { error: insertError } = await supabase
+    if (elementsToUpsert.length > 0) {
+        const { error: upsertError } = await supabase
             .from('form_elements')
-            .insert(elementsToInsert);
+            .upsert(elementsToUpsert, { onConflict: 'id' });
 
-        if (insertError) throw insertError;
+        if (upsertError) throw upsertError;
     }
 
     return { id: formId };

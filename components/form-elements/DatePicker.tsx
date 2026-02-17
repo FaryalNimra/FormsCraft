@@ -23,7 +23,7 @@ export default function DatePicker({
 }: DatePickerProps) {
     return (
         <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-200 transition-all">
-            <label htmlFor={id} className="block text-base font-medium text-gray-900 mb-4 leading-normal">
+            <label htmlFor={id} className="block text-base font-medium text-gray-900 mb-4 leading-normal break-words">
                 {label}
                 {required && <span className="text-red-600 ml-1">*</span>}
             </label>

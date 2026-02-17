@@ -162,12 +162,19 @@ export default function Home() {
                           </div>
                         </td>
                         <td className="px-4 py-4">
-                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider border ${form.status === 'published'
-                            ? 'bg-green-50 text-green-600 border-green-100'
-                            : 'bg-amber-50 text-amber-600 border-amber-100'
-                            }`}>
-                            {form.status}
-                          </span>
+                          <div className="flex items-center gap-2">
+                            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider border ${form.status === 'published'
+                              ? 'bg-green-50 text-green-600 border-green-100'
+                              : 'bg-amber-50 text-amber-600 border-amber-100'
+                              }`}>
+                              {form.status}
+                            </span>
+                            {form.updated_at && new Date(form.updated_at).getTime() - new Date(form.created_at).getTime() > 10000 && (
+                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider border bg-blue-50 text-blue-600 border-blue-100">
+                                Edited
+                              </span>
+                            )}
+                          </div>
                         </td>
                         <td className="px-4 py-4 text-xs font-medium text-gray-500">
                           {formatTime(form.updated_at || form.created_at)}

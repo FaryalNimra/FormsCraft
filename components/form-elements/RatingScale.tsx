@@ -26,7 +26,7 @@ export default function RatingScale({
 
     return (
         <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-200 transition-all">
-            <p className="text-base font-medium text-gray-900 mb-4 leading-normal">
+            <p className="text-base font-medium text-gray-900 mb-4 leading-normal break-words">
                 {label}
                 {required && <span className="text-red-600 ml-1">*</span>}
             </p>
@@ -43,8 +43,8 @@ export default function RatingScale({
                             onMouseEnter={() => setHovered(rating)}
                             onMouseLeave={() => setHovered(null)}
                             className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${isActive
-                                    ? 'bg-amber-100 text-amber-500 scale-110'
-                                    : 'bg-gray-50 text-gray-300 hover:bg-gray-100 border border-gray-100'
+                                ? 'bg-amber-100 text-amber-500 scale-110'
+                                : 'bg-gray-50 text-gray-300 hover:bg-gray-100 border border-gray-100'
                                 }`}
                             aria-label={`Rate ${rating} out of ${maxRating}`}
                         >

@@ -76,6 +76,8 @@ function FormBuilder() {
     const [isExpirationOpen, setIsExpirationOpen] = useState(false);
     const [copySuccess, setCopySuccess] = useState(false);
     const [isLocalSaved, setIsLocalSaved] = useState(false);
+    const [createdAt, setCreatedAt] = useState<string | null>(null);
+    const [updatedAt, setUpdatedAt] = useState<string | null>(null);
     const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
     const [dragIndex, setDragIndex] = useState<number | null>(null);
     const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
@@ -134,6 +136,8 @@ function FormBuilder() {
                     if (form.expires_at) setExpiresAt(form.expires_at);
                     if (form.theme_color) setThemeColor(form.theme_color);
                     if (form.collect_email !== undefined) setCollectEmail(form.collect_email);
+                    if (form.created_at) setCreatedAt(form.created_at);
+                    if (form.updated_at) setUpdatedAt(form.updated_at);
                     if (form.elements.length > 0) setActiveElementId(form.elements[0].id);
                 } catch (error) {
                     console.error("Failed to load form", error);
@@ -437,6 +441,11 @@ function FormBuilder() {
                             }`}>
                             {status}
                         </span>
+                        {updatedAt && createdAt && new Date(updatedAt).getTime() - new Date(createdAt).getTime() > 10000 && (
+                            <span className="text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-widest border bg-blue-50 text-blue-600 border-blue-100">
+                                Edited
+                            </span>
+                        )}
                     </div>
                 </div>
 
@@ -750,7 +759,7 @@ function FormBuilder() {
                                         </div>
 
                                         <div className="space-y-4">
-                                            <h3 className="text-sm font-bold text-gray-900 tracking-tight leading-snug">
+                                            <h3 className="text-sm font-bold text-gray-900 tracking-tight leading-snug break-words">
                                                 {el.label}
                                                 {el.required && <span className="text-red-500 ml-1">*</span>}
                                             </h3>
@@ -775,7 +784,7 @@ function FormBuilder() {
                                                     {el.options?.map((opt, i) => (
                                                         <div key={i} className="flex items-center gap-3 p-2.5 rounded-lg bg-gray-50/30 border border-gray-50">
                                                             <div className={`w-3.5 h-3.5 border border-gray-200 ${el.type === 'multiple_choice' ? 'rounded-full' : 'rounded-sm'}`}></div>
-                                                            <span className="text-xs text-gray-600 font-medium">{opt}</span>
+                                                            <span className="text-xs text-gray-600 font-medium break-words">{opt}</span>
                                                         </div>
                                                     ))}
                                                 </div>
@@ -877,9 +886,20 @@ function FormBuilder() {
                                             <input
                                                 type="text"
                                                 value={activeElement.label}
-                                                onChange={(e) => updateElement(activeElement.id, { label: e.target.value })}
+                                                onChange={(e) => {
+                                                    const val = e.target.value;
+                                                    const limit = activeElement.type === 'paragraph' ? 15 : 10;
+                                                    const words = val.trim().split(/\s+/).filter(Boolean);
+                                                    if (words.length > limit) return;
+                                                    updateElement(activeElement.id, { label: val });
+                                                }}
                                                 className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-xs font-bold text-gray-900 focus:ring-1 focus:ring-blue-600 focus:bg-white outline-none"
                                             />
+                                            {activeElement.type === 'paragraph' ? (
+                                                <p className="text-[8px] text-gray-400 mt-1 uppercase">Max 15 words</p>
+                                            ) : (
+                                                <p className="text-[8px] text-gray-400 mt-1 uppercase">Max 10 words</p>
+                                            )}
                                         </div>
 
                                         {activeElement.options && (
@@ -909,7 +929,12 @@ function FormBuilder() {
                                                             <input
                                                                 type="text"
                                                                 value={opt}
-                                                                onChange={(e) => updateOption(activeElement.id, i, e.target.value)}
+                                                                onChange={(e) => {
+                                                                    const val = e.target.value;
+                                                                    const words = val.trim().split(/\s+/).filter(Boolean);
+                                                                    if (words.length > 10) return;
+                                                                    updateOption(activeElement.id, i, val);
+                                                                }}
                                                                 className="flex-1 px-3 py-1.5 bg-gray-50 border border-gray-200 rounded-md text-xs font-semibold text-gray-900 outline-none focus:ring-1 focus:ring-blue-600 focus:bg-white transition-all"
                                                             />
                                                             {(activeElement.options?.length ?? 0) > 2 && (
