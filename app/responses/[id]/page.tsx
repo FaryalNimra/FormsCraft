@@ -324,11 +324,6 @@ export default function ResponsesPage() {
                                                         Submitted
                                                         {sortOrder === 'desc' ? <ChevronDown size={12} /> : <ChevronUp size={12} />}
                                                     </div>
-                                                    <p className="text-sm font-bold text-gray-900 tracking-tight uppercase">
-                                                        {resp.user_email || 'Anonymous Data'}
-                                                    </p>
-                                                </div>
-                                            </div>
                                                 </th>
                                                 {form.collect_email && (
                                                     <th className="px-4 py-4">Email</th>
