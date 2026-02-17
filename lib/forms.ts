@@ -1,6 +1,6 @@
 import { supabase } from './supabase';
 
-export type ElementType = 'short_answer' | 'paragraph' | 'multiple_choice' | 'checkboxes' | 'dropdown' | 'date' | 'file_upload' | 'rating_scale';
+export type ElementType = 'short_answer' | 'paragraph' | 'multiple_choice' | 'checkboxes' | 'dropdown' | 'date' | 'time' | 'file_upload' | 'rating_scale';
 
 export interface FormElement {
     id: string;
