@@ -24,7 +24,7 @@ import {
     Clock
 } from 'lucide-react';
 import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { useState, useEffect, useCallback, useRef, Suspense } from 'react';
 import { saveForm, getForm, FormElement, ElementType } from '@/lib/forms';
 
@@ -64,15 +64,18 @@ function FormBuilder() {
     const [formId, setFormId] = useState<string | null>(null);
     const [title, setTitle] = useState('Untitled Form');
     const [description, setDescription] = useState('Collect valuable feedback with ease.');
-    const [status, setStatus] = useState<'draft' | 'published'>('draft');
+    const [status, setStatus] = useState<'draft' | 'published' | 'in_progress'>('draft');
     const [themeColor, setThemeColor] = useState('#2563eb');
     const [collectEmail, setCollectEmail] = useState(false);
+    const [limitToOneResponse, setLimitToOneResponse] = useState(false);
+    const [allowResponseEditing, setAllowResponseEditing] = useState(false);
     const [isPreview, setIsPreview] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
     const [expiresAt, setExpiresAt] = useState<string | null>(null);
     const [lastSaved, setLastSaved] = useState<Date | null>(null);
     const [isMounted, setIsMounted] = useState(false);
     const searchParams = useSearchParams();
+    const router = useRouter();
     const editId = searchParams.get('id');
     const [isSendModalOpen, setIsSendModalOpen] = useState(false);
     const [isExpirationOpen, setIsExpirationOpen] = useState(false);
@@ -99,31 +102,30 @@ function FormBuilder() {
         }
     }, [isMounted, formElements.length, editId]);
     const [advancedOpen, setAdvancedOpen] = useState(false);
+    const [headerAdvancedOpen, setHeaderAdvancedOpen] = useState(false);
     const [optionDragIndex, setOptionDragIndex] = useState<number | null>(null);
     const [optionDragOverIndex, setOptionDragOverIndex] = useState<number | null>(null);
 
-    // EFF: User requested "always empty form" on new creation.
-    // Disabling auto-restore of drafts.
-    /*
     useEffect(() => {
         setIsMounted(true);
         const savedProgress = localStorage.getItem('formcraft_progress');
         // Only load draft if we are NOT in edit mode (no editId) and no formId is set yet
         if (savedProgress && !formId && !editId) {
             try {
-                const { title: st, description: sd, elements: se, themeColor: stc } = JSON.parse(savedProgress);
+                const { title: st, description: sd, elements: se, themeColor: stc, collectEmail: ce, limitToOneResponse: ltr, allowResponseEditing: are } = JSON.parse(savedProgress);
                 setTitle(st);
                 setDescription(sd);
                 setFormElements(se);
                 if (stc) setThemeColor(stc);
+                if (ce !== undefined) setCollectEmail(ce);
+                if (ltr !== undefined) setLimitToOneResponse(ltr);
+                if (are !== undefined) setAllowResponseEditing(are);
                 if (se.length > 0) setActiveElementId(se[0].id);
             } catch (e) {
                 console.error('Failed to load local progress:', e);
             }
         }
     }, [formId, editId]);
-    */
-    useEffect(() => { setIsMounted(true); }, []);
 
     useEffect(() => {
         if (editId) {
@@ -138,6 +140,8 @@ function FormBuilder() {
                     if (form.expires_at) setExpiresAt(form.expires_at);
                     if (form.theme_color) setThemeColor(form.theme_color);
                     if (form.collect_email !== undefined) setCollectEmail(form.collect_email);
+                    if (form.limit_to_one_response !== undefined) setLimitToOneResponse(form.limit_to_one_response);
+                    if (form.allow_response_editing !== undefined) setAllowResponseEditing(form.allow_response_editing);
                     if (form.created_at) setCreatedAt(form.created_at);
                     if (form.updated_at) setUpdatedAt(form.updated_at);
                     if (form.elements.length > 0) setActiveElementId(form.elements[0].id);
@@ -149,7 +153,7 @@ function FormBuilder() {
         }
     }, [editId]);
 
-    const triggerSave = useCallback(async (currentData: { id: string | null, title: string, description: string, elements: FormElement[], status: 'draft' | 'published', collect_email?: boolean }) => {
+    const triggerSave = useCallback(async (currentData: { id: string | null, title: string, description: string, elements: FormElement[], status: 'draft' | 'published' | 'in_progress', collect_email?: boolean, limit_to_one_response?: boolean, allow_response_editing?: boolean }) => {
         setIsSaving(true);
         try {
             const saved = await saveForm({
@@ -160,9 +164,15 @@ function FormBuilder() {
                 status: currentData.status,
                 theme_color: themeColor,
                 expires_at: expiresAt || undefined,
-                collect_email: collectEmail
+                collect_email: collectEmail,
+                limit_to_one_response: limitToOneResponse,
+                allow_response_editing: allowResponseEditing
             });
-            if (!currentData.id) setFormId(saved.id ?? null);
+            if (!currentData.id && saved.id) {
+                setFormId(saved.id);
+                // Update URL without refreshing
+                router.push(`/builder?id=${saved.id}`, { scroll: false });
+            }
             setLastSaved(new Date());
             setIsLocalSaved(false);
             localStorage.removeItem('formcraft_progress');
@@ -177,20 +187,31 @@ function FormBuilder() {
         if (!isMounted) return;
         if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
 
-        // If we are editing an existing form (formId is present), DO NOT overwrite the "new form" draft in localStorage.
-        // We only use localStorage for completely new, unsaved forms.
-        if (formId) return;
-
         autoSaveTimerRef.current = setTimeout(() => {
-            const progress = { title, description, elements: formElements, themeColor, collectEmail };
+            // Only auto-save to DB if the form is new (no formId) 
+            // OR if it's already in 'in_progress' status
+            if (!formId || status === 'in_progress') {
+                const newStatus = status === 'published' ? 'published' : (status === 'draft' ? 'draft' : 'in_progress');
+
+                // If it's a new form and title/elements changed from default, save it as in_progress
+                if (!formId && (title !== 'Untitled Form' || formElements.length > 1 || (formElements.length === 1 && formElements[0].label !== 'What is your name?'))) {
+                    setStatus('in_progress');
+                    triggerSave({ id: formId, title, description, elements: formElements, status: 'in_progress', collect_email: collectEmail, limit_to_one_response: limitToOneResponse, allow_response_editing: allowResponseEditing });
+                } else if (formId && status === 'in_progress') {
+                    triggerSave({ id: formId, title, description, elements: formElements, status: 'in_progress', collect_email: collectEmail, limit_to_one_response: limitToOneResponse, allow_response_editing: allowResponseEditing });
+                }
+            }
+
+            // Still save to local storage as backup
+            const progress = { title, description, elements: formElements, themeColor, collectEmail, limitToOneResponse, allowResponseEditing };
             localStorage.setItem('formcraft_progress', JSON.stringify(progress));
             setIsLocalSaved(true);
-        }, 2000);
+        }, 5000);
 
         return () => {
             if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
         };
-    }, [title, description, formElements, isMounted, formId, themeColor, expiresAt, collectEmail]);
+    }, [title, description, formElements, isMounted, formId, themeColor, expiresAt, collectEmail, status, triggerSave]);
 
     const clearDraft = () => {
         localStorage.removeItem('formcraft_progress');
@@ -204,7 +225,7 @@ function FormBuilder() {
 
     const handleSaveDraft = async () => {
         setStatus('draft');
-        await triggerSave({ id: formId, title, description, elements: formElements, status: 'draft', collect_email: collectEmail });
+        await triggerSave({ id: formId, title, description, elements: formElements, status: 'draft', collect_email: collectEmail, limit_to_one_response: limitToOneResponse, allow_response_editing: allowResponseEditing });
     };
 
     const handleSend = async () => {
@@ -220,7 +241,9 @@ function FormBuilder() {
                 status: 'published',
                 theme_color: themeColor,
                 expires_at: expiresAt || undefined,
-                collect_email: collectEmail
+                collect_email: collectEmail,
+                limit_to_one_response: limitToOneResponse,
+                allow_response_editing: allowResponseEditing
             });
             if (!formId) setFormId(saved.id ?? null);
             setLastSaved(new Date());
@@ -442,9 +465,13 @@ function FormBuilder() {
                     </Link>
                     <div className="h-3 w-px bg-gray-100"></div>
                     <div className="flex items-center gap-2">
-                        <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-widest border ${status === 'published' ? 'bg-green-50 text-green-600 border-green-100' : 'bg-amber-50 text-amber-600 border-amber-100'
+                        <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-widest border ${status === 'published'
+                            ? 'bg-green-50 text-green-600 border-green-100'
+                            : status === 'in_progress'
+                                ? 'bg-blue-50 text-blue-600 border-blue-100'
+                                : 'bg-amber-50 text-amber-600 border-amber-100'
                             }`}>
-                            {status}
+                            {status.replace('_', ' ')}
                         </span>
                         {updatedAt && createdAt && new Date(updatedAt).getTime() - new Date(createdAt).getTime() > 10000 && (
                             <span className="text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-widest border bg-blue-50 text-blue-600 border-blue-100">
@@ -987,18 +1014,58 @@ function FormBuilder() {
                                             />
                                         </div>
 
-                                        <div className="pt-4 border-t border-gray-50">
-                                            <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                                                <div className="flex flex-col">
-                                                    <span className="text-[10px] font-bold text-gray-900 uppercase tracking-widest">Collect Email</span>
-                                                    <span className="text-[8px] text-gray-500 uppercase tracking-tight">Prevent duplicate entries</span>
-                                                </div>
+                                        <div className="pt-4 border-t border-gray-50 space-y-4">
+                                            <div>
                                                 <button
-                                                    onClick={() => setCollectEmail(!collectEmail)}
-                                                    className={`w-8 h-4 rounded-full relative transition-all ${collectEmail ? 'bg-blue-600' : 'bg-gray-200'}`}
+                                                    onClick={() => setHeaderAdvancedOpen(!headerAdvancedOpen)}
+                                                    className="flex items-center justify-between w-full p-3 bg-gray-100 border border-gray-200 rounded-lg hover:bg-gray-200 transition-all group"
                                                 >
-                                                    <div className={`absolute top-0.5 w-3 h-3 bg-white rounded-full transition-all ${collectEmail ? 'left-[18px]' : 'left-0.5'}`}></div>
+                                                    <span className="text-[10px] font-bold text-gray-900 uppercase tracking-widest">Advanced</span>
+                                                    <ChevronRight size={14} className={`text-black transition-transform duration-200 ${headerAdvancedOpen ? 'rotate-90' : ''}`} />
                                                 </button>
+
+                                                {headerAdvancedOpen && (
+                                                    <div className="mt-3 space-y-3 animate-in fade-in slide-in-from-top-1 duration-200">
+                                                        <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-100">
+                                                            <div className="flex flex-col">
+                                                                <span className="text-[10px] font-bold text-gray-900 uppercase tracking-widest">Collect Email</span>
+                                                                <span className="text-[8px] text-gray-500 uppercase tracking-tight">Prevent duplicate entries</span>
+                                                            </div>
+                                                            <button
+                                                                onClick={() => setCollectEmail(!collectEmail)}
+                                                                className={`w-8 h-4 rounded-full relative transition-all ${collectEmail ? 'bg-blue-600' : 'bg-gray-200'}`}
+                                                            >
+                                                                <div className={`absolute top-0.5 w-3 h-3 bg-white rounded-full transition-all ${collectEmail ? 'left-[18px]' : 'left-0.5'}`}></div>
+                                                            </button>
+                                                        </div>
+
+                                                        <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-100">
+                                                            <div className="flex flex-col">
+                                                                <span className="text-[10px] font-bold text-gray-900 uppercase tracking-widest">Limit to 1 response</span>
+                                                                <span className="text-[8px] text-gray-500 uppercase tracking-tight">Requires Google sign-in</span>
+                                                            </div>
+                                                            <button
+                                                                onClick={() => setLimitToOneResponse(!limitToOneResponse)}
+                                                                className={`w-8 h-4 rounded-full relative transition-all ${limitToOneResponse ? 'bg-blue-600' : 'bg-gray-200'}`}
+                                                            >
+                                                                <div className={`absolute top-0.5 w-3 h-3 bg-white rounded-full transition-all ${limitToOneResponse ? 'left-[18px]' : 'left-0.5'}`}></div>
+                                                            </button>
+                                                        </div>
+
+                                                        <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-100">
+                                                            <div className="flex flex-col">
+                                                                <span className="text-[10px] font-bold text-gray-900 uppercase tracking-widest">Allow Edit</span>
+                                                                <span className="text-[8px] text-gray-500 uppercase tracking-tight">Respondents can update answers</span>
+                                                            </div>
+                                                            <button
+                                                                onClick={() => setAllowResponseEditing(!allowResponseEditing)}
+                                                                className={`w-8 h-4 rounded-full relative transition-all ${allowResponseEditing ? 'bg-blue-600' : 'bg-gray-200'}`}
+                                                            >
+                                                                <div className={`absolute top-0.5 w-3 h-3 bg-white rounded-full transition-all ${allowResponseEditing ? 'left-[18px]' : 'left-0.5'}`}></div>
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                )}
                                             </div>
                                         </div>
                                     </div>
@@ -1088,17 +1155,7 @@ function FormBuilder() {
                                             </div>
                                         )}
 
-                                        <div className="pt-4 border-t border-gray-50">
-                                            <div className="flex items-center justify-between p-3 bg-gray-100 border border-gray-200 rounded-lg">
-                                                <span className="text-[10px] font-bold text-gray-900 uppercase tracking-widest">Required</span>
-                                                <button
-                                                    onClick={() => updateElement(activeElement.id, { required: !activeElement.required })}
-                                                    className={`w-8 h-4 rounded-full relative transition-all ${activeElement.required ? 'bg-blue-600' : 'bg-gray-400'}`}
-                                                >
-                                                    <div className={`absolute top-0.5 w-3 h-3 bg-white rounded-full transition-all ${activeElement.required ? 'left-4.5' : 'left-0.5'}`}></div>
-                                                </button>
-                                            </div>
-                                        </div>
+
 
                                         {(activeElement.type === 'paragraph' || activeElement.type === 'short_answer') && (
                                             <div className="pt-4 border-t border-gray-50">
@@ -1134,6 +1191,18 @@ function FormBuilder() {
                                                 )}
                                             </div>
                                         )}
+
+                                        <div className="pt-4 border-t border-gray-50">
+                                            <div className="flex items-center justify-between p-3 bg-gray-100 border border-gray-200 rounded-lg">
+                                                <span className="text-[10px] font-bold text-gray-900 uppercase tracking-widest">Required</span>
+                                                <button
+                                                    onClick={() => updateElement(activeElement.id, { required: !activeElement.required })}
+                                                    className={`w-8 h-4 rounded-full relative transition-all ${activeElement.required ? 'bg-blue-600' : 'bg-gray-400'}`}
+                                                >
+                                                    <div className={`absolute top-0.5 w-3 h-3 bg-white rounded-full transition-all ${activeElement.required ? 'left-4.5' : 'left-0.5'}`}></div>
+                                                </button>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             ) : (

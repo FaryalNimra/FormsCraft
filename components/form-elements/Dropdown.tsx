@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { ChevronDown, Check } from 'lucide-react';
+import { ChevronDown, Check, XCircle } from 'lucide-react';
 
 interface DropdownProps {
     id: string;
@@ -47,7 +47,7 @@ export default function Dropdown({
                 <button
                     type="button"
                     onClick={() => setIsOpen(!isOpen)}
-                    className={`w-full px-4 py-3 bg-white border rounded-lg text-sm text-left flex items-center justify-between transition-all ${isOpen ? 'border-blue-500 ring-2 ring-blue-100' : 'border-gray-300 hover:border-gray-400'
+                    className={`w-full px-4 py-3 bg-white border rounded-lg text-sm text-left flex items-center justify-between transition-all ${isOpen ? 'border-blue-500 ring-2 ring-blue-100' : error ? 'border-red-300 bg-red-50' : 'border-gray-300 hover:border-gray-400'
                         }`}
                 >
                     <span className={`break-words ${value ? 'text-gray-900 font-normal' : 'text-gray-400'}`}>
@@ -91,7 +91,10 @@ export default function Dropdown({
                 </button>
             )}
             {error && (
-                <p className="mt-2 text-sm text-red-500 font-medium">{error}</p>
+                <p className="mt-4 text-xs text-red-500 font-medium flex items-center gap-1">
+                    <XCircle size={14} />
+                    {error}
+                </p>
             )}
         </div>
     );

@@ -1,6 +1,6 @@
 'use client';
 
-import { Calendar } from 'lucide-react';
+import { Calendar, XCircle } from 'lucide-react';
 
 interface DatePickerProps {
     id: string;
@@ -33,7 +33,7 @@ export default function DatePicker({
                     type="date"
                     value={value}
                     onChange={(e) => onChange(e.target.value)}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg text-sm text-gray-900 placeholder:text-gray-400 bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all appearance-none"
+                    className={`w-full px-4 py-3 border rounded-lg text-sm text-gray-900 placeholder:text-gray-400 bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all appearance-none ${error ? 'border-red-300 bg-red-50' : 'border-gray-300'}`}
                     required={required}
                 />
                 <Calendar
@@ -42,8 +42,11 @@ export default function DatePicker({
                 />
             </div>
             {error && (
-                <p className="mt-2 text-sm text-red-500 font-medium">{error}</p>
+                <p className="mt-4 text-xs text-red-500 font-medium flex items-center gap-1">
+                    <XCircle size={14} />
+                    {error}
+                </p>
             )}
-        </div>
+        </div >
     );
 }

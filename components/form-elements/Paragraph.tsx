@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { XCircle } from 'lucide-react';
 
 interface ParagraphProps {
     id: string;
@@ -56,7 +57,7 @@ export default function Paragraph({
                 value={value}
                 onChange={(e) => handleChange(e.target.value)}
                 rows={4}
-                className="w-full border-b border-gray-300 py-2 focus:border-b-2 focus:outline-none transition-all text-sm font-normal text-gray-900 placeholder:text-gray-400 bg-transparent resize-none"
+                className={`w-full border-b py-2 focus:border-b-2 focus:outline-none transition-all text-sm font-normal text-gray-900 placeholder:text-gray-400 bg-transparent resize-none ${error ? 'border-red-300' : 'border-gray-300'}`}
                 required={required}
             />
             {wordLimit && (
@@ -67,7 +68,10 @@ export default function Paragraph({
                 </div>
             )}
             {error && (
-                <p className="mt-2 text-sm text-red-500 font-medium">{error}</p>
+                <p className="mt-4 text-xs text-red-500 font-medium flex items-center gap-1">
+                    <XCircle size={14} />
+                    {error}
+                </p>
             )}
         </div>
     );

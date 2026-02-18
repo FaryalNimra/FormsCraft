@@ -1,5 +1,7 @@
 'use client';
 
+import { XCircle } from 'lucide-react';
+
 interface MultipleChoiceProps {
     id: string;
     label: string;
@@ -29,7 +31,7 @@ export default function MultipleChoice({
                 {options.map((option, index) => (
                     <label
                         key={index}
-                        className={`flex items-center gap-3 cursor-pointer group p-2 rounded-lg transition-all ${value === option ? 'bg-blue-50' : 'hover:bg-gray-50'
+                        className={`flex items-center gap-3 cursor-pointer group p-2 rounded-lg transition-all ${value === option ? 'bg-blue-50' : error ? 'bg-red-50 hover:bg-red-100/50' : 'hover:bg-gray-50'
                             }`}
                     >
                         <div className="relative flex items-center justify-center">
@@ -44,7 +46,9 @@ export default function MultipleChoice({
                             <div
                                 className={`w-5 h-5 rounded-full border-2 transition-all flex items-center justify-center ${value === option
                                     ? 'border-blue-600'
-                                    : 'border-gray-300 group-hover:border-gray-400'
+                                    : error
+                                        ? 'border-red-300 group-hover:border-red-400'
+                                        : 'border-gray-300 group-hover:border-gray-400'
                                     }`}
                             >
                                 {value === option && (
@@ -66,7 +70,10 @@ export default function MultipleChoice({
                 </button>
             )}
             {error && (
-                <p className="mt-2 text-sm text-red-500 font-medium">{error}</p>
+                <p className="mt-4 text-xs text-red-500 font-medium flex items-center gap-1">
+                    <XCircle size={14} />
+                    {error}
+                </p>
             )}
         </div>
     );

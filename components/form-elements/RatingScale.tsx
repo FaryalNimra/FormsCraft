@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Star } from 'lucide-react';
+import { Star, XCircle } from 'lucide-react';
 
 interface RatingScaleProps {
     id: string;
@@ -44,7 +44,9 @@ export default function RatingScale({
                             onMouseLeave={() => setHovered(null)}
                             className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${isActive
                                 ? 'bg-amber-100 text-amber-500 scale-110'
-                                : 'bg-gray-50 text-gray-300 hover:bg-gray-100 border border-gray-100'
+                                : error
+                                    ? 'bg-red-50 text-red-400 border border-red-200'
+                                    : 'bg-gray-50 text-gray-300 hover:bg-gray-100 border border-gray-100'
                                 }`}
                             aria-label={`Rate ${rating} out of ${maxRating}`}
                         >
@@ -61,7 +63,10 @@ export default function RatingScale({
                 )}
             </div>
             {error && (
-                <p className="mt-2 text-sm text-red-500 font-medium">{error}</p>
+                <p className="mt-4 text-xs text-red-500 font-medium flex items-center gap-1">
+                    <XCircle size={14} />
+                    {error}
+                </p>
             )}
         </div>
     );
