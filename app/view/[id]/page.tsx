@@ -2,7 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
-import { getForm, saveResponse, Form, FormElement } from '@/lib/forms';
+import { getForm, saveResponse, getUserResponse, Form, FormElement } from '@/lib/forms';
+import { getCurrentUser, signInWithGoogle } from '@/lib/auth';
+import { User } from '@supabase/supabase-js';
 import {
     Star,
     Calendar,
@@ -26,10 +28,21 @@ export default function ViewForm() {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [submitted, setSubmitted] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
+    const [user, setUser] = useState<User | null>(null);
     const [userEmail, setUserEmail] = useState('');
     const [alreadySubmitted, setAlreadySubmitted] = useState(false);
+    const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+    const [isEditing, setIsEditing] = useState(false);
 
     useEffect(() => {
+        const checkAuth = async () => {
+            const currentUser = await getCurrentUser();
+            setUser(currentUser);
+            if (currentUser?.email) setUserEmail(currentUser.email);
+            setIsCheckingAuth(false);
+        };
+        checkAuth();
         if (id) {
             fetchForm();
         }
@@ -45,6 +58,21 @@ export default function ViewForm() {
                 return;
             }
             setForm(data);
+
+            // Check if user has already submitted and handle editing
+            const currentUser = await getCurrentUser();
+            if (currentUser && data.id) {
+                const previousResponse = await getUserResponse(data.id, currentUser.id);
+                if (previousResponse) {
+                    if (data.allow_response_editing) {
+                        setResponses(previousResponse.answers);
+                        if (previousResponse.user_email) setUserEmail(previousResponse.user_email);
+                        setIsEditing(true);
+                    } else if (data.limit_to_one_response) {
+                        setAlreadySubmitted(true);
+                    }
+                }
+            }
         } catch (err: any) {
             console.error('Error fetching form:', err);
             setError(err.message || 'Failed to load form');
@@ -58,15 +86,45 @@ export default function ViewForm() {
             ...prev,
             [elementId]: value
         }));
+        // Clear error when user interacts
+        if (validationErrors[elementId]) {
+            setValidationErrors(prev => {
+                const next = { ...prev };
+                delete next[elementId];
+                return next;
+            });
+        }
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
         // Basic validation
-        const missingRequired = form?.elements.filter(el => el.required && !responses[el.id]);
-        if (missingRequired && missingRequired.length > 0) {
-            alert(`Please fill in required fields`);
+        const errors: Record<string, string> = {};
+        form?.elements.forEach(el => {
+            const val = responses[el.id];
+            // Treat undefined, null, empty string, empty array, or 0 (for rating) as empty
+            const isEmpty = val === undefined || val === null || val === '' ||
+                (Array.isArray(val) && val.length === 0) ||
+                (typeof val === 'number' && val === 0);
+
+            if (el.required && isEmpty) {
+                errors[el.id] = 'This is a required question';
+            }
+        });
+
+        if (form?.collect_email && !userEmail) {
+            errors['email'] = 'Email address is required';
+        }
+
+        if (Object.keys(errors).length > 0) {
+            setValidationErrors(errors);
+            // Scroll to first error
+            const firstErrorId = Object.keys(errors)[0];
+            const element = document.getElementById(`question-${firstErrorId}`);
+            if (element) {
+                element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
             return;
         }
 
@@ -75,22 +133,17 @@ export default function ViewForm() {
             return;
         }
 
-        // Email validation if required
-        if (form?.collect_email && !userEmail) {
-            alert(`Please enter your email address`);
-            return;
-        }
-
         setIsSubmitting(true);
         try {
-            await saveResponse(id as string, responses, form?.collect_email ? userEmail : undefined);
+            await saveResponse(id as string, responses, form?.collect_email ? userEmail : undefined, user?.id);
             setSubmitted(true);
         } catch (err: any) {
             console.error('Error submitting form:', err);
-            if (err.message === "ALREADY_SUBMITTED") {
+            const errorMessage = err.message || (typeof err === 'object' ? JSON.stringify(err) : String(err));
+            if (errorMessage === "ALREADY_SUBMITTED") {
                 setAlreadySubmitted(true);
             } else {
-                alert('Failed to submit form');
+                alert(`Failed to submit form: ${errorMessage}`);
             }
         } finally {
             setIsSubmitting(false);
@@ -164,15 +217,36 @@ export default function ViewForm() {
                             <XCircle size={24} />
                         </div>
                         <h1 className="text-lg font-bold text-gray-900 mb-2">Already Submitted</h1>
-                        <p className="text-gray-500 text-xs mb-6">You have already submitted a response for this form. Responses are limited to one per email address.</p>
+                        <p className="text-gray-500 text-xs mb-6">You have already submitted a response for this form. Responses are limited to one per person.</p>
+                        {form.allow_response_editing && (
+                            <button
+                                onClick={() => setAlreadySubmitted(false)}
+                                className="inline-block px-6 py-2 text-white rounded font-medium text-xs transition-colors hover:opacity-90 shadow-sm"
+                                style={{ backgroundColor: form?.theme_color || '#2563eb' }}
+                            >
+                                Edit your response
+                            </button>
+                        )}
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    if ((form.limit_to_one_response || form.allow_response_editing) && !user) {
+        return (
+            <div className="min-h-screen bg-[#F0EBF8] flex items-center justify-center p-4">
+                <div className="bg-white rounded-lg shadow-sm text-center max-w-md w-full border border-gray-200 overflow-hidden relative">
+                    <div className="absolute top-0 left-0 w-full h-2" style={{ backgroundColor: form.theme_color || '#2563eb' }}></div>
+                    <div className="p-8">
+                        <h1 className="text-xl font-bold text-gray-900 mb-2 capitalize">{form.title}</h1>
+                        <p className="text-gray-500 text-xs mb-8">Sign in with Google to continue. Your identity will be used to limit responses to one per person.</p>
                         <button
-                            onClick={() => {
-                                setAlreadySubmitted(false);
-                            }}
-                            className="inline-block px-6 py-2 text-white rounded font-medium text-xs transition-colors hover:opacity-90 shadow-sm"
-                            style={{ backgroundColor: form?.theme_color || '#2563eb' }}
+                            onClick={() => signInWithGoogle()}
+                            className="w-full flex items-center justify-center gap-3 px-6 py-3 bg-white border border-gray-300 rounded-lg font-bold text-xs text-gray-700 hover:bg-gray-50 transition-all shadow-sm active:scale-[0.98]"
                         >
-                            Back to Form
+                            <img src="https://www.google.com/favicon.ico" alt="Google" className="w-4 h-4" />
+                            Sign in with Google
                         </button>
                     </div>
                 </div>
@@ -183,7 +257,7 @@ export default function ViewForm() {
     return (
         <div className="min-h-screen bg-[#F0EBF8] pb-12">
             <div className="max-w-2xl mx-auto pt-6 px-4">
-                <form onSubmit={handleSubmit} className="space-y-3">
+                <form onSubmit={handleSubmit} className="space-y-3" noValidate>
                     {/* Google Forms Header Card */}
                     <div className="rounded-2xl shadow-lg border border-transparent relative overflow-hidden mb-4 transition-all"
                         style={{
@@ -216,7 +290,10 @@ export default function ViewForm() {
 
                     {/* Email Collection Field */}
                     {form.collect_email && (
-                        <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-200 transition-all">
+                        <div
+                            id="question-email"
+                            className={`bg-white rounded-xl p-6 shadow-sm border-2 transition-all ${validationErrors['email'] ? 'border-red-500 ring-4 ring-red-50' : 'border-gray-100'}`}
+                        >
                             <label className="block text-base font-medium text-gray-900 mb-4 leading-normal">
                                 Email Address <span className="text-red-600 ml-1">*</span>
                                 <p className="text-[10px] text-gray-500 font-normal mt-1 uppercase tracking-tight">Your email will be recorded with this response</p>
@@ -224,35 +301,52 @@ export default function ViewForm() {
                             <div className="group relative">
                                 <input
                                     type="email"
-                                    required
                                     placeholder="your-email@example.com"
                                     value={userEmail}
-                                    onChange={(e) => setUserEmail(e.target.value)}
-                                    className="w-full border-b border-gray-300 py-2 focus:border-b-2 focus:outline-none transition-all text-sm font-normal text-gray-900 placeholder:text-gray-400 bg-transparent"
+                                    onChange={(e) => {
+                                        setUserEmail(e.target.value);
+                                        if (validationErrors['email']) {
+                                            setValidationErrors(prev => {
+                                                const next = { ...prev };
+                                                delete next['email'];
+                                                return next;
+                                            });
+                                        }
+                                    }}
+                                    className={`w-full border-b py-2 focus:border-b-2 focus:outline-none transition-all text-sm font-normal text-gray-900 placeholder:text-gray-400 bg-transparent ${validationErrors['email'] ? 'border-red-500' : 'border-gray-300'}`}
                                     style={{
-                                        borderBottomColor: userEmail
-                                            ? ((!form.theme_color || form.theme_color === '#2563eb') ? 'var(--primary-600)' : form.theme_color)
-                                            : undefined
+                                        borderBottomColor: validationErrors['email']
+                                            ? '#ef4444'
+                                            : userEmail
+                                                ? ((!form.theme_color || form.theme_color === '#2563eb') ? 'var(--primary-600)' : form.theme_color)
+                                                : undefined
                                     }}
                                 />
                             </div>
+                            {validationErrors['email'] && (
+                                <p className="mt-4 text-xs text-red-500 font-medium flex items-center gap-1">
+                                    <XCircle size={14} />
+                                    {validationErrors['email']}
+                                </p>
+                            )}
                         </div>
                     )}
 
                     {/* Question Cards (Google Style) */}
                     <div className="space-y-3">
                         {form.elements.map((el) => (
-                            <FormElementRenderer
-                                key={el.id}
-                                element={{
-                                    ...el,
-                                    // Ensure it matches the renderer's expected interface (which uses snake_case for some fields)
-                                    max_rating: el.maxRating || null,
-                                    word_limit: el.wordLimit || null
-                                } as any}
-                                value={responses[el.id] || null}
-                                onChange={(val) => handleInputChange(el.id, val)}
-                            />
+                            <div key={el.id} id={`question-${el.id}`}>
+                                <FormElementRenderer
+                                    element={{
+                                        ...el,
+                                        max_rating: el.maxRating || null,
+                                        word_limit: el.wordLimit || null
+                                    } as any}
+                                    value={responses[el.id] || null}
+                                    onChange={(val) => handleInputChange(el.id, val)}
+                                    error={validationErrors[el.id]}
+                                />
+                            </div>
                         ))}
                     </div>
 
@@ -267,7 +361,7 @@ export default function ViewForm() {
                                     : form.theme_color
                             }}
                         >
-                            {isSubmitting ? 'Sending...' : 'Submit'}
+                            {isSubmitting ? 'Sending...' : (isEditing ? 'Update Response' : 'Submit')}
                         </button>
 
                         <div className="flex items-center gap-1.5 opacity-50 text-[10px] text-gray-500 font-medium select-none mt-2">

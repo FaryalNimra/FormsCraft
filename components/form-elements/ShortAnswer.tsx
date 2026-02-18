@@ -1,4 +1,5 @@
-'use client';
+
+import { XCircle } from 'lucide-react';
 
 interface ShortAnswerProps {
   id: string;
@@ -38,7 +39,7 @@ export default function ShortAnswer({
   };
 
   return (
-    <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+    <div className={`bg-white rounded-xl p-6 shadow-sm border-2 transition-all ${error ? 'border-red-500 ring-4 ring-red-50' : 'border-gray-100'}`}>
 
 
       <label htmlFor={id} className="block text-lg font-semibold text-gray-900 mb-4">
@@ -65,7 +66,10 @@ export default function ShortAnswer({
       )}
 
       {error && (
-        <p className="mt-2 text-sm text-red-500 font-medium">{error}</p>
+        <p className="mt-4 text-xs text-red-500 font-medium flex items-center gap-1">
+          <XCircle size={14} />
+          {error}
+        </p>
       )}
     </div>
   );
