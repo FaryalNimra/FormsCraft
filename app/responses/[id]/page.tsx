@@ -20,7 +20,8 @@ import {
     Link as LinkIcon,
     Copy,
     Check,
-    X
+    X,
+    Image as ImageIcon
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -29,7 +30,7 @@ interface ResponseData {
     form_id: string;
     user_email?: string;
     submitted_at: string;
-    answers: Record<string, string>;
+    answers: Record<string, { answer: string | null, file_url?: string | null }>;
 }
 
 export default function ResponsesPage() {
@@ -71,7 +72,7 @@ export default function ResponsesPage() {
             const q = searchQuery.toLowerCase();
             result = result.filter((r) => {
                 if (r.user_email?.toLowerCase().includes(q)) return true;
-                return Object.values(r.answers).some(a => a?.toLowerCase().includes(q));
+                return Object.values(r.answers).some(a => a.answer?.toLowerCase().includes(q));
             });
         }
 
@@ -105,7 +106,7 @@ export default function ResponsesPage() {
             i + 1,
             new Date(r.submitted_at).toLocaleString(),
             ...(form.collect_email ? [r.user_email || ''] : []),
-            ...form.elements.map((el: any) => r.answers[el.id] || '')
+            ...form.elements.map((el: any) => r.answers[el.id]?.file_url || r.answers[el.id]?.answer || '')
         ]);
 
         const csvContent = [headers.join(','), ...rows.map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))].join('\n');
@@ -357,7 +358,19 @@ export default function ResponsesPage() {
                                                     {form.elements?.map((el: any) => (
                                                         <td key={el.id} className="px-4 py-4 max-w-[200px]">
                                                             <span className="text-xs text-gray-700 font-normal truncate block">
-                                                                {response.answers[el.id] || <span className="text-[10px] font-bold text-red-400 uppercase tracking-tighter">Nil</span>}
+                                                                {el.type === 'file_upload' && response.answers[el.id]?.file_url ? (
+                                                                    <a
+                                                                        href={response.answers[el.id].file_url!}
+                                                                        target="_blank"
+                                                                        rel="noopener noreferrer"
+                                                                        className="text-blue-600 hover:underline flex items-center gap-1"
+                                                                    >
+                                                                        <ImageIcon size={12} />
+                                                                        View File
+                                                                    </a>
+                                                                ) : (
+                                                                    response.answers[el.id]?.answer || <span className="text-[10px] font-bold text-red-400 uppercase tracking-tighter">Nil</span>
+                                                                )}
                                                             </span>
                                                         </td>
                                                     ))}
@@ -434,11 +447,23 @@ export default function ResponsesPage() {
                                                 {el.label}
                                                 {el.required && <span className="text-red-500 ml-1">*</span>}
                                             </p>
-                                            <p className="text-sm text-gray-900 font-normal leading-relaxed whitespace-pre-wrap">
-                                                {selectedResponse.answers[el.id] || (
-                                                    <span className="text-[10px] font-bold text-red-400 uppercase tracking-tighter">Nil</span>
+                                            <div className="text-sm text-gray-900 font-normal leading-relaxed whitespace-pre-wrap">
+                                                {el.type === 'file_upload' && selectedResponse.answers[el.id]?.file_url ? (
+                                                    <a
+                                                        href={selectedResponse.answers[el.id].file_url!}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="inline-flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors font-bold text-xs uppercase tracking-widest"
+                                                    >
+                                                        <Download size={14} />
+                                                        Download File
+                                                    </a>
+                                                ) : (
+                                                    selectedResponse.answers[el.id]?.answer || (
+                                                        <span className="text-[10px] font-bold text-red-400 uppercase tracking-tighter">Nil</span>
+                                                    )
                                                 )}
-                                            </p>
+                                            </div>
                                         </div>
                                     ))}
                                 </div>

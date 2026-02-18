@@ -323,7 +323,7 @@ function FormBuilder() {
 
     const handleDragOver = (e: React.DragEvent, index: number) => {
         e.preventDefault();
-        e.stopPropagation();
+        e.stopPropagation(); // Prevent bubbling to canvas
         // Sidebar drag — always show indicator
         if (draggingType) {
             setDragOverIndex(index);
@@ -357,7 +357,8 @@ function FormBuilder() {
 
     const handleDrop = (e: React.DragEvent, dropIndex: number) => {
         e.preventDefault();
-        e.stopPropagation();
+        e.stopPropagation(); // CRITICAL: Stop propagation to canvas
+
         // Sidebar drop — insert new element
         if (draggingType) {
             addElementAtIndex(draggingType, dropIndex);
