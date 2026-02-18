@@ -2,12 +2,10 @@
 
 import Navbar from '@/components/Navbar';
 import ActionCard from '@/components/ActionCard';
-import { Plus, Layout, BarChart2, Loader2, FileText, Eye, Edit2, MessageSquare, MoreVertical, Trash2, ChevronDown } from 'lucide-react';
-import { Plus, Layout, BarChart2, Loader2, FileText, Eye, Edit2, MessageSquare, MoreVertical, Trash2, Search } from 'lucide-react';
+import { Plus, Layout, BarChart2, Loader2, FileText, Eye, Edit2, MessageSquare, MoreVertical, Trash2, ChevronDown, Archive, RotateCcw, Search } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { getAllFormsWithStats, deleteForm, toggleArchiveForm } from '@/lib/forms';
-import { Archive, RotateCcw } from 'lucide-react';
 
 export default function Home() {
   const router = useRouter();
@@ -66,7 +64,11 @@ export default function Home() {
   };
 
   const sortedForms = forms
-    .filter(f => viewFilter === 'active' ? !f.is_archived : f.is_archived)
+    .filter(f => {
+      const matchesFilter = viewFilter === 'active' ? !f.is_archived : f.is_archived;
+      const matchesSearch = f.title.toLowerCase().includes(searchTerm.toLowerCase());
+      return matchesFilter && matchesSearch;
+    })
     .sort((a, b) => {
       let dateA, dateB;
       if (sortBy === 'creation_date') {
@@ -272,26 +274,11 @@ export default function Home() {
                             <div>
                               <p className="font-bold text-gray-900 group-hover:text-blue-600 transition-colors uppercase tracking-tight text-xs">{form.title}</p>
                               <p className="text-[10px] text-gray-400 font-medium">#{form.id.substring(0, 8)}</p>
-                    {forms
-                      .filter(form => form.title.toLowerCase().includes(searchTerm.toLowerCase()))
-                      .map((form) => (
-                        <tr
-                          key={form.id}
-                          onClick={() => router.push(`/responses/${form.id}`)}
-                          className="group hover:bg-gray-50/50 transition-all cursor-pointer"
-                        >
-                          <td className="px-6 py-4">
-                            <div className="flex items-center gap-3">
-                              <div className="w-10 h-10 rounded-xl bg-gray-50 text-gray-400 flex items-center justify-center group-hover:bg-blue-50 group-hover:text-blue-600 transition-all">
-                                <FileText size={18} />
-                              </div>
-                              <div>
-                                <p className="font-bold text-gray-900 group-hover:text-blue-600 transition-colors uppercase tracking-tight text-xs">{form.title}</p>
-                                <p className="text-[10px] text-gray-400 font-medium">#{form.id.substring(0, 8)}</p>
-                              </div>
                             </div>
-                          </td>
-                          <td className="px-4 py-4">
+                          </div>
+                        </td>
+                        <td className="px-4 py-4">
+                          <div className="flex items-center gap-2">
                             <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider border ${form.status === 'published'
                               ? 'bg-green-50 text-green-600 border-green-100'
                               : form.status === 'in_progress'
@@ -372,43 +359,6 @@ export default function Home() {
                         </td>
                       </tr>
                     ))}
-                          </td>
-                          <td className="px-4 py-4 text-xs font-medium text-gray-500">
-                            {formatTime(form.updated_at || form.created_at)}
-                          </td>
-                          <td className="px-4 py-4">
-                            <div className="flex items-center gap-2">
-                              <MessageSquare size={12} className="text-gray-300" />
-                              <span className="text-xs font-bold text-gray-900">{form.response_count}</span>
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 text-right">
-                            <div className="flex items-center justify-end gap-2">
-                              <button
-                                onClick={(e) => { e.stopPropagation(); router.push(`/responses/${form.id}`); }}
-                                className="p-2 text-black hover:bg-gray-100 rounded-lg transition-all"
-                                title="View"
-                              >
-                                <Eye size={16} />
-                              </button>
-                              <button
-                                onClick={(e) => { e.stopPropagation(); router.push(`/builder?id=${form.id}`); }}
-                                className="p-2 text-black hover:bg-gray-100 rounded-lg transition-all"
-                                title="Edit"
-                              >
-                                <Edit2 size={16} />
-                              </button>
-                              <button
-                                onClick={(e) => { e.stopPropagation(); handleDelete(form.id, form.title); }}
-                                className="p-2 text-black hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
-                                title="Delete"
-                              >
-                                <Trash2 size={16} />
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
                   </tbody>
                 </table>
               </div>
