@@ -22,8 +22,6 @@ export default function MultipleChoice({
     error,
 }: MultipleChoiceProps) {
     return (
-        <div className={`bg-white rounded-xl p-6 shadow-sm border-2 transition-all ${error ? 'border-red-500 ring-4 ring-red-50' : 'border-gray-100'}`}>
-            <p className="text-base font-medium text-gray-900 mb-4 leading-normal">
         <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-200 transition-all">
             <p className="text-base font-medium text-gray-900 mb-4 leading-normal break-words">
                 {label}
@@ -48,8 +46,9 @@ export default function MultipleChoice({
                             <div
                                 className={`w-5 h-5 rounded-full border-2 transition-all flex items-center justify-center ${value === option
                                     ? 'border-blue-600'
-                                    : error ? 'border-red-300 group-hover:border-red-400' : 'border-gray-300 group-hover:border-gray-400'
-                                    : 'border-gray-300 group-hover:border-gray-400'
+                                    : error
+                                        ? 'border-red-300 group-hover:border-red-400'
+                                        : 'border-gray-300 group-hover:border-gray-400'
                                     }`}
                             >
                                 {value === option && (
@@ -57,7 +56,6 @@ export default function MultipleChoice({
                                 )}
                             </div>
                         </div>
-                        <span className={`text-sm font-normal ${error ? 'text-red-900' : 'text-gray-800'}`}>{option}</span>
                         <span className="text-sm font-normal text-gray-800 break-words">{option}</span>
                     </label>
                 ))}

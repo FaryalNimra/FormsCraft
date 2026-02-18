@@ -25,8 +25,6 @@ export default function RatingScale({
     const [hovered, setHovered] = useState<number | null>(null);
 
     return (
-        <div className={`bg-white rounded-xl p-6 shadow-sm border-2 transition-all ${error ? 'border-red-500 ring-4 ring-red-50' : 'border-gray-100'}`}>
-            <p className="text-base font-medium text-gray-900 mb-4 leading-normal">
         <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-200 transition-all">
             <p className="text-base font-medium text-gray-900 mb-4 leading-normal break-words">
                 {label}
@@ -46,8 +44,9 @@ export default function RatingScale({
                             onMouseLeave={() => setHovered(null)}
                             className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${isActive
                                 ? 'bg-amber-100 text-amber-500 scale-110'
-                                : error ? 'bg-red-50 text-red-400 border border-red-200' : 'bg-gray-50 text-gray-300 hover:bg-gray-100 border border-gray-100'
-                                : 'bg-gray-50 text-gray-300 hover:bg-gray-100 border border-gray-100'
+                                : error
+                                    ? 'bg-red-50 text-red-400 border border-red-200'
+                                    : 'bg-gray-50 text-gray-300 hover:bg-gray-100 border border-gray-100'
                                 }`}
                             aria-label={`Rate ${rating} out of ${maxRating}`}
                         >

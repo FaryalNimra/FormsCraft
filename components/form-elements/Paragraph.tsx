@@ -46,8 +46,6 @@ export default function Paragraph({
     const isOverLimit = wordLimit ? wordCount > wordLimit : false;
 
     return (
-        <div className={`bg-white rounded-xl p-6 shadow-sm border-2 transition-all ${error ? 'border-red-500 ring-4 ring-red-50' : 'border-gray-100'}`}>
-            <label htmlFor={id} className="block text-base font-medium text-gray-900 mb-4 leading-normal">
         <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-200 transition-all">
             <label htmlFor={id} className="block text-base font-medium text-gray-900 mb-4 leading-normal break-words">
                 {label}

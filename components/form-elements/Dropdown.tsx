@@ -38,8 +38,6 @@ export default function Dropdown({
     }, []);
 
     return (
-        <div className={`bg-white rounded-xl p-6 shadow-sm border-2 transition-all ${error ? 'border-red-500 ring-4 ring-red-50' : 'border-gray-100'}`}>
-            <p className="text-base font-medium text-gray-900 mb-4 leading-normal">
         <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-200 transition-all">
             <p className="text-base font-medium text-gray-900 mb-4 leading-normal break-words">
                 {label}
@@ -52,7 +50,6 @@ export default function Dropdown({
                     className={`w-full px-4 py-3 bg-white border rounded-lg text-sm text-left flex items-center justify-between transition-all ${isOpen ? 'border-blue-500 ring-2 ring-blue-100' : error ? 'border-red-300 bg-red-50' : 'border-gray-300 hover:border-gray-400'
                         }`}
                 >
-                    <span className={value ? 'text-gray-900 font-normal' : error ? 'text-red-400' : 'text-gray-400'}>
                     <span className={`break-words ${value ? 'text-gray-900 font-normal' : 'text-gray-400'}`}>
                         {value || placeholder}
                     </span>

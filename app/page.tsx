@@ -224,59 +224,6 @@ export default function Home() {
                           </td>
                         </tr>
                       ))}
-                          </div>
-                        </td>
-                        <td className="px-4 py-4">
-                          <div className="flex items-center gap-2">
-                            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider border ${form.status === 'published'
-                              ? 'bg-green-50 text-green-600 border-green-100'
-                              : 'bg-amber-50 text-amber-600 border-amber-100'
-                              }`}>
-                              {form.status}
-                            </span>
-                            {form.updated_at && new Date(form.updated_at).getTime() - new Date(form.created_at).getTime() > 10000 && (
-                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider border bg-blue-50 text-blue-600 border-blue-100">
-                                Edited
-                              </span>
-                            )}
-                          </div>
-                        </td>
-                        <td className="px-4 py-4 text-xs font-medium text-gray-500">
-                          {formatTime(form.updated_at || form.created_at)}
-                        </td>
-                        <td className="px-4 py-4">
-                          <div className="flex items-center gap-2">
-                            <MessageSquare size={12} className="text-gray-300" />
-                            <span className="text-xs font-bold text-gray-900">{form.response_count}</span>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 text-right">
-                          <div className="flex items-center justify-end gap-2">
-                            <button
-                              onClick={(e) => { e.stopPropagation(); router.push(`/responses/${form.id}`); }}
-                              className="p-2 text-black hover:bg-gray-100 rounded-lg transition-all"
-                              title="View"
-                            >
-                              <Eye size={16} />
-                            </button>
-                            <button
-                              onClick={(e) => { e.stopPropagation(); router.push(`/builder?id=${form.id}`); }}
-                              className="p-2 text-black hover:bg-gray-100 rounded-lg transition-all"
-                              title="Edit"
-                            >
-                              <Edit2 size={16} />
-                            </button>
-                            <button
-                              onClick={(e) => { e.stopPropagation(); handleDelete(form.id, form.title); }}
-                              className="p-2 text-black hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
-                              title="Delete"
-                            >
-                              <Trash2 size={16} />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
                   </tbody>
                 </table>
               </div>
