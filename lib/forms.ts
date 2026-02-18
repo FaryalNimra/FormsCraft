@@ -456,8 +456,40 @@ export async function getResponseDetails(formId: string) {
 }
 
 export async function getUserResponse(formId: string, userId: string) {
-    // Temporarily disabled while submitted_by column is missing
-    return null;
+    // Fetch the most recent response for this form and user
+    const { data: response, error: responseError } = await supabase
+        .from('responses')
+        .select(`
+            *,
+            answers:response_answers(*)
+        `)
+        .eq('form_id', formId)
+        .eq('created_by', userId) // Assuming we added user tracking to responses
+        .order('submitted_at', { ascending: false })
+        .maybeSingle();
+
+    if (responseError) throw responseError;
+    if (!response) return null;
+
+    // Map answers into a Record<string, any> for the builder/view
+    const answersMap: Record<string, any> = {};
+    (response.answers || []).forEach((ans: any) => {
+        // Handle JSON array for multiple choice/checkboxes if stored as string
+        let val = ans.answer;
+        try {
+            if (val && (val.startsWith('[') || val.startsWith('{'))) {
+                val = JSON.parse(val);
+            }
+        } catch (e) {
+            // Not JSON, keep as string
+        }
+        answersMap[ans.element_id] = val;
+    });
+
+    return {
+        ...response,
+        answers: answersMap
+    };
 }
 
 export async function deleteForm(id: string) {
