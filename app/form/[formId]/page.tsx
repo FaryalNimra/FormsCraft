@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { FileText, Send, CheckCircle, AlertCircle, ArrowLeft, Loader2, Clock } from 'lucide-react';
 import { supabase, generateUploadPath, handleSupabaseError } from '@/lib/supabase';
 import { Form, FormElement, TABLES, STORAGE_BUCKETS } from '@/types/database';
+import { saveResponse } from '@/lib/forms';
 import FormElementRenderer from '@/components/form-elements/FormElementRenderer';
 
 type FormValues = Record<string, string | string[] | number | File | null>;
@@ -157,25 +158,6 @@ export default function FormResponsePage() {
     return Object.keys(newErrors).length === 0;
   };
 
-  // Upload file to Supabase Storage
-  const uploadFile = async (file: File): Promise<string | null> => {
-    const filePath = generateUploadPath(formId, file.name);
-
-    const { error } = await supabase.storage
-      .from(STORAGE_BUCKETS.FORM_UPLOADS)
-      .upload(filePath, file);
-
-    if (error) {
-      console.error('File upload error:', error);
-      return null;
-    }
-
-    const { data: urlData } = supabase.storage
-      .from(STORAGE_BUCKETS.FORM_UPLOADS)
-      .getPublicUrl(filePath);
-
-    return urlData.publicUrl;
-  };
 
   // Submit form
   const handleSubmit = async (e: React.FormEvent) => {
@@ -190,56 +172,7 @@ export default function FormResponsePage() {
 
     try {
       setSubmitting(true);
-
-      // Create response record
-      const { data: responseData, error: responseError } = await supabase
-        .from(TABLES.RESPONSES)
-        .insert({
-          form_id: formId,
-          submitted_by: null, // Can add user identification later
-        })
-        .select()
-        .single();
-
-      if (responseError) {
-        throw new Error(handleSupabaseError(responseError));
-      }
-
-      // Prepare answers
-      const answers = [];
-
-      for (const element of elements) {
-        const value = values[element.id];
-        let answerText: string | null = null;
-        let fileUrl: string | null = null;
-
-        if (element.type === 'file_upload' && value instanceof File) {
-          fileUrl = await uploadFile(value);
-        } else if (element.type === 'checkboxes' && Array.isArray(value)) {
-          answerText = JSON.stringify(value);
-        } else if (element.type === 'rating_scale' && typeof value === 'number') {
-          answerText = value.toString();
-        } else if (typeof value === 'string') {
-          answerText = value || null;
-        }
-
-        answers.push({
-          response_id: responseData.id,
-          element_id: element.id,
-          answer: answerText,
-          file_url: fileUrl,
-        });
-      }
-
-      // Insert all answers
-      const { error: answersError } = await supabase
-        .from(TABLES.RESPONSE_ANSWERS)
-        .insert(answers);
-
-      if (answersError) {
-        throw new Error(handleSupabaseError(answersError));
-      }
-
+      await saveResponse(formId, values);
       setSubmitted(true);
     } catch (err) {
       alert('Failed to submit form: ' + (err instanceof Error ? err.message : 'Unknown error'));
