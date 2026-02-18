@@ -89,6 +89,8 @@ export async function saveForm(form: Form) {
             theme_color: form.theme_color || '#2563eb',
             expires_at: form.expires_at || null,
             collect_email: form.collect_email || false,
+            limit_to_one_response: form.limit_to_one_response || false,
+            allow_response_editing: form.allow_response_editing || false,
             updated_at: new Date().toISOString()
         };
 
@@ -99,17 +101,6 @@ export async function saveForm(form: Form) {
         const { error } = await supabase
             .from('forms')
             .update(updateData)
-            .update({
-                title: form.title,
-                description: form.description,
-                status: form.status,
-                theme_color: form.theme_color || '#2563eb',
-                expires_at: form.expires_at || null,
-                collect_email: form.collect_email || false,
-                limit_to_one_response: form.limit_to_one_response || false,
-                allow_response_editing: form.allow_response_editing || false,
-                updated_at: new Date().toISOString()
-            })
             .eq('id', formId);
 
         if (error) throw error;
@@ -128,14 +119,9 @@ export async function saveForm(form: Form) {
                 expires_at: form.expires_at || null,
                 collect_email: form.collect_email || false,
                 created_by: user.id,
-                last_edited_at: now
+                last_edited_at: now,
                 limit_to_one_response: form.limit_to_one_response || false,
-                allow_response_editing: form.allow_response_editing || false,
-                // IMPORTANT: Ensure you have run: 
-                // ALTER TABLE forms ADD COLUMN IF NOT EXISTS limit_to_one_response BOOLEAN DEFAULT FALSE;
-                // ALTER TABLE forms ADD COLUMN IF NOT EXISTS allow_response_editing BOOLEAN DEFAULT FALSE;
-                // ALTER TABLE forms ADD COLUMN IF NOT EXISTS created_by UUID REFERENCES auth.users(id);
-                created_by: user.id
+                allow_response_editing: form.allow_response_editing || false
             })
             .select()
             .single();
@@ -260,8 +246,6 @@ export async function uploadFile(formId: string, file: File): Promise<string> {
     return urlData.publicUrl;
 }
 
-export async function saveResponse(formId: string, responses: Record<string, any>, userEmail?: string) {
-    // 0. Check for duplicate submission if email collection is enabled
 export async function saveResponse(formId: string, responses: Record<string, any>, userEmail?: string, userId?: string) {
     // 1. Check for duplicate submission or update
     let existingRespId: string | null = null;
@@ -350,15 +334,6 @@ export async function saveResponse(formId: string, responses: Record<string, any
             file_url: fileUrl
         });
     }
-    // 2. Map form responses to 'response_answers' table format
-    const answersToInsert = Object.entries(responses).map(([elementId, answer]) => ({
-        id: typeof crypto !== 'undefined' && crypto.randomUUID
-            ? crypto.randomUUID()
-            : Math.random().toString(36).substring(2) + Date.now().toString(36),
-        response_id: responseId,
-        element_id: elementId,
-        answer: Array.isArray(answer) ? answer.join(', ') : String(answer),
-    }));
 
     // 3. Insert all answers into the 'response_answers' table
     if (answersToInsert.length > 0) {
@@ -481,8 +456,40 @@ export async function getResponseDetails(formId: string) {
 }
 
 export async function getUserResponse(formId: string, userId: string) {
-    // Temporarily disabled while submitted_by column is missing
-    return null;
+    // Fetch the most recent response for this form and user
+    const { data: response, error: responseError } = await supabase
+        .from('responses')
+        .select(`
+            *,
+            answers:response_answers(*)
+        `)
+        .eq('form_id', formId)
+        .eq('created_by', userId) // Assuming we added user tracking to responses
+        .order('submitted_at', { ascending: false })
+        .maybeSingle();
+
+    if (responseError) throw responseError;
+    if (!response) return null;
+
+    // Map answers into a Record<string, any> for the builder/view
+    const answersMap: Record<string, any> = {};
+    (response.answers || []).forEach((ans: any) => {
+        // Handle JSON array for multiple choice/checkboxes if stored as string
+        let val = ans.answer;
+        try {
+            if (val && (val.startsWith('[') || val.startsWith('{'))) {
+                val = JSON.parse(val);
+            }
+        } catch (e) {
+            // Not JSON, keep as string
+        }
+        answersMap[ans.element_id] = val;
+    });
+
+    return {
+        ...response,
+        answers: answersMap
+    };
 }
 
 export async function deleteForm(id: string) {
