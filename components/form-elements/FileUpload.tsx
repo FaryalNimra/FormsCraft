@@ -1,6 +1,6 @@
 'use client';
 
-import { Upload, X, FileText, Image as ImageIcon, File } from 'lucide-react';
+import { Upload, X, FileText, Image as ImageIcon, File, XCircle } from 'lucide-react';
 import { useRef, useState } from 'react';
 
 interface FileUploadProps {
@@ -101,7 +101,7 @@ export default function FileUpload({
   const displayError = error || localError;
 
   return (
-    <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+    <div className={`bg-white rounded-xl p-6 shadow-sm border-2 transition-all ${displayError ? 'border-red-500 ring-4 ring-red-50' : 'border-gray-100'}`}>
 
 
       <p className="text-lg font-semibold text-gray-900 mb-4 break-words">
@@ -123,18 +123,18 @@ export default function FileUpload({
               : 'border-gray-200 bg-gray-50 hover:border-blue-300 hover:bg-blue-50/30'
             }`}
         >
-          <Upload size={32} className={dragActive ? 'text-blue-500' : 'text-black font-bold'} />
+          <Upload size={32} className={dragActive ? 'text-blue-500' : displayError ? 'text-red-400' : 'text-black font-bold'} />
           <div className="text-center">
-            <p className="text-sm font-semibold text-gray-600">
+            <p className={`text-sm font-semibold ${displayError ? 'text-red-900' : 'text-gray-600'}`}>
               Click or drag file to upload
             </p>
-            <p className="text-xs text-gray-400 mt-1">
+            <p className={`text-xs mt-1 ${displayError ? 'text-red-400' : 'text-gray-400'}`}>
               PDF, JPG, PNG up to {maxSizeMB}MB
             </p>
           </div>
         </div>
       ) : (
-        <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-xl border border-gray-200">
+        <div className={`flex items-center gap-4 p-4 bg-gray-50 rounded-xl border ${displayError ? 'border-red-200 bg-red-50' : 'border-gray-200'}`}>
           {getFileIcon(value)}
           <div className="flex-1 min-w-0">
             <p className="text-sm font-semibold text-gray-900 truncate">{value.name}</p>
@@ -160,7 +160,10 @@ export default function FileUpload({
       />
 
       {displayError && (
-        <p className="mt-3 text-sm text-red-500 font-medium">{displayError}</p>
+        <p className="mt-4 text-xs text-red-500 font-medium flex items-center gap-1">
+          <XCircle size={14} />
+          {displayError}
+        </p>
       )}
     </div>
   );
