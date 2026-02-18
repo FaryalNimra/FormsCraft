@@ -1,8 +1,8 @@
 'use client';
 
-import { Calendar, XCircle } from 'lucide-react';
+import { Clock } from 'lucide-react';
 
-interface DatePickerProps {
+interface TimePickerProps {
     id: string;
     label: string;
     placeholder?: string;
@@ -12,18 +12,16 @@ interface DatePickerProps {
     error?: string;
 }
 
-export default function DatePicker({
+export default function TimePicker({
     id,
     label,
-    placeholder = 'mm/dd/yyyy',
+    placeholder = 'hh:mm',
     required = false,
     value,
     onChange,
     error,
-}: DatePickerProps) {
+}: TimePickerProps) {
     return (
-        <div className={`bg-white rounded-xl p-6 shadow-sm border-2 transition-all ${error ? 'border-red-500 ring-4 ring-red-50' : 'border-gray-100'}`}>
-            <label htmlFor={id} className="block text-base font-medium text-gray-900 mb-4 leading-normal">
         <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-200 transition-all">
             <label htmlFor={id} className="block text-base font-medium text-gray-900 mb-4 leading-normal break-words">
                 {label}
@@ -32,22 +30,19 @@ export default function DatePicker({
             <div className="relative max-w-xs">
                 <input
                     id={id}
-                    type="date"
+                    type="time"
                     value={value}
                     onChange={(e) => onChange(e.target.value)}
-                    className={`w-full px-4 py-3 border rounded-lg text-sm text-gray-900 placeholder:text-gray-400 bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all appearance-none ${error ? 'border-red-300 bg-red-50' : 'border-gray-300'}`}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg text-sm text-gray-900 placeholder:text-gray-400 bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all appearance-none"
                     required={required}
                 />
-                <Calendar
+                <Clock
                     size={16}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
                 />
             </div>
             {error && (
-                <p className="mt-4 text-xs text-red-500 font-medium flex items-center gap-1">
-                    <XCircle size={14} />
-                    {error}
-                </p>
+                <p className="mt-2 text-sm text-red-500 font-medium">{error}</p>
             )}
         </div>
     );

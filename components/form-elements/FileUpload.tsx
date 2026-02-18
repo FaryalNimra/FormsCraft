@@ -104,7 +104,7 @@ export default function FileUpload({
     <div className={`bg-white rounded-xl p-6 shadow-sm border-2 transition-all ${displayError ? 'border-red-500 ring-4 ring-red-50' : 'border-gray-100'}`}>
 
 
-      <p className="text-lg font-semibold text-gray-900 mb-4">
+      <p className="text-lg font-semibold text-gray-900 mb-4 break-words">
         {label}
         {required && <span className="text-red-500 ml-1">*</span>}
       </p>

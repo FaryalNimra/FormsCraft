@@ -357,14 +357,14 @@ export default function ResponsesPage() {
                                                     {form.elements?.map((el: any) => (
                                                         <td key={el.id} className="px-4 py-4 max-w-[200px]">
                                                             <span className="text-xs text-gray-700 font-normal truncate block">
-                                                                {response.answers[el.id] || <span className="text-gray-300 italic">—</span>}
+                                                                {response.answers[el.id] || <span className="text-[10px] font-bold text-red-400 uppercase tracking-tighter">Nil</span>}
                                                             </span>
                                                         </td>
                                                     ))}
                                                     <td className="px-4 py-4 text-right">
                                                         <button
                                                             onClick={() => { setSelectedResponseIndex(index); setViewMode('individual'); }}
-                                                            className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all opacity-0 group-hover:opacity-100"
+                                                            className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
                                                             title="View Details"
                                                         >
                                                             <Eye size={16} />
@@ -436,7 +436,7 @@ export default function ResponsesPage() {
                                             </p>
                                             <p className="text-sm text-gray-900 font-normal leading-relaxed whitespace-pre-wrap">
                                                 {selectedResponse.answers[el.id] || (
-                                                    <span className="text-gray-300 italic">No answer provided</span>
+                                                    <span className="text-[10px] font-bold text-red-400 uppercase tracking-tighter">Nil</span>
                                                 )}
                                             </p>
                                         </div>

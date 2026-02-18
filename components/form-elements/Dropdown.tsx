@@ -40,6 +40,8 @@ export default function Dropdown({
     return (
         <div className={`bg-white rounded-xl p-6 shadow-sm border-2 transition-all ${error ? 'border-red-500 ring-4 ring-red-50' : 'border-gray-100'}`}>
             <p className="text-base font-medium text-gray-900 mb-4 leading-normal">
+        <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-200 transition-all">
+            <p className="text-base font-medium text-gray-900 mb-4 leading-normal break-words">
                 {label}
                 {required && <span className="text-red-600 ml-1">*</span>}
             </p>
@@ -51,6 +53,7 @@ export default function Dropdown({
                         }`}
                 >
                     <span className={value ? 'text-gray-900 font-normal' : error ? 'text-red-400' : 'text-gray-400'}>
+                    <span className={`break-words ${value ? 'text-gray-900 font-normal' : 'text-gray-400'}`}>
                         {value || placeholder}
                     </span>
                     <ChevronDown
@@ -74,7 +77,7 @@ export default function Dropdown({
                                     : 'text-gray-700 hover:bg-gray-50'
                                     }`}
                             >
-                                {option}
+                                <span className="break-words">{option}</span>
                                 {value === option && <Check size={16} className="text-blue-600" />}
                             </button>
                         ))}

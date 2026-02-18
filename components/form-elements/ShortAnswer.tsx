@@ -42,7 +42,7 @@ export default function ShortAnswer({
     <div className={`bg-white rounded-xl p-6 shadow-sm border-2 transition-all ${error ? 'border-red-500 ring-4 ring-red-50' : 'border-gray-100'}`}>
 
 
-      <label htmlFor={id} className="block text-lg font-semibold text-gray-900 mb-4">
+      <label htmlFor={id} className="block text-lg font-semibold text-gray-900 mb-4 break-words">
         {label}
         {required && <span className="text-red-500 ml-1">*</span>}
       </label>

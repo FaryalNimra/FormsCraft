@@ -10,6 +10,7 @@ export type ElementType =
   | 'checkboxes'
   | 'dropdown'
   | 'date'
+  | 'time'
   | 'file_upload'
   | 'rating_scale';
 
@@ -153,6 +154,7 @@ export const ELEMENT_TYPE_LABELS: Record<ElementType, string> = {
   checkboxes: 'Checkboxes',
   dropdown: 'Dropdown',
   date: 'Date',
+  time: 'Time',
   file_upload: 'File Upload',
   rating_scale: 'Rating Scale',
 };
