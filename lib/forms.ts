@@ -455,7 +455,7 @@ export async function getResponseDetails(formId: string) {
     };
 }
 
-export async function getUserResponse(formId: string, userId: string) {
+export async function getUserResponse(formId: string, userEmail: string) {
     // Fetch the most recent response for this form and user
     const { data: response, error: responseError } = await supabase
         .from('responses')
@@ -464,7 +464,7 @@ export async function getUserResponse(formId: string, userId: string) {
             answers:response_answers(*)
         `)
         .eq('form_id', formId)
-        .eq('created_by', userId) // Assuming we added user tracking to responses
+        .eq('user_email', userEmail)
         .order('submitted_at', { ascending: false })
         .maybeSingle();
 
