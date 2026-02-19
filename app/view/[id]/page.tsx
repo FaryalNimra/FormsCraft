@@ -61,8 +61,8 @@ export default function ViewForm() {
 
             // Check if user has already submitted and handle editing
             const currentUser = await getCurrentUser();
-            if (currentUser && data.id) {
-                const previousResponse = await getUserResponse(data.id, currentUser.id);
+            if (currentUser && data.id && currentUser.email) {
+                const previousResponse = await getUserResponse(data.id, currentUser.email);
                 if (previousResponse) {
                     if (data.allow_response_editing) {
                         setResponses(previousResponse.answers);
@@ -74,7 +74,11 @@ export default function ViewForm() {
                 }
             }
         } catch (err: any) {
-            console.error('Error fetching form:', err);
+            console.error('Error fetching form details:', {
+                message: err.message,
+                stack: err.stack,
+                id
+            });
             setError(err.message || 'Failed to load form');
         } finally {
             setIsLoading(false);
