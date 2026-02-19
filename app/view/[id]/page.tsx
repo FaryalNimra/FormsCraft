@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'next/navigation';
-import { getForm, saveResponse, getUserResponse, Form, FormElement } from '@/lib/forms';
+import { getForm, saveResponse, getUserResponse } from '@/lib/forms';
+import type { Form, FormElement } from '@/lib/forms';
 import { getCurrentUser, signInWithGoogle } from '@/lib/auth';
 import { User } from '@supabase/supabase-js';
 import {
@@ -15,7 +16,6 @@ import {
     ArrowRight,
     XCircle,
     Check,
-    FormInput,
     Clock
 } from 'lucide-react';
 import { FormElementRenderer } from '@/components/form-elements';
@@ -32,23 +32,9 @@ export default function ViewForm() {
     const [user, setUser] = useState<User | null>(null);
     const [userEmail, setUserEmail] = useState('');
     const [alreadySubmitted, setAlreadySubmitted] = useState(false);
-    const [isCheckingAuth, setIsCheckingAuth] = useState(true);
     const [isEditing, setIsEditing] = useState(false);
 
-    useEffect(() => {
-        const checkAuth = async () => {
-            const currentUser = await getCurrentUser();
-            setUser(currentUser);
-            if (currentUser?.email) setUserEmail(currentUser.email);
-            setIsCheckingAuth(false);
-        };
-        checkAuth();
-        if (id) {
-            fetchForm();
-        }
-    }, [id]);
-
-    const fetchForm = async () => {
+    const fetchForm = useCallback(async () => {
         try {
             const data = await getForm(id as string);
             console.log('Form fetched. Expiration:', data?.expires_at);
@@ -61,12 +47,13 @@ export default function ViewForm() {
 
             // Check if user has already submitted and handle editing
             const currentUser = await getCurrentUser();
-            if (currentUser && data.id && currentUser.email) {
-                const previousResponse = await getUserResponse(data.id, currentUser.email);
+            if (currentUser && data.id) {
+                const previousResponse = await getUserResponse(data.id as string, currentUser.id);
                 if (previousResponse) {
                     if (data.allow_response_editing) {
-                        setResponses(previousResponse.answers);
-                        if (previousResponse.user_email) setUserEmail(previousResponse.user_email);
+                        const prev = previousResponse as any;
+                        if (prev.answers) setResponses(prev.answers);
+                        if (prev.user_email) setUserEmail(prev.user_email);
                         setIsEditing(true);
                     } else if (data.limit_to_one_response) {
                         setAlreadySubmitted(true);
@@ -74,16 +61,24 @@ export default function ViewForm() {
                 }
             }
         } catch (err: any) {
-            console.error('Error fetching form details:', {
-                message: err.message,
-                stack: err.stack,
-                id
-            });
+            console.error('Error fetching form:', err);
             setError(err.message || 'Failed to load form');
         } finally {
             setIsLoading(false);
         }
-    };
+    }, [id]);
+
+    useEffect(() => {
+        const checkAuth = async () => {
+            const currentUser = await getCurrentUser();
+            setUser(currentUser);
+            if (currentUser?.email) setUserEmail(currentUser.email);
+        };
+        checkAuth();
+        if (id) {
+            fetchForm();
+        }
+    }, [id, fetchForm]);
 
     const handleInputChange = (elementId: string, value: any) => {
         setResponses(prev => ({
@@ -226,7 +221,7 @@ export default function ViewForm() {
                             <button
                                 onClick={() => setAlreadySubmitted(false)}
                                 className="inline-block px-6 py-2 text-white rounded font-medium text-xs transition-colors hover:opacity-90 shadow-sm"
-                                style={{ backgroundColor: form?.theme_color || '#2563eb' }}
+                                style={{ backgroundColor: form.theme_color || '#2563eb' }}
                             >
                                 Edit your response
                             </button>
@@ -268,27 +263,35 @@ export default function ViewForm() {
                             backgroundColor: (!form.theme_color || form.theme_color === '#2563eb') ? 'var(--primary-600)' : form.theme_color,
                             backgroundImage: (!form.theme_color || form.theme_color === '#2563eb')
                                 ? 'linear-gradient(135deg, var(--primary-600) 0%, var(--primary-700) 100%)'
-                                : `linear-gradient(135deg, ${form.theme_color} 0%, ${(form.theme_color)}ee 100%)`
+                                : `linear-gradient(135deg, ${form.theme_color} 0%, ${form.theme_color}ee 100%)`
                         }}
                     >
                         <div className="absolute top-0 left-0 w-full h-1 bg-white/20"></div>
-                        <div className="p-8 pt-10 text-white">
-                            <h1 className="text-3xl font-extrabold mb-3 tracking-tight">{form.title}</h1>
-                            {form.description && (
-                                <p className="text-sm font-medium text-white/80 leading-relaxed whitespace-pre-wrap">{form.description}</p>
-                            )}
-                            {form.expires_at && (
-                                <div className="mt-4 flex items-center gap-2 text-white/60 text-[10px] font-bold uppercase tracking-wider bg-black/10 w-fit px-3 py-1 rounded-md border border-white/5">
-                                    <Clock size={10} className="text-white/40" />
-                                    <span>Deadline: {new Date(form.expires_at).toLocaleString([], {
-                                        dateStyle: 'medium',
-                                        timeStyle: 'short'
-                                    })}</span>
+                        <div className="p-8 pt-10 flex items-start gap-4">
+                            <div className="flex-1 text-white">
+                                <h1 className="text-3xl font-extrabold mb-3 tracking-tight">{form.title}</h1>
+                                {form.description && (
+                                    <p className="text-sm font-medium text-white/80 leading-relaxed whitespace-pre-wrap">{form.description}</p>
+                                )}
+                                {form.expires_at && (
+                                    <div className="mt-4 flex items-center gap-2 text-white/60 text-[10px] font-bold uppercase tracking-wider bg-black/10 w-fit px-3 py-1 rounded-md border border-white/5">
+                                        <Clock size={10} className="text-white/40" />
+                                        <span>Deadline: {new Date(form.expires_at).toLocaleString([], {
+                                            dateStyle: 'medium',
+                                            timeStyle: 'short'
+                                        })}</span>
+                                    </div>
+                                )}
+                                <div className="mt-4 pt-4 border-t border-white/10 flex items-center gap-1.5 text-xs text-white/60">
+                                    <span className="text-white/80">*</span> Indicates required question
+                                </div>
+                            </div>
+                            {/* Logo display on header */}
+                            {form.logo_url && (
+                                <div className="w-20 h-20 rounded-xl overflow-hidden border-2 border-white/30 flex-shrink-0 bg-white/10 shadow-lg mt-1">
+                                    <img src={form.logo_url} alt="Form logo" className="w-full h-full object-cover" />
                                 </div>
                             )}
-                            <div className="mt-4 pt-4 border-t border-white/10 flex items-center gap-1.5 text-xs text-white/60">
-                                <span className="text-white/80">*</span> Indicates required question
-                            </div>
                         </div>
                     </div>
 
@@ -336,17 +339,17 @@ export default function ViewForm() {
                         </div>
                     )}
 
-                    {/* Question Cards (Google Style) */}
+                    {/* Question Cards */}
                     <div className="space-y-3">
                         {form.elements.map((el) => (
                             <div key={el.id} id={`question-${el.id}`}>
                                 <FormElementRenderer
                                     element={{
                                         ...el,
-                                        max_rating: el.maxRating || null,
-                                        word_limit: el.wordLimit || null
+                                        max_rating: el.maxRating ?? null,
+                                        word_limit: el.wordLimit ?? null
                                     } as any}
-                                    value={responses[el.id] || null}
+                                    value={responses[el.id] ?? null}
                                     onChange={(val) => handleInputChange(el.id, val)}
                                     error={validationErrors[el.id]}
                                 />
@@ -358,7 +361,7 @@ export default function ViewForm() {
                         <button
                             type="submit"
                             disabled={isSubmitting}
-                            className="px-6 py-2.5 text-white rounded shadow-sm font-bold text-xs uppercase tracking-widest transition-all disabled:opacity-50 hover:opacity-90 active:scale-95 px-8"
+                            className="px-8 py-2.5 text-white rounded shadow-sm font-bold text-xs uppercase tracking-widest transition-all disabled:opacity-50 hover:opacity-90 active:scale-95"
                             style={{
                                 backgroundColor: (!form.theme_color || form.theme_color === '#2563eb')
                                     ? 'var(--primary-600)'
