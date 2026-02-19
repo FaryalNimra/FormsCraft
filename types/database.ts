@@ -29,6 +29,7 @@ export interface Form {
   description: string | null;
   status: FormStatus;
   theme_color?: string; // Added theme_color
+  logo_url?: string | null; // Added logo_url
   collect_email: boolean; // Added collect_email
   created_by: string | null;
   created_at: string;

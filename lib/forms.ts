@@ -20,6 +20,7 @@ export interface Form {
     elements: FormElement[];
     status: 'draft' | 'published' | 'in_progress';
     theme_color?: string;
+    logo_url?: string | null;
     expires_at?: string | null;
     collect_email?: boolean;
     limit_to_one_response?: boolean;
@@ -41,6 +42,7 @@ export async function saveForm(form: Form) {
                 description: form.description,
                 status: form.status,
                 theme_color: form.theme_color || '#2563eb',
+                logo_url: form.logo_url || null,
                 expires_at: form.expires_at || null,
                 collect_email: form.collect_email || false,
                 limit_to_one_response: form.limit_to_one_response || false,
@@ -61,12 +63,13 @@ export async function saveForm(form: Form) {
                 description: form.description,
                 status: form.status,
                 theme_color: form.theme_color || '#2563eb',
+                logo_url: form.logo_url || null,
                 expires_at: form.expires_at || null,
                 collect_email: form.collect_email || false,
                 limit_to_one_response: form.limit_to_one_response || false,
                 allow_response_editing: form.allow_response_editing || false,
                 // IMPORTANT: Ensure you have run: 
-                // ALTER TABLE forms ADD COLUMN IF NOT EXISTS limit_to_one_response BOOLEAN DEFAULT FALSE;
+                // ALTER TABLE forms ADD COLUMN IF NOT EXISTS logo_url TEXT;
                 // ALTER TABLE forms ADD COLUMN IF NOT EXISTS allow_response_editing BOOLEAN DEFAULT FALSE;
                 // ALTER TABLE forms ADD COLUMN IF NOT EXISTS created_by UUID REFERENCES auth.users(id);
                 created_by: user.id
