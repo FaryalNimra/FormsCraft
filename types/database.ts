@@ -31,12 +31,9 @@ export interface Form {
   theme_color?: string; // Added theme_color
   collect_email: boolean; // Added collect_email
   created_by: string | null;
-  created_at?: string;
-  updated_at?: string;
-  last_edited_at?: string | null;
-  last_accessed_at?: string;
+  created_at: string;
+  updated_at: string;
   expires_at: string | null;
-  is_archived?: boolean;
 }
 
 /**
@@ -64,7 +61,7 @@ export interface FormElement {
 export interface Response {
   id: string;
   form_id: string;
-  user_email: string | null;
+  submitted_by: string | null;
   submitted_at: string;
 }
 
@@ -132,7 +129,8 @@ export interface CreateFormElementInput {
  */
 export interface SubmitResponseInput {
   form_id: string;
-  user_email?: string;
+  submitted_by?: string;
+  user_email?: string; // Added user_email
 }
 
 /**

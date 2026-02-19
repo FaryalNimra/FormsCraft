@@ -1,5 +1,4 @@
-import { supabase, generateUploadPath } from './supabase';
-import { STORAGE_BUCKETS } from '@/types/database';
+import { supabase } from './supabase';
 
 export type ElementType = 'short_answer' | 'paragraph' | 'multiple_choice' | 'checkboxes' | 'dropdown' | 'date' | 'time' | 'file_upload' | 'rating_scale';
 
@@ -28,79 +27,29 @@ export interface Form {
     created_by?: string;
     created_at?: string;
     updated_at?: string;
-    last_edited_at?: string | null;
-    last_accessed_at?: string;
     is_archived?: boolean;
+    logo_url?: string;
 }
 
 export async function saveForm(form: Form) {
     let formId = form.id;
 
     // 1. Save Form Metadata
-    let lastEditedAt = null;
-
     if (formId) {
-        // Fetch existing form to check if content changed
-        const { data: existing, error: fetchError } = await supabase
-            .from('forms')
-            .select('*')
-            .eq('id', formId)
-            .single();
-
-        if (fetchError) throw fetchError;
-
-        // Compare content (excluding status)
-        const hasContentChanges =
-            existing.title !== form.title ||
-            existing.description !== form.description ||
-            existing.theme_color !== (form.theme_color || '#2563eb') ||
-            existing.expires_at !== (form.expires_at || null) ||
-            existing.collect_email !== (form.collect_email || false);
-
-        // We also need to check elements, but elements are saved later.
-        // For simplicity and performance, if elements are sent in form object, 
-        // we'll check if they match. However, JSON.stringify comparison is a bit heavy but works.
-        // We'll also fetch elements to be sure.
-        const { data: existingElements } = await supabase
-            .from('form_elements')
-            .select('*')
-            .eq('form_id', formId)
-            .order('order_index', { ascending: true });
-
-        const mappedExisting = (existingElements || []).map(el => ({
-            id: el.id,
-            type: el.type,
-            label: el.label,
-            placeholder: el.placeholder,
-            required: el.required,
-            options: el.options,
-            maxRating: el.max_rating,
-            wordLimit: el.word_limit || undefined
-        }));
-
-        const elementsChanged = JSON.stringify(mappedExisting) !== JSON.stringify(form.elements);
-
-        const shouldUpdateEditedAt = hasContentChanges || elementsChanged;
-
-        const updateData: any = {
-            title: form.title,
-            description: form.description,
-            status: form.status,
-            theme_color: form.theme_color || '#2563eb',
-            expires_at: form.expires_at || null,
-            collect_email: form.collect_email || false,
-            limit_to_one_response: form.limit_to_one_response || false,
-            allow_response_editing: form.allow_response_editing || false,
-            updated_at: new Date().toISOString()
-        };
-
-        if (shouldUpdateEditedAt) {
-            updateData.last_edited_at = new Date().toISOString();
-        }
-
         const { error } = await supabase
             .from('forms')
-            .update(updateData)
+            .update({
+                title: form.title,
+                description: form.description,
+                status: form.status,
+                theme_color: form.theme_color || '#2563eb',
+                expires_at: form.expires_at || null,
+                collect_email: form.collect_email || false,
+                limit_to_one_response: form.limit_to_one_response || false,
+                allow_response_editing: form.allow_response_editing || false,
+                logo_url: form.logo_url || null,
+                updated_at: new Date().toISOString()
+            })
             .eq('id', formId);
 
         if (error) throw error;
@@ -108,7 +57,6 @@ export async function saveForm(form: Form) {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) throw new Error('User not authenticated');
 
-        const now = new Date().toISOString();
         const { data, error } = await supabase
             .from('forms')
             .insert({
@@ -118,10 +66,15 @@ export async function saveForm(form: Form) {
                 theme_color: form.theme_color || '#2563eb',
                 expires_at: form.expires_at || null,
                 collect_email: form.collect_email || false,
-                created_by: user.id,
-                last_edited_at: now,
                 limit_to_one_response: form.limit_to_one_response || false,
-                allow_response_editing: form.allow_response_editing || false
+                allow_response_editing: form.allow_response_editing || false,
+                logo_url: form.logo_url || null,
+                // IMPORTANT: Ensure you have run: 
+                // ALTER TABLE forms ADD COLUMN IF NOT EXISTS limit_to_one_response BOOLEAN DEFAULT FALSE;
+                // ALTER TABLE forms ADD COLUMN IF NOT EXISTS allow_response_editing BOOLEAN DEFAULT FALSE;
+                // ALTER TABLE forms ADD COLUMN IF NOT EXISTS created_by UUID REFERENCES auth.users(id);
+                // ALTER TABLE forms ADD COLUMN IF NOT EXISTS logo_url TEXT;
+                created_by: user.id
             })
             .select()
             .single();
@@ -131,21 +84,20 @@ export async function saveForm(form: Form) {
     }
 
     // 2. Save Form Elements
-    const incomingIds = form.elements
-        .map(el => el.id)
-        .filter(id => id && id.length > 10);
+    const keeperIds = form.elements
+        .filter(el => el.id && el.id.length > 10)
+        .map(el => el.id);
 
-    // Delete elements that are NO LONGER in the form
-    // If incomingIds is empty, we delete all elements for this form
-    let deleteQuery = supabase.from('form_elements').delete().eq('form_id', formId);
-    if (incomingIds.length > 0) {
-        deleteQuery = deleteQuery.not('id', 'in', `(${incomingIds.join(',')})`);
+    // Delete elements that are no longer in the form
+    const deleteQuery = supabase.from('form_elements').delete().eq('form_id', formId);
+    if (keeperIds.length > 0) {
+        deleteQuery.not('id', 'in', `(${keeperIds.join(',')})`);
     }
 
     const { error: deleteError } = await deleteQuery;
     if (deleteError) throw deleteError;
 
-    // Prepare elements for upsert
+    // Insert or update current elements
     const elementsToUpsert = form.elements.map((el, index) => {
         const element: any = {
             form_id: formId,
@@ -159,7 +111,6 @@ export async function saveForm(form: Form) {
             order_index: index
         };
 
-        // Only include ID if it's a valid UUID (to preserve it)
         // Ensure every element has a valid UUID. 
         // If the database doesn't have a DEFAULT gen_random_uuid() for the id column, we must provide it.
         if (el.id && el.id.length > 10) {
@@ -176,7 +127,7 @@ export async function saveForm(form: Form) {
     if (elementsToUpsert.length > 0) {
         const { error: upsertError } = await supabase
             .from('form_elements')
-            .upsert(elementsToUpsert);
+            .upsert(elementsToUpsert, { onConflict: 'id' });
 
         if (upsertError) throw upsertError;
     }
@@ -203,9 +154,6 @@ export async function getForm(id: string) {
 
     if (elementsError) throw elementsError;
 
-    // 2.5 Update last_accessed_at
-    await supabase.from('forms').update({ last_accessed_at: new Date().toISOString() }).eq('id', id);
-
     // 3. Combine and Map Data
     const mappedElements: FormElement[] = elementsData.map(el => ({
         id: el.id,
@@ -223,29 +171,6 @@ export async function getForm(id: string) {
         elements: mappedElements
     } as Form;
 }
-
-/**
- * Upload a file to Supabase Storage
- */
-export async function uploadFile(formId: string, file: File): Promise<string> {
-    const filePath = generateUploadPath(formId, file.name);
-
-    const { error } = await supabase.storage
-        .from(STORAGE_BUCKETS.FORM_UPLOADS)
-        .upload(filePath, file);
-
-    if (error) {
-        console.error('File upload error:', error);
-        throw new Error(`Upload failed: ${error.message}`);
-    }
-
-    const { data: urlData } = supabase.storage
-        .from(STORAGE_BUCKETS.FORM_UPLOADS)
-        .getPublicUrl(filePath);
-
-    return urlData.publicUrl;
-}
-
 export async function saveResponse(formId: string, responses: Record<string, any>, userEmail?: string, userId?: string) {
     // 1. Check for duplicate submission or update
     let existingRespId: string | null = null;
@@ -310,30 +235,15 @@ export async function saveResponse(formId: string, responses: Record<string, any
         responseId = responseData.id;
     }
 
-    // 2. Map form responses to 'response_answers' table format and handle file uploads
-    const answersToInsert = [];
-
-    for (const [elementId, answer] of Object.entries(responses)) {
-        let answerText = null;
-        let fileUrl = null;
-
-        // Detect if answer is a File object OR if it's a blob-like object representing a file
-        if (answer instanceof File || (answer && typeof answer === 'object' && 'name' in answer && 'size' in answer)) {
-            answerText = (answer as File).name;
-            fileUrl = await uploadFile(formId, answer as File);
-        } else if (Array.isArray(answer)) {
-            answerText = JSON.stringify(answer);
-        } else if (answer !== null && answer !== undefined) {
-            answerText = String(answer);
-        }
-
-        answersToInsert.push({
-            response_id: responseId,
-            element_id: elementId,
-            answer: answerText,
-            file_url: fileUrl
-        });
-    }
+    // 2. Map form responses to 'response_answers' table format
+    const answersToInsert = Object.entries(responses).map(([elementId, answer]) => ({
+        id: typeof crypto !== 'undefined' && crypto.randomUUID
+            ? crypto.randomUUID()
+            : Math.random().toString(36).substring(2) + Date.now().toString(36),
+        response_id: responseId,
+        element_id: elementId,
+        answer: Array.isArray(answer) ? answer.join(', ') : String(answer),
+    }));
 
     // 3. Insert all answers into the 'response_answers' table
     if (answersToInsert.length > 0) {
@@ -345,18 +255,6 @@ export async function saveResponse(formId: string, responses: Record<string, any
     }
 
     return { id: responseId };
-}
-
-/**
- * Toggle archiving status of a form
- */
-export async function toggleArchiveForm(id: string, isArchived: boolean) {
-    const { error } = await supabase
-        .from('forms')
-        .update({ is_archived: isArchived })
-        .eq('id', id);
-
-    if (error) throw error;
 }
 
 export async function getAllFormsWithStats() {
@@ -418,9 +316,6 @@ export async function getResponseDetails(formId: string) {
 
     if (responsesError) throw responsesError;
 
-    // 4.5 Update last_accessed_at
-    await supabase.from('forms').update({ last_accessed_at: new Date().toISOString() }).eq('id', formId);
-
     if (responses.length === 0) return { form, responsesWithAnswers: [] };
 
     // 5. Fetch all answers for these responses
@@ -435,11 +330,8 @@ export async function getResponseDetails(formId: string) {
     // 6. Map answers to responses
     const responsesWithAnswers = responses.map(r => {
         const responseAnswers = answers.filter(a => a.response_id === r.id);
-        const answersMap = responseAnswers.reduce((acc: Record<string, { answer: string | null, file_url: string | null }>, curr: any) => {
-            acc[curr.element_id] = {
-                answer: curr.answer,
-                file_url: curr.file_url
-            };
+        const answersMap = responseAnswers.reduce((acc: Record<string, string>, curr: any) => {
+            acc[curr.element_id] = curr.answer;
             return acc;
         }, {});
 
@@ -455,41 +347,9 @@ export async function getResponseDetails(formId: string) {
     };
 }
 
-export async function getUserResponse(formId: string, userEmail: string) {
-    // Fetch the most recent response for this form and user
-    const { data: response, error: responseError } = await supabase
-        .from('responses')
-        .select(`
-            *,
-            answers:response_answers(*)
-        `)
-        .eq('form_id', formId)
-        .eq('user_email', userEmail)
-        .order('submitted_at', { ascending: false })
-        .maybeSingle();
-
-    if (responseError) throw responseError;
-    if (!response) return null;
-
-    // Map answers into a Record<string, any> for the builder/view
-    const answersMap: Record<string, any> = {};
-    (response.answers || []).forEach((ans: any) => {
-        // Handle JSON array for multiple choice/checkboxes if stored as string
-        let val = ans.answer;
-        try {
-            if (val && (val.startsWith('[') || val.startsWith('{'))) {
-                val = JSON.parse(val);
-            }
-        } catch (e) {
-            // Not JSON, keep as string
-        }
-        answersMap[ans.element_id] = val;
-    });
-
-    return {
-        ...response,
-        answers: answersMap
-    };
+export async function getUserResponse(formId: string, userId: string) {
+    // Temporarily disabled while submitted_by column is missing
+    return null;
 }
 
 export async function deleteForm(id: string) {
@@ -530,3 +390,14 @@ export async function deleteForm(id: string) {
 
     return { success: true };
 }
+
+export async function toggleArchiveForm(id: string, isArchived: boolean) {
+    const { error } = await supabase
+        .from('forms')
+        .update({ is_archived: isArchived })
+        .eq('id', id);
+
+    if (error) throw error;
+    return { success: true };
+}
+

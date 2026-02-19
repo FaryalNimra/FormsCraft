@@ -61,11 +61,13 @@ export default function FormBuilderPage() {
 }
 
 function FormBuilder() {
+    const logoFileRef = useRef<HTMLInputElement>(null);
     const [formId, setFormId] = useState<string | null>(null);
     const [title, setTitle] = useState('Untitled Form');
     const [description, setDescription] = useState('Collect valuable feedback with ease.');
     const [status, setStatus] = useState<'draft' | 'published' | 'in_progress'>('draft');
     const [themeColor, setThemeColor] = useState('#2563eb');
+    const [logoUrl, setLogoUrl] = useState<string | null>(null);
     const [collectEmail, setCollectEmail] = useState(false);
     const [limitToOneResponse, setLimitToOneResponse] = useState(false);
     const [allowResponseEditing, setAllowResponseEditing] = useState(false);
@@ -112,7 +114,7 @@ function FormBuilder() {
         // Only load draft if we are NOT in edit mode (no editId) and no formId is set yet
         if (savedProgress && !formId && !editId) {
             try {
-                const { title: st, description: sd, elements: se, themeColor: stc, collectEmail: ce, limitToOneResponse: ltr, allowResponseEditing: are } = JSON.parse(savedProgress);
+                const { title: st, description: sd, elements: se, themeColor: stc, collectEmail: ce, limitToOneResponse: ltr, allowResponseEditing: are, logoUrl: sl } = JSON.parse(savedProgress);
                 setTitle(st);
                 setDescription(sd);
                 setFormElements(se);
@@ -120,6 +122,7 @@ function FormBuilder() {
                 if (ce !== undefined) setCollectEmail(ce);
                 if (ltr !== undefined) setLimitToOneResponse(ltr);
                 if (are !== undefined) setAllowResponseEditing(are);
+                if (sl) setLogoUrl(sl);
                 if (se.length > 0) setActiveElementId(se[0].id);
             } catch (e) {
                 console.error('Failed to load local progress:', e);
@@ -181,7 +184,7 @@ function FormBuilder() {
         } finally {
             setIsSaving(false);
         }
-    }, [themeColor, expiresAt]);
+    }, [themeColor, expiresAt, collectEmail, limitToOneResponse, allowResponseEditing]);
 
     useEffect(() => {
         if (!isMounted) return;
@@ -203,7 +206,7 @@ function FormBuilder() {
             }
 
             // Still save to local storage as backup
-            const progress = { title, description, elements: formElements, themeColor, collectEmail, limitToOneResponse, allowResponseEditing };
+            const progress = { title, description, elements: formElements, themeColor, collectEmail, limitToOneResponse, allowResponseEditing, logoUrl };
             localStorage.setItem('formcraft_progress', JSON.stringify(progress));
             setIsLocalSaved(true);
         }, 5000);
@@ -211,12 +214,13 @@ function FormBuilder() {
         return () => {
             if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
         };
-    }, [title, description, formElements, isMounted, formId, themeColor, expiresAt, collectEmail, status, triggerSave]);
+    }, [title, description, formElements, isMounted, formId, themeColor, expiresAt, collectEmail, limitToOneResponse, allowResponseEditing, status, triggerSave]);
 
     const clearDraft = () => {
         localStorage.removeItem('formcraft_progress');
         setTitle('Untitled Form');
         setDescription('Collect valuable feedback with ease.');
+        setLogoUrl(null);
         const initialId = crypto.randomUUID();
         setFormElements([{ id: initialId, type: 'short_answer', label: 'What is your name?', placeholder: 'e.g. John Doe', required: true }]);
         setActiveElementId(initialId);
@@ -243,7 +247,8 @@ function FormBuilder() {
                 expires_at: expiresAt || undefined,
                 collect_email: collectEmail,
                 limit_to_one_response: limitToOneResponse,
-                allow_response_editing: allowResponseEditing
+                allow_response_editing: allowResponseEditing,
+                logo_url: logoUrl || undefined
             });
             if (!formId) setFormId(saved.id ?? null);
             setLastSaved(new Date());
@@ -346,7 +351,7 @@ function FormBuilder() {
 
     const handleDragOver = (e: React.DragEvent, index: number) => {
         e.preventDefault();
-        e.stopPropagation(); // Prevent bubbling to canvas
+        e.stopPropagation();
         // Sidebar drag — always show indicator
         if (draggingType) {
             setDragOverIndex(index);
@@ -380,8 +385,7 @@ function FormBuilder() {
 
     const handleDrop = (e: React.DragEvent, dropIndex: number) => {
         e.preventDefault();
-        e.stopPropagation(); // CRITICAL: Stop propagation to canvas
-
+        e.stopPropagation();
         // Sidebar drop — insert new element
         if (draggingType) {
             addElementAtIndex(draggingType, dropIndex);
@@ -601,7 +605,7 @@ function FormBuilder() {
                         {/* Interactive Form Header */}
                         <div
                             onClick={() => setActiveElementId('header')}
-                            className={`rounded-2xl shadow-lg border-2 relative overflow-hidden group transition-all cursor-pointer ${activeElementId === 'header' ? 'ring-2 ring-blue-500 ring-offset-4 border-blue-500' : 'border-transparent'
+                            className={`rounded-2xl shadow-lg border-2 relative overflow-hidden group transition-all cursor-pointer ${activeElementId === 'header' ? 'border-blue-500' : 'border-transparent'
                                 }`}
                             style={{
                                 backgroundColor: themeColor === '#2563eb' ? 'var(--primary-600)' : themeColor,
@@ -611,24 +615,32 @@ function FormBuilder() {
                             }}
                         >
                             <div className="absolute top-0 left-0 w-full h-1 bg-white/20"></div>
-                            <div className="p-8 pb-10">
-                                <input
-                                    type="text"
-                                    value={title}
-                                    onChange={(e) => setTitle(e.target.value)}
-                                    className="text-3xl font-extrabold text-white bg-transparent border-none outline-none w-full placeholder:text-white/40 block transition-all tracking-tight leading-tight"
-                                    placeholder="Untitled Form"
-                                />
-                                <div className="mt-3 relative group/desc">
-                                    <textarea
-                                        value={description}
-                                        onChange={(e) => setDescription(e.target.value)}
-                                        className="text-white/80 text-sm font-medium bg-transparent border-none outline-none w-full placeholder:text-white/40 block resize-none min-h-[24px] leading-relaxed"
-                                        placeholder="Add a description..."
-                                        rows={1}
+                            <div className="p-8 pb-10 flex items-start gap-4">
+                                <div className="flex-1">
+                                    <input
+                                        type="text"
+                                        value={title}
+                                        onChange={(e) => setTitle(e.target.value)}
+                                        className="text-3xl font-extrabold text-white bg-transparent border-none outline-none w-full placeholder:text-white/40 block transition-all tracking-tight leading-tight"
+                                        placeholder="Untitled Form"
                                     />
-                                    <div className="absolute bottom-0 left-0 w-12 h-0.5 bg-white/10 group-hover/desc:bg-white/30 transition-colors"></div>
+                                    <div className="mt-3 relative group/desc">
+                                        <textarea
+                                            value={description}
+                                            onChange={(e) => setDescription(e.target.value)}
+                                            className="text-white/80 text-sm font-medium bg-transparent border-none outline-none w-full placeholder:text-white/40 block resize-none min-h-[24px] leading-relaxed"
+                                            placeholder="Add a description..."
+                                            rows={1}
+                                        />
+                                        <div className="absolute bottom-0 left-0 w-12 h-0.5 bg-white/10 group-hover/desc:bg-white/30 transition-colors"></div>
+                                    </div>
                                 </div>
+                                {/* Logo display on header */}
+                                {logoUrl && (
+                                    <div className="w-20 h-20 rounded-xl overflow-hidden border-2 border-white/30 flex-shrink-0 bg-white/10 shadow-lg">
+                                        <img src={logoUrl} alt="Form logo" className="w-full h-full object-cover" />
+                                    </div>
+                                )}
                             </div>
                         </div>
 
@@ -1014,6 +1026,104 @@ function FormBuilder() {
                                             />
                                         </div>
 
+                                        {/* Color Palette */}
+                                        <div className="space-y-3">
+                                            <label className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Theme Color</label>
+                                            <div className="flex flex-wrap gap-2">
+                                                {[
+                                                    '#2563eb', '#7c3aed', '#db2777', '#dc2626',
+                                                    '#ea580c', '#ca8a04', '#16a34a', '#0891b2',
+                                                    '#0f172a', '#1e293b'
+                                                ].map((color) => (
+                                                    <button
+                                                        key={color}
+                                                        onClick={() => setThemeColor(color)}
+                                                        title={color}
+                                                        className={`w-7 h-7 rounded-lg transition-all hover:scale-110 ${themeColor === color
+                                                            ? 'ring-2 ring-offset-2 ring-gray-400 scale-110'
+                                                            : 'hover:ring-2 hover:ring-offset-1 hover:ring-gray-300'
+                                                            }`}
+                                                        style={{ backgroundColor: color }}
+                                                    />
+                                                ))}
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                <label className="text-[9px] font-bold text-gray-400 uppercase tracking-widest flex-shrink-0">Custom</label>
+                                                <div className="relative flex items-center gap-2 flex-1">
+                                                    <input
+                                                        type="color"
+                                                        value={themeColor}
+                                                        onChange={(e) => setThemeColor(e.target.value)}
+                                                        className="w-7 h-7 rounded-lg cursor-pointer border border-gray-200 p-0.5 bg-white"
+                                                    />
+                                                    <input
+                                                        type="text"
+                                                        value={themeColor}
+                                                        onChange={(e) => {
+                                                            const val = e.target.value;
+                                                            if (/^#[0-9a-fA-F]{0,6}$/.test(val)) setThemeColor(val);
+                                                        }}
+                                                        className="flex-1 px-2 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-[10px] font-mono text-gray-700 focus:ring-1 focus:ring-blue-600 focus:bg-white outline-none"
+                                                        placeholder="#000000"
+                                                        maxLength={7}
+                                                    />
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Logo Uploader */}
+                                        <div className="space-y-3">
+                                            <label className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Form Logo</label>
+                                            <input
+                                                ref={logoFileRef}
+                                                type="file"
+                                                accept="image/*"
+                                                className="hidden"
+                                                onChange={(e) => {
+                                                    const file = e.target.files?.[0];
+                                                    if (!file) return;
+                                                    const reader = new FileReader();
+                                                    reader.onload = (ev) => {
+                                                        setLogoUrl(ev.target?.result as string);
+                                                    };
+                                                    reader.readAsDataURL(file);
+                                                    e.target.value = '';
+                                                }}
+                                            />
+                                            {logoUrl ? (
+                                                <div className="relative group/logo">
+                                                    <div className="w-full h-28 rounded-xl overflow-hidden border-2 border-gray-100 bg-gray-50">
+                                                        <img src={logoUrl} alt="Logo preview" className="w-full h-full object-cover" />
+                                                    </div>
+                                                    <div className="absolute inset-0 rounded-xl bg-black/40 opacity-0 group-hover/logo:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                                                        <button
+                                                            onClick={() => logoFileRef.current?.click()}
+                                                            className="px-3 py-1.5 bg-white text-gray-900 rounded-lg text-[9px] font-bold uppercase tracking-widest hover:bg-gray-100 transition-all"
+                                                        >
+                                                            Change
+                                                        </button>
+                                                        <button
+                                                            onClick={() => setLogoUrl(null)}
+                                                            className="px-3 py-1.5 bg-red-500 text-white rounded-lg text-[9px] font-bold uppercase tracking-widest hover:bg-red-600 transition-all"
+                                                        >
+                                                            Remove
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            ) : (
+                                                <button
+                                                    onClick={() => logoFileRef.current?.click()}
+                                                    className="w-full h-24 border-2 border-dashed border-gray-200 rounded-xl flex flex-col items-center justify-center gap-2 hover:border-blue-300 hover:bg-blue-50/30 transition-all group/upload"
+                                                >
+                                                    <div className="w-8 h-8 rounded-lg bg-gray-100 group-hover/upload:bg-blue-100 transition-colors flex items-center justify-center">
+                                                        <Upload size={14} className="text-gray-400 group-hover/upload:text-blue-500 transition-colors" />
+                                                    </div>
+                                                    <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest group-hover/upload:text-blue-500 transition-colors">Upload Logo</span>
+                                                    <span className="text-[8px] text-gray-300">PNG, JPG, SVG supported</span>
+                                                </button>
+                                            )}
+                                        </div>
+
                                         <div className="pt-4 border-t border-gray-50 space-y-4">
                                             <div>
                                                 <button
@@ -1033,7 +1143,8 @@ function FormBuilder() {
                                                             </div>
                                                             <button
                                                                 onClick={() => setCollectEmail(!collectEmail)}
-                                                                className={`w-8 h-4 rounded-full relative transition-all ${collectEmail ? 'bg-blue-600' : 'bg-gray-200'}`}
+                                                                className={`w-8 h-4 rounded-full relative transition-all ${collectEmail ? '' : 'bg-gray-200'}`}
+                                                                style={collectEmail ? { backgroundColor: themeColor } : {}}
                                                             >
                                                                 <div className={`absolute top-0.5 w-3 h-3 bg-white rounded-full transition-all ${collectEmail ? 'left-[18px]' : 'left-0.5'}`}></div>
                                                             </button>
@@ -1046,7 +1157,8 @@ function FormBuilder() {
                                                             </div>
                                                             <button
                                                                 onClick={() => setLimitToOneResponse(!limitToOneResponse)}
-                                                                className={`w-8 h-4 rounded-full relative transition-all ${limitToOneResponse ? 'bg-blue-600' : 'bg-gray-200'}`}
+                                                                className={`w-8 h-4 rounded-full relative transition-all ${limitToOneResponse ? '' : 'bg-gray-200'}`}
+                                                                style={limitToOneResponse ? { backgroundColor: themeColor } : {}}
                                                             >
                                                                 <div className={`absolute top-0.5 w-3 h-3 bg-white rounded-full transition-all ${limitToOneResponse ? 'left-[18px]' : 'left-0.5'}`}></div>
                                                             </button>
@@ -1059,7 +1171,8 @@ function FormBuilder() {
                                                             </div>
                                                             <button
                                                                 onClick={() => setAllowResponseEditing(!allowResponseEditing)}
-                                                                className={`w-8 h-4 rounded-full relative transition-all ${allowResponseEditing ? 'bg-blue-600' : 'bg-gray-200'}`}
+                                                                className={`w-8 h-4 rounded-full relative transition-all ${allowResponseEditing ? '' : 'bg-gray-200'}`}
+                                                                style={allowResponseEditing ? { backgroundColor: themeColor } : {}}
                                                             >
                                                                 <div className={`absolute top-0.5 w-3 h-3 bg-white rounded-full transition-all ${allowResponseEditing ? 'left-[18px]' : 'left-0.5'}`}></div>
                                                             </button>
@@ -1197,9 +1310,10 @@ function FormBuilder() {
                                                 <span className="text-[10px] font-bold text-gray-900 uppercase tracking-widest">Required</span>
                                                 <button
                                                     onClick={() => updateElement(activeElement.id, { required: !activeElement.required })}
-                                                    className={`w-8 h-4 rounded-full relative transition-all ${activeElement.required ? 'bg-blue-600' : 'bg-gray-400'}`}
+                                                    className={`w-8 h-4 rounded-full relative transition-all ${activeElement.required ? '' : 'bg-gray-200'}`}
+                                                    style={activeElement.required ? { backgroundColor: themeColor } : {}}
                                                 >
-                                                    <div className={`absolute top-0.5 w-3 h-3 bg-white rounded-full transition-all ${activeElement.required ? 'left-4.5' : 'left-0.5'}`}></div>
+                                                    <div className={`absolute top-0.5 w-3 h-3 bg-white rounded-full transition-all ${activeElement.required ? 'left-[18px]' : 'left-0.5'}`}></div>
                                                 </button>
                                             </div>
                                         </div>
