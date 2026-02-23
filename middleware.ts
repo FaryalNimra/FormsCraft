@@ -7,7 +7,7 @@ import { NextResponse, type NextRequest } from 'next/server';
 export async function middleware(request: NextRequest) {
   // Check for Supabase auth token in cookies
   // Supabase stores session in cookies with names like 'sb-<project-ref>-auth-token'
-  const hasAuthCookie = request.cookies.getAll().some(cookie => 
+  const hasAuthCookie = request.cookies.getAll().some(cookie =>
     cookie.name.includes('auth-token') || cookie.name.includes('sb-')
   );
 
@@ -19,7 +19,7 @@ export async function middleware(request: NextRequest) {
 
   if (isProtectedRoute && !hasAuthCookie) {
     const redirectUrl = new URL('/login', request.url);
-    redirectUrl.searchParams.set('redirect', request.nextUrl.pathname);
+    redirectUrl.searchParams.set('next', request.nextUrl.pathname);
     return NextResponse.redirect(redirectUrl);
   }
 
