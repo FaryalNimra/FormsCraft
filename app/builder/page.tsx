@@ -116,7 +116,7 @@ function FormBuilder() {
     const [collaborators, setCollaborators] = useState<any[]>([]);
     const [newCollaboratorEmail, setNewCollaboratorEmail] = useState('');
     const [isAddingCollaborator, setIsAddingCollaborator] = useState(false);
-    const [collabMessage, setCollabMessage] = useState<{ text: string, type: 'success' | 'error' | 'info' } | null>(null);
+    const [collabMessage, setCollabMessage] = useState<{ text: string, type: 'success' | 'error' | 'info' | 'warning' } | null>(null);
     const [isOwner, setIsOwner] = useState(true);
     const [userRole, setUserRole] = useState<'viewer' | 'editor'>('editor');
     const [newCollaboratorRole, setNewCollaboratorRole] = useState<'viewer' | 'editor'>('editor');
@@ -1491,7 +1491,8 @@ function FormBuilder() {
                                                             {collabMessage && (
                                                                 <div className={`p-2 rounded-lg text-[10px] font-bold uppercase tracking-wider animate-in fade-in slide-in-from-top-1 duration-200 ${collabMessage.type === 'success' ? 'bg-green-50 text-green-600 border border-green-100' :
                                                                     collabMessage.type === 'error' ? 'bg-red-50 text-red-600 border border-red-100' :
-                                                                        'bg-blue-50 text-blue-600 border border-blue-100'
+                                                                        collabMessage.type === 'warning' ? 'bg-amber-50 text-amber-600 border-amber-100' :
+                                                                            'bg-blue-50 text-blue-600 border border-blue-100'
                                                                     }`}>
                                                                     {collabMessage.text}
                                                                 </div>
