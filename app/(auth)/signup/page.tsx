@@ -4,12 +4,14 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation'; // Redirect immediately after signup
+import { useRouter, useSearchParams } from 'next/navigation'; // Redirect immediately after signup
 import { signUp, signInWithGoogle } from '@/lib/auth';
 import { Loader2, Eye, EyeOff, Mail, Lock, User } from 'lucide-react';
 
 export default function SignupPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const next = searchParams.get('next');
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -52,7 +54,7 @@ export default function SignupPage() {
     try {
       await signUp(email, password, fullName);
       // Redirect to home immediately instead of showing success message
-      router.push('/');
+      router.push(next || '/');
       router.refresh();
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Something went wrong';
@@ -280,7 +282,7 @@ export default function SignupPage() {
         <p className="text-center text-gray-600">
           Already have an account?{' '}
           <Link
-            href="/login"
+            href={`/login${next ? `?next=${encodeURIComponent(next)}` : ''}`}
             className="text-purple-600 hover:text-purple-700 font-medium hover:underline"
           >
             Sign in

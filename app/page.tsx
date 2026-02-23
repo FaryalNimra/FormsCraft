@@ -17,6 +17,7 @@ export default function Home() {
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [projectSource, setProjectSource] = useState<'owned' | 'collaborated'>('owned');
 
   useEffect(() => {
     fetchForms();
@@ -26,8 +27,8 @@ export default function Home() {
     try {
       const data = await getAllFormsWithStats();
       setForms(data);
-    } catch (error) {
-      console.error('Failed to fetch forms:', error);
+    } catch (error: any) {
+      console.error('Failed to fetch forms:', error.message || error);
     } finally {
       setIsLoading(false);
     }
@@ -67,7 +68,8 @@ export default function Home() {
     .filter(f => {
       const matchesFilter = viewFilter === 'active' ? !f.is_archived : f.is_archived;
       const matchesSearch = f.title.toLowerCase().includes(searchTerm.toLowerCase());
-      return matchesFilter && matchesSearch;
+      const matchesSource = projectSource === 'owned' ? f.is_owner : !f.is_owner;
+      return matchesFilter && matchesSearch && matchesSource;
     })
     .sort((a, b) => {
       let dateA, dateB;
@@ -126,6 +128,23 @@ export default function Home() {
             iconBgColor="bg-blue-50"
             iconColor="text-blue-600"
           />
+        </div>
+
+        <div className="flex items-center gap-1 mb-6 p-1 bg-gray-50/50 w-fit rounded-xl border border-gray-100">
+          <button
+            onClick={() => setProjectSource('owned')}
+            className={`px-6 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-all ${projectSource === 'owned' ? 'bg-white text-blue-600 shadow-sm border border-gray-100' : 'text-gray-400 hover:text-gray-600'
+              }`}
+          >
+            My Projects
+          </button>
+          <button
+            onClick={() => setProjectSource('collaborated')}
+            className={`px-6 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-all ${projectSource === 'collaborated' ? 'bg-white text-blue-600 shadow-sm border border-gray-100' : 'text-gray-400 hover:text-gray-600'
+              }`}
+          >
+            Collaborated
+          </button>
         </div>
 
         <section>

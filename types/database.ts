@@ -34,6 +34,10 @@ export interface Form {
   created_at: string;
   updated_at: string;
   expires_at: string | null;
+  limit_to_one_response: boolean;
+  allow_response_editing: boolean;
+  is_archived: boolean;
+  logo_url: string | null;
 }
 
 /**
@@ -75,6 +79,30 @@ export interface ResponseAnswer {
   element_id: string;
   answer: string | null;
   file_url: string | null;
+  created_at: string;
+}
+
+/**
+ * Form collaborator table structure
+ */
+export interface FormCollaborator {
+  id: string;
+  form_id: string;
+  email: string;
+  role: 'viewer' | 'editor';
+  created_at: string;
+}
+
+/**
+ * Form comment table structure
+ */
+export interface FormComment {
+  id: string;
+  form_id: string;
+  element_id: string | null;
+  user_email: string;
+  user_name: string | null;
+  content: string;
   created_at: string;
 }
 
@@ -168,6 +196,8 @@ export const TABLES = {
   FORM_ELEMENTS: 'form_elements',
   RESPONSES: 'responses',
   RESPONSE_ANSWERS: 'response_answers',
+  FORM_COLLABORATORS: 'form_collaborators',
+  FORM_COMMENTS: 'form_comments',
 } as const;
 
 export const STORAGE_BUCKETS = {
