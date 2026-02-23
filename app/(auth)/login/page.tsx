@@ -3,13 +3,15 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { signIn, signInWithGoogle } from '@/lib/auth';
 import { Loader2, Eye, EyeOff, Mail, Lock } from 'lucide-react';
 
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const next = searchParams.get('next');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -24,7 +26,7 @@ export default function LoginPage() {
 
     try {
       await signIn(email, password);
-      router.push('/');
+      router.push(next || '/');
       router.refresh();
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Invalid email or password';
@@ -186,7 +188,7 @@ export default function LoginPage() {
         <p className="text-center text-gray-600">
           Don&apos;t have an account?{' '}
           <Link
-            href="/signup"
+            href={`/signup${next ? `?next=${encodeURIComponent(next)}` : ''}`}
             className="text-purple-600 hover:text-purple-700 font-medium hover:underline"
           >
             Sign up

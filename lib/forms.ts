@@ -29,6 +29,7 @@ export interface Form {
     updated_at?: string;
     is_archived?: boolean;
     logo_url?: string;
+    created_by_email?: string;
 }
 
 export async function saveForm(form: Form) {
@@ -36,20 +37,26 @@ export async function saveForm(form: Form) {
 
     // 1. Save Form Metadata
     if (formId) {
+        const updatePayload: any = {
+            title: form.title,
+            description: form.description,
+            status: form.status,
+            theme_color: form.theme_color || '#2563eb',
+            expires_at: form.expires_at || null,
+            collect_email: form.collect_email || false,
+            limit_to_one_response: form.limit_to_one_response || false,
+            allow_response_editing: form.allow_response_editing || false,
+            logo_url: form.logo_url || null,
+            updated_at: new Date().toISOString()
+        };
+
+        if (form.created_by_email) {
+            updatePayload.created_by_email = form.created_by_email;
+        }
+
         const { error } = await supabase
             .from('forms')
-            .update({
-                title: form.title,
-                description: form.description,
-                status: form.status,
-                theme_color: form.theme_color || '#2563eb',
-                expires_at: form.expires_at || null,
-                collect_email: form.collect_email || false,
-                limit_to_one_response: form.limit_to_one_response || false,
-                allow_response_editing: form.allow_response_editing || false,
-                logo_url: form.logo_url || null,
-                updated_at: new Date().toISOString()
-            })
+            .update(updatePayload)
             .eq('id', formId);
 
         if (error) throw error;
@@ -57,25 +64,26 @@ export async function saveForm(form: Form) {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) throw new Error('User not authenticated');
 
+        const insertPayload: any = {
+            title: form.title,
+            description: form.description,
+            status: form.status,
+            theme_color: form.theme_color || '#2563eb',
+            expires_at: form.expires_at || null,
+            collect_email: form.collect_email || false,
+            limit_to_one_response: form.limit_to_one_response || false,
+            allow_response_editing: form.allow_response_editing || false,
+            logo_url: form.logo_url || null,
+            created_by: user.id
+        };
+
+        if (user.email) {
+            insertPayload.created_by_email = user.email;
+        }
+
         const { data, error } = await supabase
             .from('forms')
-            .insert({
-                title: form.title,
-                description: form.description,
-                status: form.status,
-                theme_color: form.theme_color || '#2563eb',
-                expires_at: form.expires_at || null,
-                collect_email: form.collect_email || false,
-                limit_to_one_response: form.limit_to_one_response || false,
-                allow_response_editing: form.allow_response_editing || false,
-                logo_url: form.logo_url || null,
-                // IMPORTANT: Ensure you have run: 
-                // ALTER TABLE forms ADD COLUMN IF NOT EXISTS limit_to_one_response BOOLEAN DEFAULT FALSE;
-                // ALTER TABLE forms ADD COLUMN IF NOT EXISTS allow_response_editing BOOLEAN DEFAULT FALSE;
-                // ALTER TABLE forms ADD COLUMN IF NOT EXISTS created_by UUID REFERENCES auth.users(id);
-                // ALTER TABLE forms ADD COLUMN IF NOT EXISTS logo_url TEXT;
-                created_by: user.id
-            })
+            .insert(insertPayload)
             .select()
             .single();
 
@@ -168,8 +176,65 @@ export async function getForm(id: string) {
 
     return {
         ...formData,
-        elements: mappedElements
+        elements: mappedElements,
+        created_by_email: formData.created_by_email
     } as Form;
+}
+
+export async function getCollaborators(formId: string) {
+    const { data, error } = await supabase
+        .from('form_collaborators')
+        .select('*')
+        .eq('form_id', formId)
+        .order('created_at', { ascending: true });
+
+    if (error) {
+        if (error.code === '42P01') return [];
+        throw error;
+    }
+    return data;
+}
+
+export async function addCollaborator(formId: string, email: string, role: 'viewer' | 'editor' = 'editor') {
+    // Check if already a collaborator
+    const { data: existing, error: checkError } = await supabase
+        .from('form_collaborators')
+        .select('id')
+        .eq('form_id', formId)
+        .eq('email', email.toLowerCase())
+        .maybeSingle();
+
+    if (checkError && checkError.code !== '42P01') throw checkError;
+    if (existing) throw new Error('ALREADY_COLLABORATOR');
+
+    const { data, error } = await supabase
+        .from('form_collaborators')
+        .insert({ form_id: formId, email: email.toLowerCase(), role })
+        .select()
+        .single();
+
+    if (error) throw error;
+    return data;
+}
+
+export async function updateCollaboratorRole(id: string, role: 'viewer' | 'editor') {
+    const { error } = await supabase
+        .from('form_collaborators')
+        .update({ role })
+        .eq('id', id);
+
+    if (error) throw error;
+    return { success: true };
+}
+
+export async function removeCollaborator(id: string) {
+    const { error } = await supabase
+        .from('form_collaborators')
+        .delete()
+        .eq('id', id);
+
+    if (error) throw error;
+    return { success: true };
 }
 export async function saveResponse(formId: string, responses: Record<string, any>, userEmail?: string, userId?: string) {
     // 1. Check for duplicate submission or update
@@ -263,7 +328,7 @@ export async function getAllFormsWithStats() {
     if (!user) return [];
 
     // 2. Fetch forms created by this user
-    const { data: forms, error: formsError } = await supabase
+    const { data: ownedForms, error: formsError } = await supabase
         .from('forms')
         .select('*')
         .eq('created_by', user.id)
@@ -271,8 +336,47 @@ export async function getAllFormsWithStats() {
 
     if (formsError) throw formsError;
 
-    // 3. Fetch response counts for these forms
-    const formIds = forms.map(f => f.id);
+    // 3. Fetch forms shared with this user
+    const { data: collaborationData, error: collabError } = await supabase
+        .from('form_collaborators')
+        .select('form_id, role')
+        .eq('email', user.email?.toLowerCase());
+
+    // If table doesn't exist yet (42P01) or column 'role' is missing (42703), just skip collaboration part instead of crashing
+    if (collabError && collabError.code !== '42P01' && collabError.code !== '42703') throw collabError;
+
+    let sharedForms: any[] = [];
+    if (collaborationData && collaborationData.length > 0) {
+        const sharedIds = collaborationData.map(c => c.form_id);
+        const { data: forms, error: sharedError } = await supabase
+            .from('forms')
+            .select('*')
+            .in('id', sharedIds)
+            .order('created_at', { ascending: false });
+
+        if (sharedError) throw sharedError;
+        sharedForms = forms || [];
+    }
+
+    // Combine and remove duplicates and attach roles
+    const allFormsMap = new Map();
+    ownedForms.forEach(f => allFormsMap.set(f.id, { ...f, role: 'editor', is_owner: true }));
+
+    sharedForms.forEach(f => {
+        const collabInfo = collaborationData?.find(c => c.form_id === f.id);
+        allFormsMap.set(f.id, {
+            ...f,
+            role: (collabInfo as any)?.role || 'editor',
+            is_owner: false
+        });
+    });
+
+    const allForms = Array.from(allFormsMap.values());
+
+    if (allForms.length === 0) return [];
+
+    // 4. Fetch response counts for these forms
+    const formIds = allForms.map(f => f.id);
     if (formIds.length === 0) return [];
 
     const { data: counts, error: countsError } = await supabase
@@ -282,13 +386,13 @@ export async function getAllFormsWithStats() {
 
     if (countsError) throw countsError;
 
-    // 4. Map counts to forms
+    // 5. Map counts to forms
     const statsMap = counts.reduce((acc: Record<string, number>, curr: any) => {
         acc[curr.form_id] = (acc[curr.form_id] || 0) + 1;
         return acc;
     }, {});
 
-    return forms.map(form => ({
+    return allForms.map(form => ({
         ...form,
         response_count: statsMap[form.id] || 0
     }));
@@ -302,8 +406,17 @@ export async function getResponseDetails(formId: string) {
     // 2. Fetch form metadata and elements
     const form = await getForm(formId);
 
-    // 3. SECURE: Check if current user is the creator
-    if (form.created_by !== user.id) {
+    // 3. SECURE: Check if current user is the creator OR a collaborator
+    const { data: isCollaborator, error: isCollabError } = await supabase
+        .from('form_collaborators')
+        .select('id')
+        .eq('form_id', formId)
+        .eq('email', user.email?.toLowerCase())
+        .maybeSingle();
+
+    if (isCollabError && isCollabError.code !== '42P01') throw isCollabError;
+
+    if (form.created_by !== user.id && !isCollaborator) {
         throw new Error('UNAUTHORIZED');
     }
 
@@ -395,6 +508,47 @@ export async function toggleArchiveForm(id: string, isArchived: boolean) {
     const { error } = await supabase
         .from('forms')
         .update({ is_archived: isArchived })
+        .eq('id', id);
+
+    if (error) throw error;
+    return { success: true };
+}
+
+export async function getComments(formId: string) {
+    const { data, error } = await supabase
+        .from('form_comments')
+        .select('*')
+        .eq('form_id', formId)
+        .order('created_at', { ascending: true });
+
+    if (error) {
+        if (error.code === '42P01') return [];
+        throw error;
+    }
+    return data;
+}
+
+export async function addComment(formId: string, elementId: string | null, content: string, userEmail: string, userName?: string) {
+    const { data, error } = await supabase
+        .from('form_comments')
+        .insert({
+            form_id: formId,
+            element_id: elementId,
+            content,
+            user_email: userEmail,
+            user_name: userName || null
+        })
+        .select()
+        .single();
+
+    if (error) throw error;
+    return data;
+}
+
+export async function deleteComment(id: string) {
+    const { error } = await supabase
+        .from('form_comments')
+        .delete()
         .eq('id', id);
 
     if (error) throw error;

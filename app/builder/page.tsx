@@ -21,12 +21,17 @@ import {
     Copy,
     Check,
     ChevronRight,
-    Clock
+    Clock,
+    Loader2,
+    MessageSquare,
+    AtSign
 } from 'lucide-react';
 import Link from 'next/link';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useState, useEffect, useCallback, useRef, Suspense } from 'react';
-import { saveForm, getForm, FormElement, ElementType } from '@/lib/forms';
+import { saveForm, getForm, FormElement, ElementType, getComments, addComment, deleteComment } from '@/lib/forms';
+import { FormComment } from '@/types/database';
+import { supabase } from '@/lib/supabase';
 
 const ELEMENT_ICONS: Record<ElementType, any> = {
     short_answer: Type,
@@ -103,10 +108,26 @@ function FormBuilder() {
             setActiveElementId(initialId);
         }
     }, [isMounted, formElements.length, editId]);
-    const [advancedOpen, setAdvancedOpen] = useState(false);
-    const [headerAdvancedOpen, setHeaderAdvancedOpen] = useState(false);
-    const [optionDragIndex, setOptionDragIndex] = useState<number | null>(null);
     const [optionDragOverIndex, setOptionDragOverIndex] = useState<number | null>(null);
+    const [optionDragIndex, setOptionDragIndex] = useState<number | null>(null);
+    const [headerCollabOpen, setHeaderCollabOpen] = useState(false);
+    const [headerAdvancedOpen, setHeaderAdvancedOpen] = useState(false);
+    const [advancedOpen, setAdvancedOpen] = useState(false);
+    const [collaborators, setCollaborators] = useState<any[]>([]);
+    const [newCollaboratorEmail, setNewCollaboratorEmail] = useState('');
+    const [isAddingCollaborator, setIsAddingCollaborator] = useState(false);
+    const [collabMessage, setCollabMessage] = useState<{ text: string, type: 'success' | 'error' | 'info' } | null>(null);
+    const [isOwner, setIsOwner] = useState(true);
+    const [userRole, setUserRole] = useState<'viewer' | 'editor'>('editor');
+    const [newCollaboratorRole, setNewCollaboratorRole] = useState<'viewer' | 'editor'>('editor');
+    const [comments, setComments] = useState<FormComment[]>([]);
+    const [isCommentPanelOpen, setIsCommentPanelOpen] = useState(false);
+    const [activeCommentElementId, setActiveCommentElementId] = useState<string | null>(null);
+    const [user, setUser] = useState<any>(null);
+    const [ownerEmail, setOwnerEmail] = useState<string | null>(null);
+
+    const canEdit = isOwner || userRole === 'editor';
+    const canPublish = isOwner;
 
     useEffect(() => {
         setIsMounted(true);
@@ -128,6 +149,16 @@ function FormBuilder() {
                 console.error('Failed to load local progress:', e);
             }
         }
+
+        const fetchUser = async () => {
+            try {
+                const { data: { user: u } } = await supabase.auth.getUser();
+                setUser(u);
+            } catch (err) {
+                console.error('Error fetching user:', err);
+            }
+        };
+        fetchUser();
     }, [formId, editId]);
 
     useEffect(() => {
@@ -147,9 +178,46 @@ function FormBuilder() {
                     if (form.allow_response_editing !== undefined) setAllowResponseEditing(form.allow_response_editing);
                     if (form.created_at) setCreatedAt(form.created_at);
                     if (form.updated_at) setUpdatedAt(form.updated_at);
+                    if (form.created_by_email) {
+                        setOwnerEmail(form.created_by_email);
+                        console.log("Setting owner email from form data:", form.created_by_email);
+                    } else {
+                        console.warn("No created_by_email found in form data for form:", editId);
+                    }
                     if (form.elements.length > 0) setActiveElementId(form.elements[0].id);
+
+                    // Fetch comments
+                    getComments(editId).then(setComments).catch(console.error);
+
+                    // 2. Fetch current user to determine ownership
+                    const { data: { user } } = await (await import('@/lib/supabase')).supabase.auth.getUser();
+                    if (user) {
+                        const owner = form.created_by === user.id;
+                        setIsOwner(owner);
+
+                        if (!owner) {
+                            // Fetch role for this collaborator
+                            const { getCollaborators } = await import('@/lib/forms');
+                            const collabs = await getCollaborators(editId);
+                            setCollaborators(collabs);
+                            const myCollab = collabs.find(c => c.email.toLowerCase() === user.email?.toLowerCase());
+                            if (myCollab) setUserRole(myCollab.role);
+
+                            // If ownerEmail is still not set (legacy data), we might not be able to tag, 
+                            // but form.created_by_email should ideally be there now.
+                        } else {
+                            // Owner is always editor
+                            setUserRole('editor');
+                            if (user.email) {
+                                setOwnerEmail(user.email); // Ensure ownerEmail is set if we are the owner
+                                console.log("Setting owner email from current user session:", user.email);
+                            }
+                            const { getCollaborators } = await import('@/lib/forms');
+                            getCollaborators(editId).then(setCollaborators);
+                        }
+                    }
                 } catch (error) {
-                    console.error("Failed to load form", error);
+                    console.error("Failed to load form:", error);
                 }
             };
             fetchForm();
@@ -169,7 +237,8 @@ function FormBuilder() {
                 expires_at: expiresAt || undefined,
                 collect_email: collectEmail,
                 limit_to_one_response: limitToOneResponse,
-                allow_response_editing: allowResponseEditing
+                allow_response_editing: allowResponseEditing,
+                created_by_email: ownerEmail || undefined
             });
             if (!currentData.id && saved.id) {
                 setFormId(saved.id);
@@ -181,6 +250,7 @@ function FormBuilder() {
             localStorage.removeItem('formcraft_progress');
         } catch (error: any) {
             console.error('Save failed:', error);
+            alert(`Save failed: ${error?.message || JSON.stringify(error) || 'Unknown error'}`);
         } finally {
             setIsSaving(false);
         }
@@ -264,7 +334,7 @@ function FormBuilder() {
     };
 
     const copyLink = () => {
-        const shareLink = `${window.location.origin}/view/${formId}`;
+        const shareLink = `${isMounted ? window.location.origin : ''}/view/${formId}`;
         navigator.clipboard.writeText(shareLink);
         setCopySuccess(true);
         setTimeout(() => setCopySuccess(false), 2000);
@@ -457,6 +527,127 @@ function FormBuilder() {
         setOptionDragOverIndex(null);
     };
 
+    const handleAddCollaborator = async () => {
+        if (!newCollaboratorEmail) return;
+        setIsAddingCollaborator(true);
+        setCollabMessage(null);
+        try {
+            let currentFormId = formId;
+
+            // 1. If no formId, trigger a save first
+            if (!currentFormId) {
+                setCollabMessage({ text: 'Saving form first...', type: 'info' });
+                const saved = await saveForm({
+                    title,
+                    description,
+                    elements: formElements,
+                    status,
+                    theme_color: themeColor,
+                    expires_at: expiresAt || undefined,
+                    collect_email: collectEmail,
+                    limit_to_one_response: limitToOneResponse,
+                    allow_response_editing: allowResponseEditing
+                });
+                if (saved.id) {
+                    currentFormId = saved.id;
+                    setFormId(saved.id);
+                    router.push(`/builder?id=${saved.id}`, { scroll: false });
+                } else {
+                    throw new Error('Could not save form to generate ID');
+                }
+            }
+
+            // 2. Add as collaborator
+            const { addCollaborator } = await import('@/lib/forms');
+
+            // 3. Add as collaborator
+            const newCollab = await addCollaborator(currentFormId, newCollaboratorEmail, newCollaboratorRole);
+
+            // 4. Send Invitation Email
+            try {
+                await fetch('/api/invite', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        email: newCollaboratorEmail,
+                        formTitle: title || 'Untitled Form',
+                        formLink: `${isMounted ? window.location.origin : ''}/login?next=${encodeURIComponent(`/builder?id=${currentFormId}`)}`
+                    })
+                });
+            } catch (emailError) {
+                console.error('Failed to send invitation email:', emailError);
+                // We don't throw here because the collaborator was already added to the DB
+            }
+
+            setCollaborators([...collaborators, newCollab]);
+            setNewCollaboratorEmail('');
+            setCollabMessage({
+                text: `Success! Invitation link sent to ${newCollaboratorEmail}.`,
+                type: 'success'
+            });
+
+            // Clear success message after 5s
+            setTimeout(() => setCollabMessage(null), 5000);
+
+        } catch (error: any) {
+            console.error('Full error details:', {
+                message: error?.message,
+                code: error?.code,
+                details: error?.details,
+                hint: error?.hint,
+                error
+            });
+            if (error.message === 'ALREADY_COLLABORATOR') {
+                setCollabMessage({ text: 'This user is already a collaborator.', type: 'error' });
+            } else if (error.code === '42P01') {
+                setCollabMessage({ text: 'Database table missing. Please run migrations.', type: 'error' });
+            } else {
+                setCollabMessage({ text: error.message || 'Failed to add collaborator', type: 'error' });
+            }
+        } finally {
+            setIsAddingCollaborator(false);
+        }
+    };
+
+    const handleUpdateRole = async (collabId: string, role: 'viewer' | 'editor') => {
+        try {
+            const { updateCollaboratorRole } = await import('@/lib/forms');
+            await updateCollaboratorRole(collabId, role);
+            setCollaborators(collaborators.map(c => c.id === collabId ? { ...c, role } : c));
+        } catch (error: any) {
+            alert(error.message || 'Failed to update role');
+        }
+    };
+
+    const handleRemoveCollaborator = async (id: string) => {
+        try {
+            const { removeCollaborator } = await import('@/lib/forms');
+            await removeCollaborator(id);
+            setCollaborators(collaborators.filter(c => c.id !== id));
+        } catch (error: any) {
+            alert(error.message || 'Failed to remove collaborator');
+        }
+    };
+
+    const handleCreateComment = async (elementId: string | null, content: string) => {
+        if (!formId || !user || !content.trim()) return;
+        try {
+            const newComment = await addComment(formId, elementId, content, user.email || '', user.user_metadata?.full_name || user.email?.split('@')[0] || 'User');
+            setComments([...comments, newComment]);
+        } catch (error) {
+            console.error('Failed to add comment:', error);
+        }
+    };
+
+    const handleDeleteComment = async (id: string) => {
+        try {
+            await deleteComment(id);
+            setComments(comments.filter(c => c.id !== id));
+        } catch (error) {
+            console.error('Failed to delete comment:', error);
+        }
+    };
+
     return (
         <div className="h-screen bg-[#FDFDFF] flex flex-col font-sans overflow-hidden text-sm">
             {/* Compact App Header */}
@@ -497,17 +688,19 @@ function FormBuilder() {
                     <div className="flex items-center bg-gray-50 p-0.5 rounded-lg border border-gray-100">
                         <button
                             onClick={handleSaveDraft}
-                            disabled={isSaving}
+                            disabled={isSaving || !canEdit}
                             className="flex items-center gap-1.5 px-3 py-1 text-gray-400 hover:text-blue-600 hover:bg-white rounded-md transition-all disabled:opacity-50 text-[10px] font-bold uppercase"
+                            title={!canEdit ? "You don't have edit access" : ""}
                         >
                             <Save size={14} />
                             Save
                         </button>
                         <div className="relative">
                             <button
-                                onClick={() => setIsExpirationOpen(!isExpirationOpen)}
+                                onClick={() => canEdit && setIsExpirationOpen(!isExpirationOpen)}
+                                disabled={!canEdit}
                                 className={`flex items-center gap-1.5 px-3 py-1 rounded-md transition-all text-[10px] font-bold uppercase ${expiresAt ? 'text-blue-600 bg-blue-50' : 'text-gray-400 hover:text-blue-600 hover:bg-white'
-                                    }`}
+                                    } disabled:opacity-50`}
                             >
                                 <Clock size={14} className="text-black" />
                                 Deadline
@@ -525,7 +718,7 @@ function FormBuilder() {
                                             <div className="space-y-2">
                                                 <input
                                                     type="datetime-local"
-                                                    value={expiresAt ? new Date(new Date(expiresAt).getTime() - (new Date().getTimezoneOffset() * 60000)).toISOString().slice(0, 16) : ''}
+                                                    value={isMounted && expiresAt ? new Date(new Date(expiresAt).getTime() - (new Date().getTimezoneOffset() * 60000)).toISOString().slice(0, 16) : ''}
                                                     onChange={(e) => setExpiresAt(e.target.value ? new Date(e.target.value).toISOString() : null)}
                                                     className="w-full px-3 py-2 bg-gray-50 border border-gray-100 rounded-lg text-xs font-bold text-gray-900 focus:ring-1 focus:ring-blue-600 focus:bg-white outline-none"
                                                 />
@@ -549,23 +742,25 @@ function FormBuilder() {
                         {!formId && (
                             <button
                                 onClick={clearDraft}
+                                disabled={!canEdit}
                                 className="flex items-center gap-1.5 px-3 py-1 text-gray-400 hover:text-red-600 hover:bg-white rounded-md transition-all disabled:opacity-50 text-[10px] font-bold uppercase"
-                                title="Clear Draft / Reset"
+                                title={!canEdit ? "You don't have edit access" : "Clear Draft / Reset"}
                             >
                                 <Trash2 size={14} className="text-black" />
                             </button>
                         )}
                         <button
                             onClick={handleSend}
-                            disabled={isSaving}
+                            disabled={isSaving || !isOwner}
                             className="flex items-center gap-1.5 px-3 py-1 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-all ml-0.5 disabled:opacity-50 text-[10px] font-bold uppercase"
+                            title={!isOwner ? "Only owners can publish" : ""}
                         >
                             <Send size={14} />
                             Publish
                         </button>
                     </div>
                 </div>
-            </header >
+            </header>
 
             <div className="flex flex-1 overflow-hidden relative">
                 {/* Dense Elements Sidebar */}
@@ -578,11 +773,12 @@ function FormBuilder() {
                                 return (
                                     <button
                                         key={type}
-                                        draggable
-                                        onDragStart={(e) => handleSidebarDragStart(e, type)}
+                                        draggable={canEdit}
+                                        onDragStart={(e) => canEdit && handleSidebarDragStart(e, type)}
                                         onDragEnd={handleDragEnd}
-                                        onClick={() => addElement(type)}
-                                        className="w-full flex items-center gap-2.5 px-2.5 py-2 text-gray-600 hover:bg-blue-50 hover:text-blue-600 rounded-lg transition-all group cursor-grab active:cursor-grabbing"
+                                        onClick={() => canEdit && addElement(type)}
+                                        disabled={!canEdit}
+                                        className="w-full flex items-center gap-2.5 px-2.5 py-2 text-gray-600 hover:bg-blue-50 hover:text-blue-600 rounded-lg transition-all group cursor-grab active:cursor-grabbing disabled:opacity-50 disabled:cursor-not-allowed"
                                     >
                                         <div className="w-7 h-7 rounded-md bg-gray-50 flex items-center justify-center text-gray-400 group-hover:bg-white group-hover:text-blue-600 transition-all border border-transparent group-hover:border-blue-100">
                                             <Icon size={14} />
@@ -598,13 +794,13 @@ function FormBuilder() {
                 {/* Compact Canvas Area */}
                 <main
                     className="flex-1 overflow-y-auto p-6 lg:p-10 flex justify-center bg-[#F8FAFC]"
-                    onDragOver={(e) => { if (draggingType) e.preventDefault(); }}
-                    onDrop={handleCanvasDrop}
+                    onDragOver={(e) => { if (draggingType && canEdit) e.preventDefault(); }}
+                    onDrop={(e) => canEdit && handleCanvasDrop(e)}
                 >
                     <div className="w-full max-w-xl space-y-6 pb-64">
                         {/* Interactive Form Header */}
                         <div
-                            onClick={() => setActiveElementId('header')}
+                            onClick={() => { setActiveElementId('header'); setHeaderCollabOpen(false); }}
                             className={`rounded-2xl shadow-lg border-2 relative overflow-hidden group transition-all cursor-pointer ${activeElementId === 'header' ? 'border-blue-500' : 'border-transparent'
                                 }`}
                             style={{
@@ -621,14 +817,16 @@ function FormBuilder() {
                                         type="text"
                                         value={title}
                                         onChange={(e) => setTitle(e.target.value)}
-                                        className="text-3xl font-extrabold text-white bg-transparent border-none outline-none w-full placeholder:text-white/40 block transition-all tracking-tight leading-tight"
+                                        disabled={!canEdit}
+                                        className="text-3xl font-extrabold text-white bg-transparent border-none outline-none w-full placeholder:text-white/40 block transition-all tracking-tight leading-tight disabled:opacity-50"
                                         placeholder="Untitled Form"
                                     />
                                     <div className="mt-3 relative group/desc">
                                         <textarea
                                             value={description}
                                             onChange={(e) => setDescription(e.target.value)}
-                                            className="text-white/80 text-sm font-medium bg-transparent border-none outline-none w-full placeholder:text-white/40 block resize-none min-h-[24px] leading-relaxed"
+                                            disabled={!canEdit}
+                                            className="text-white/80 text-sm font-medium bg-transparent border-none outline-none w-full placeholder:text-white/40 block resize-none min-h-[24px] leading-relaxed disabled:opacity-50"
                                             placeholder="Add a description..."
                                             rows={1}
                                         />
@@ -755,16 +953,16 @@ function FormBuilder() {
                                 return (
                                     <div
                                         key={el.id}
-                                        draggable
-                                        onDragStart={() => handleDragStart(index)}
-                                        onDragOver={(e) => handleDragOver(e, index)}
-                                        onDrop={(e) => handleDrop(e, index)}
+                                        draggable={canEdit}
+                                        onDragStart={() => canEdit && handleDragStart(index)}
+                                        onDragOver={(e) => canEdit && handleDragOver(e, index)}
+                                        onDrop={(e) => canEdit && handleDrop(e, index)}
                                         onDragEnd={handleDragEnd}
                                         onClick={() => setActiveElementId(el.id)}
                                         className={`bg-white rounded-xl p-6 shadow-sm relative group cursor-pointer border transition-all ${isActive
                                             ? 'border-[var(--primary-600)] ring-4 ring-[var(--primary-50)]'
                                             : 'border-transparent hover:border-gray-100'
-                                            } ${dragIndex === index ? 'opacity-40 scale-[0.97]' : ''}`}
+                                            } ${dragIndex === index ? 'opacity-40 scale-[0.97]' : ''} ${!canEdit ? 'cursor-default' : ''}`}
                                     >
                                         {dragOverIndex === index && (draggingType || (dragIndex !== null && dragIndex !== index)) && (
                                             <div className="absolute -top-2.5 left-0 right-0 flex items-center gap-2 z-10 pointer-events-none">
@@ -772,7 +970,7 @@ function FormBuilder() {
                                                 <div className="flex-1 h-0.5 bg-blue-500 rounded-full shadow"></div>
                                             </div>
                                         )}
-                                        <div className="absolute -left-8 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-all cursor-grab hidden md:flex text-gray-300">
+                                        <div className={`absolute -left-8 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-all cursor-grab hidden md:flex text-gray-300 ${!canEdit ? 'pointer-events-none opacity-0' : ''}`}>
                                             <GripVertical size={16} />
                                         </div>
 
@@ -791,22 +989,40 @@ function FormBuilder() {
                                                 </span>
                                             </div>
 
-                                            {isActive && (
-                                                <div className="flex items-center gap-1 animate-in fade-in duration-300">
-                                                    <button
-                                                        onClick={(e) => { e.stopPropagation(); duplicateElement(el.id); }}
-                                                        className="p-1.5 text-black hover:text-blue-600 hover:bg-blue-50 rounded-md transition-all"
-                                                    >
-                                                        <Copy size={14} />
-                                                    </button>
-                                                    <button
-                                                        onClick={(e) => { e.stopPropagation(); removeElement(el.id); }}
-                                                        className="p-1.5 text-black hover:text-red-500 hover:bg-red-50 rounded-md transition-all"
-                                                    >
-                                                        <Trash2 size={14} />
-                                                    </button>
-                                                </div>
-                                            )}
+                                            <div className="flex items-center gap-1 animate-in fade-in duration-300">
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setActiveCommentElementId(el.id);
+                                                        setIsCommentPanelOpen(true);
+                                                    }}
+                                                    className="p-1.5 text-black hover:text-blue-600 hover:bg-blue-50 rounded-md transition-all relative"
+                                                    title="Add or view comments"
+                                                >
+                                                    <MessageSquare size={14} />
+                                                    {comments.filter(c => c.element_id === el.id).length > 0 && (
+                                                        <span className="absolute -top-0.5 -right-0.5 w-3 h-3 bg-blue-600 text-white text-[8px] font-bold rounded-full flex items-center justify-center border border-white">
+                                                            {comments.filter(c => c.element_id === el.id).length}
+                                                        </span>
+                                                    )}
+                                                </button>
+                                                {canEdit && (
+                                                    <>
+                                                        <button
+                                                            onClick={(e) => { e.stopPropagation(); duplicateElement(el.id); }}
+                                                            className="p-1.5 text-black hover:text-blue-600 hover:bg-blue-50 rounded-md transition-all"
+                                                        >
+                                                            <Copy size={14} />
+                                                        </button>
+                                                        <button
+                                                            onClick={(e) => { e.stopPropagation(); removeElement(el.id); }}
+                                                            className="p-1.5 text-black hover:text-red-500 hover:bg-red-50 rounded-md transition-all"
+                                                        >
+                                                            <Trash2 size={14} />
+                                                        </button>
+                                                    </>
+                                                )}
+                                            </div>
                                         </div>
 
                                         <div className="space-y-4">
@@ -816,6 +1032,7 @@ function FormBuilder() {
                                                     value={el.label}
                                                     rows={1}
                                                     onClick={(e) => { e.stopPropagation(); setActiveElementId(el.id); }}
+                                                    disabled={!canEdit}
                                                     onFocus={(e) => {
                                                         const target = e.target as HTMLTextAreaElement;
                                                         target.style.height = 'auto';
@@ -832,7 +1049,7 @@ function FormBuilder() {
                                                         target.style.height = target.scrollHeight + 'px';
                                                     }}
                                                     onKeyDown={(e) => { if (e.key === 'Enter') e.preventDefault(); }}
-                                                    className="w-full text-sm font-bold text-gray-900 tracking-tight leading-snug break-words bg-transparent border-none outline-none resize-none p-0 focus:ring-0 transition-all hover:bg-gray-50/50 rounded-sm"
+                                                    className="w-full text-sm font-bold text-gray-900 tracking-tight leading-snug break-words bg-transparent border-none outline-none resize-none p-0 focus:ring-0 transition-all hover:bg-gray-50/50 rounded-sm disabled:opacity-70 disabled:cursor-not-allowed"
                                                     placeholder="Enter question here..."
                                                 />
                                                 {el.required && <span className="absolute -right-3 top-0 text-red-500">*</span>}
@@ -847,7 +1064,8 @@ function FormBuilder() {
                                                                 value={el.placeholder}
                                                                 onChange={(e) => updateElement(el.id, { placeholder: e.target.value })}
                                                                 onClick={(e) => { e.stopPropagation(); setActiveElementId(el.id); }}
-                                                                className="w-full bg-transparent border-none outline-none resize-none p-0 focus:ring-0 text-gray-500 font-medium"
+                                                                disabled={!canEdit}
+                                                                className="w-full bg-transparent border-none outline-none resize-none p-0 focus:ring-0 text-gray-500 font-medium disabled:opacity-50"
                                                                 placeholder="Write response..."
                                                                 rows={2}
                                                             />
@@ -858,7 +1076,8 @@ function FormBuilder() {
                                                                 value={el.placeholder}
                                                                 onChange={(e) => updateElement(el.id, { placeholder: e.target.value })}
                                                                 onClick={(e) => { e.stopPropagation(); setActiveElementId(el.id); }}
-                                                                className="w-full bg-transparent border-none outline-none p-0 focus:ring-0 text-gray-500 font-medium"
+                                                                disabled={!canEdit}
+                                                                className="w-full bg-transparent border-none outline-none p-0 focus:ring-0 text-gray-500 font-medium disabled:opacity-50"
                                                                 placeholder="Enter answer hint..."
                                                             />
                                                         )}
@@ -885,18 +1104,20 @@ function FormBuilder() {
                                                                 type="text"
                                                                 value={opt}
                                                                 onClick={(e) => { e.stopPropagation(); setActiveElementId(el.id); }}
+                                                                disabled={!canEdit}
                                                                 onChange={(e) => {
                                                                     const words = e.target.value.trim().split(/\s+/).filter(Boolean);
                                                                     if (words.length <= 10 || e.target.value.endsWith(' ')) {
                                                                         updateOption(el.id, i, e.target.value);
                                                                     }
                                                                 }}
-                                                                className="flex-1 bg-transparent border-none outline-none p-0 text-xs text-gray-700 font-bold placeholder:text-gray-300 focus:ring-0"
+                                                                className="flex-1 bg-transparent border-none outline-none p-0 text-xs text-gray-700 font-bold placeholder:text-gray-300 focus:ring-0 disabled:opacity-50"
                                                                 placeholder={`Option ${i + 1}`}
                                                             />
                                                             <button
                                                                 onClick={(e) => { e.stopPropagation(); removeOption(el.id, i); }}
-                                                                className={`p-1 text-gray-300 hover:text-red-500 rounded-md transition-all ${el.options && el.options.length > 2 ? 'opacity-0 group-hover/opt:opacity-100' : 'hidden'}`}
+                                                                disabled={!canEdit}
+                                                                className={`p-1 text-gray-300 hover:text-red-500 rounded-md transition-all ${el.options && el.options.length > 2 && canEdit ? 'opacity-0 group-hover/opt:opacity-100' : 'hidden'}`}
                                                             >
                                                                 <X size={12} />
                                                             </button>
@@ -904,7 +1125,8 @@ function FormBuilder() {
                                                     ))}
                                                     <button
                                                         onClick={(e) => { e.stopPropagation(); addOption(el.id); }}
-                                                        className="flex items-center gap-2 px-3 py-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-all w-fit group"
+                                                        disabled={!canEdit}
+                                                        className="flex items-center gap-2 px-3 py-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-all w-fit group disabled:opacity-50 disabled:cursor-not-allowed"
                                                     >
                                                         <div className="p-0.5 rounded-full bg-blue-100 group-hover:bg-blue-600 group-hover:text-white transition-all">
                                                             <Plus size={10} />
@@ -922,7 +1144,8 @@ function FormBuilder() {
                                                         value={el.placeholder}
                                                         onChange={(e) => updateElement(el.id, { placeholder: e.target.value })}
                                                         onClick={(e) => { e.stopPropagation(); setActiveElementId(el.id); }}
-                                                        className="w-full bg-transparent border-none outline-none p-0 focus:ring-0 text-xs text-gray-400 font-medium"
+                                                        disabled={!canEdit}
+                                                        className="w-full bg-transparent border-none outline-none p-0 focus:ring-0 text-xs text-gray-400 font-medium disabled:opacity-50"
                                                         placeholder="mm/dd/yyyy"
                                                     />
                                                     <Calendar size={14} className="text-gray-300 group-hover/date:text-blue-500 transition-colors" />
@@ -937,7 +1160,8 @@ function FormBuilder() {
                                                         value={el.placeholder}
                                                         onChange={(e) => updateElement(el.id, { placeholder: e.target.value })}
                                                         onClick={(e) => { e.stopPropagation(); setActiveElementId(el.id); }}
-                                                        className="w-full bg-transparent border-none outline-none p-0 focus:ring-0 text-xs text-gray-400 font-medium"
+                                                        disabled={!canEdit}
+                                                        className="w-full bg-transparent border-none outline-none p-0 focus:ring-0 text-xs text-gray-400 font-medium disabled:opacity-50"
                                                         placeholder="hh:mm"
                                                     />
                                                     <Clock size={14} className="text-gray-300 group-hover/time:text-blue-500 transition-colors" />
@@ -953,7 +1177,8 @@ function FormBuilder() {
                                                         value={el.placeholder}
                                                         onChange={(e) => updateElement(el.id, { placeholder: e.target.value })}
                                                         onClick={(e) => { e.stopPropagation(); setActiveElementId(el.id); }}
-                                                        className="w-full bg-transparent border-none outline-none p-0 focus:ring-0 text-xs text-center text-gray-400 font-medium"
+                                                        disabled={!canEdit}
+                                                        className="w-full bg-transparent border-none outline-none p-0 focus:ring-0 text-xs text-center text-gray-400 font-medium disabled:opacity-50"
                                                         placeholder="Click or drag file to upload"
                                                     />
                                                 </div>
@@ -1012,7 +1237,8 @@ function FormBuilder() {
                                                 type="text"
                                                 value={title}
                                                 onChange={(e) => setTitle(e.target.value)}
-                                                className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-xs font-bold text-gray-900 focus:ring-1 focus:ring-blue-600 focus:bg-white outline-none"
+                                                disabled={!canEdit}
+                                                className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-xs font-bold text-gray-900 focus:ring-1 focus:ring-blue-600 focus:bg-white outline-none disabled:opacity-50"
                                             />
                                         </div>
 
@@ -1022,7 +1248,8 @@ function FormBuilder() {
                                                 value={description}
                                                 onChange={(e) => setDescription(e.target.value)}
                                                 rows={3}
-                                                className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-xs font-medium text-gray-900 focus:ring-1 focus:ring-blue-600 focus:bg-white outline-none resize-none"
+                                                disabled={!canEdit}
+                                                className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-xs font-medium text-gray-900 focus:ring-1 focus:ring-blue-600 focus:bg-white outline-none resize-none disabled:opacity-50"
                                             />
                                         </div>
 
@@ -1037,9 +1264,10 @@ function FormBuilder() {
                                                 ].map((color) => (
                                                     <button
                                                         key={color}
-                                                        onClick={() => setThemeColor(color)}
+                                                        onClick={() => canEdit && setThemeColor(color)}
+                                                        disabled={!canEdit}
                                                         title={color}
-                                                        className={`w-7 h-7 rounded-lg transition-all hover:scale-110 ${themeColor === color
+                                                        className={`w-7 h-7 rounded-lg transition-all hover:scale-110 disabled:opacity-50 disabled:cursor-not-allowed ${themeColor === color
                                                             ? 'ring-2 ring-offset-2 ring-gray-400 scale-110'
                                                             : 'hover:ring-2 hover:ring-offset-1 hover:ring-gray-300'
                                                             }`}
@@ -1053,17 +1281,20 @@ function FormBuilder() {
                                                     <input
                                                         type="color"
                                                         value={themeColor}
-                                                        onChange={(e) => setThemeColor(e.target.value)}
-                                                        className="w-7 h-7 rounded-lg cursor-pointer border border-gray-200 p-0.5 bg-white"
+                                                        onChange={(e) => canEdit && setThemeColor(e.target.value)}
+                                                        disabled={!canEdit}
+                                                        className="w-7 h-7 rounded-lg cursor-pointer border border-gray-200 p-0.5 bg-white disabled:opacity-50 disabled:cursor-not-allowed"
                                                     />
                                                     <input
                                                         type="text"
                                                         value={themeColor}
                                                         onChange={(e) => {
+                                                            if (!canEdit) return;
                                                             const val = e.target.value;
                                                             if (/^#[0-9a-fA-F]{0,6}$/.test(val)) setThemeColor(val);
                                                         }}
-                                                        className="flex-1 px-2 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-[10px] font-mono text-gray-700 focus:ring-1 focus:ring-blue-600 focus:bg-white outline-none"
+                                                        disabled={!canEdit}
+                                                        className="flex-1 px-2 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-[10px] font-mono text-gray-700 focus:ring-1 focus:ring-blue-600 focus:bg-white outline-none disabled:opacity-50"
                                                         placeholder="#000000"
                                                         maxLength={7}
                                                     />
@@ -1095,25 +1326,28 @@ function FormBuilder() {
                                                     <div className="w-full h-28 rounded-xl overflow-hidden border-2 border-gray-100 bg-gray-50">
                                                         <img src={logoUrl} alt="Logo preview" className="w-full h-full object-cover" />
                                                     </div>
-                                                    <div className="absolute inset-0 rounded-xl bg-black/40 opacity-0 group-hover/logo:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                                                        <button
-                                                            onClick={() => logoFileRef.current?.click()}
-                                                            className="px-3 py-1.5 bg-white text-gray-900 rounded-lg text-[9px] font-bold uppercase tracking-widest hover:bg-gray-100 transition-all"
-                                                        >
-                                                            Change
-                                                        </button>
-                                                        <button
-                                                            onClick={() => setLogoUrl(null)}
-                                                            className="px-3 py-1.5 bg-red-500 text-white rounded-lg text-[9px] font-bold uppercase tracking-widest hover:bg-red-600 transition-all"
-                                                        >
-                                                            Remove
-                                                        </button>
-                                                    </div>
+                                                    {canEdit && (
+                                                        <div className="absolute inset-0 rounded-xl bg-black/40 opacity-0 group-hover/logo:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                                                            <button
+                                                                onClick={() => logoFileRef.current?.click()}
+                                                                className="px-3 py-1.5 bg-white text-gray-900 rounded-lg text-[9px] font-bold uppercase tracking-widest hover:bg-gray-100 transition-all"
+                                                            >
+                                                                Change
+                                                            </button>
+                                                            <button
+                                                                onClick={() => setLogoUrl(null)}
+                                                                className="px-3 py-1.5 bg-red-500 text-white rounded-lg text-[9px] font-bold uppercase tracking-widest hover:bg-red-600 transition-all"
+                                                            >
+                                                                Remove
+                                                            </button>
+                                                        </div>
+                                                    )}
                                                 </div>
                                             ) : (
                                                 <button
-                                                    onClick={() => logoFileRef.current?.click()}
-                                                    className="w-full h-24 border-2 border-dashed border-gray-200 rounded-xl flex flex-col items-center justify-center gap-2 hover:border-blue-300 hover:bg-blue-50/30 transition-all group/upload"
+                                                    onClick={() => canEdit && logoFileRef.current?.click()}
+                                                    disabled={!canEdit}
+                                                    className="w-full h-24 border-2 border-dashed border-gray-200 rounded-xl flex flex-col items-center justify-center gap-2 hover:border-blue-300 hover:bg-blue-50/30 transition-all group/upload disabled:opacity-50 disabled:cursor-not-allowed"
                                                 >
                                                     <div className="w-8 h-8 rounded-lg bg-gray-100 group-hover/upload:bg-blue-100 transition-colors flex items-center justify-center">
                                                         <Upload size={14} className="text-gray-400 group-hover/upload:text-blue-500 transition-colors" />
@@ -1142,8 +1376,9 @@ function FormBuilder() {
                                                                 <span className="text-[8px] text-gray-500 uppercase tracking-tight">Prevent duplicate entries</span>
                                                             </div>
                                                             <button
-                                                                onClick={() => setCollectEmail(!collectEmail)}
-                                                                className={`w-8 h-4 rounded-full relative transition-all ${collectEmail ? '' : 'bg-gray-200'}`}
+                                                                onClick={() => canEdit && setCollectEmail(!collectEmail)}
+                                                                disabled={!canEdit}
+                                                                className={`w-8 h-4 rounded-full relative transition-all ${collectEmail ? '' : 'bg-gray-200'} disabled:opacity-50`}
                                                                 style={collectEmail ? { backgroundColor: themeColor } : {}}
                                                             >
                                                                 <div className={`absolute top-0.5 w-3 h-3 bg-white rounded-full transition-all ${collectEmail ? 'left-[18px]' : 'left-0.5'}`}></div>
@@ -1156,8 +1391,9 @@ function FormBuilder() {
                                                                 <span className="text-[8px] text-gray-500 uppercase tracking-tight">Requires Google sign-in</span>
                                                             </div>
                                                             <button
-                                                                onClick={() => setLimitToOneResponse(!limitToOneResponse)}
-                                                                className={`w-8 h-4 rounded-full relative transition-all ${limitToOneResponse ? '' : 'bg-gray-200'}`}
+                                                                onClick={() => canEdit && setLimitToOneResponse(!limitToOneResponse)}
+                                                                disabled={!canEdit}
+                                                                className={`w-8 h-4 rounded-full relative transition-all ${limitToOneResponse ? '' : 'bg-gray-200'} disabled:opacity-50`}
                                                                 style={limitToOneResponse ? { backgroundColor: themeColor } : {}}
                                                             >
                                                                 <div className={`absolute top-0.5 w-3 h-3 bg-white rounded-full transition-all ${limitToOneResponse ? 'left-[18px]' : 'left-0.5'}`}></div>
@@ -1170,12 +1406,129 @@ function FormBuilder() {
                                                                 <span className="text-[8px] text-gray-500 uppercase tracking-tight">Respondents can update answers</span>
                                                             </div>
                                                             <button
-                                                                onClick={() => setAllowResponseEditing(!allowResponseEditing)}
-                                                                className={`w-8 h-4 rounded-full relative transition-all ${allowResponseEditing ? '' : 'bg-gray-200'}`}
+                                                                onClick={() => canEdit && setAllowResponseEditing(!allowResponseEditing)}
+                                                                disabled={!canEdit}
+                                                                className={`w-8 h-4 rounded-full relative transition-all ${allowResponseEditing ? '' : 'bg-gray-200'} disabled:opacity-50`}
                                                                 style={allowResponseEditing ? { backgroundColor: themeColor } : {}}
                                                             >
                                                                 <div className={`absolute top-0.5 w-3 h-3 bg-white rounded-full transition-all ${allowResponseEditing ? 'left-[18px]' : 'left-0.5'}`}></div>
                                                             </button>
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            <div>
+                                                <button
+                                                    onClick={() => setHeaderCollabOpen(!headerCollabOpen)}
+                                                    className="flex items-center justify-between w-full p-3 bg-gray-100 border border-gray-200 rounded-lg hover:bg-gray-200 transition-all group"
+                                                >
+                                                    <span className="text-[10px] font-bold text-gray-900 uppercase tracking-widest">Collaborators</span>
+                                                    <ChevronRight size={14} className={`text-black transition-transform duration-200 ${headerCollabOpen ? 'rotate-90' : ''}`} />
+                                                </button>
+
+                                                {headerCollabOpen && (
+                                                    <div className="mt-3 space-y-4 animate-in fade-in slide-in-from-top-1 duration-200">
+                                                        <div className="space-y-2">
+                                                            <label className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Add Collaborator</label>
+                                                            <div className="space-y-2">
+                                                                <input
+                                                                    type="email"
+                                                                    value={newCollaboratorEmail}
+                                                                    onChange={(e) => setNewCollaboratorEmail(e.target.value)}
+                                                                    placeholder="Email address"
+                                                                    disabled={!isOwner}
+                                                                    className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-xs font-medium focus:ring-1 focus:ring-blue-600 focus:bg-white outline-none disabled:opacity-50"
+                                                                />
+                                                                <div className="flex gap-2">
+                                                                    {isOwner && (
+                                                                        <select
+                                                                            value={newCollaboratorRole}
+                                                                            onChange={(e) => setNewCollaboratorRole(e.target.value as 'viewer' | 'editor')}
+                                                                            className="flex-1 px-2 py-2 bg-gray-50 border border-gray-200 rounded-lg text-[10px] font-bold uppercase outline-none focus:ring-1 focus:ring-blue-600"
+                                                                        >
+                                                                            <option value="editor">Editor</option>
+                                                                            <option value="viewer">Viewer</option>
+                                                                        </select>
+                                                                    )}
+                                                                    <button
+                                                                        onClick={handleAddCollaborator}
+                                                                        disabled={isAddingCollaborator || !newCollaboratorEmail || !isOwner}
+                                                                        className="px-4 py-2 text-white rounded-lg hover:opacity-90 disabled:opacity-50 transition-colors flex items-center justify-center shrink-0"
+                                                                        style={{ backgroundColor: themeColor }}
+                                                                    >
+                                                                        {isAddingCollaborator ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} />}
+                                                                        {!isAddingCollaborator && <span className="ml-2 text-[10px] font-bold uppercase tracking-widest">Add</span>}
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+                                                            {collabMessage && (
+                                                                <div className={`p-2 rounded-lg text-[10px] font-bold uppercase tracking-wider animate-in fade-in slide-in-from-top-1 duration-200 ${collabMessage.type === 'success' ? 'bg-green-50 text-green-600 border border-green-100' :
+                                                                    collabMessage.type === 'error' ? 'bg-red-50 text-red-600 border border-red-100' :
+                                                                        'bg-blue-50 text-blue-600 border border-blue-100'
+                                                                    }`}>
+                                                                    {collabMessage.text}
+                                                                </div>
+                                                            )}
+                                                        </div>
+
+                                                        <div className="space-y-3">
+                                                            <label className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Manage Access</label>
+                                                            <div className="space-y-2 max-h-[300px] overflow-y-auto pr-2 scrollbar-hide">
+                                                                {collaborators.length === 0 && !ownerEmail ? (
+                                                                    <div className="text-center py-8 bg-gray-50 rounded-xl border border-dashed border-gray-200">
+                                                                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">No collaborators yet</p>
+                                                                    </div>
+                                                                ) : (
+                                                                    <>
+                                                                        {ownerEmail && (
+                                                                            <div className="flex items-center justify-between p-3 bg-blue-50/30 border border-blue-100 rounded-xl shadow-sm group mb-2">
+                                                                                <div className="flex items-center gap-2 overflow-hidden">
+                                                                                    <div className="w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center text-[10px] font-bold uppercase shrink-0">
+                                                                                        {ownerEmail[0]?.toUpperCase() || 'O'}
+                                                                                    </div>
+                                                                                    <div className="flex flex-col min-w-0">
+                                                                                        <span className="text-[10px] font-bold text-gray-700 truncate">{ownerEmail}</span>
+                                                                                        <span className="text-[8px] font-bold text-blue-600 uppercase tracking-tight">Owner</span>
+                                                                                    </div>
+                                                                                </div>
+                                                                            </div>
+                                                                        )}
+                                                                        {collaborators.map((c) => (
+                                                                            <div key={c.id} className="flex items-center justify-between p-3 bg-white border border-gray-100 rounded-xl shadow-sm group">
+                                                                                <div className="flex items-center gap-2 overflow-hidden">
+                                                                                    <div className="w-6 h-6 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-[10px] font-bold uppercase shrink-0">
+                                                                                        {c.email?.[0]?.toUpperCase() || '?'}
+                                                                                    </div>
+                                                                                    <div className="flex flex-col min-w-0">
+                                                                                        <span className="text-[10px] font-bold text-gray-700 truncate">{c.email}</span>
+                                                                                        <span className="text-[8px] font-bold text-gray-400 uppercase tracking-tight">{c.role}</span>
+                                                                                    </div>
+                                                                                </div>
+                                                                                <div className="flex items-center gap-1 shrink-0">
+                                                                                    {isOwner && (
+                                                                                        <select
+                                                                                            value={c.role}
+                                                                                            onChange={(e) => handleUpdateRole(c.id, e.target.value as 'viewer' | 'editor')}
+                                                                                            className="p-1 px-1.5 bg-gray-50 border border-gray-100 rounded text-[9px] font-bold uppercase text-gray-600 outline-none hover:bg-white transition-all"
+                                                                                        >
+                                                                                            <option value="editor">Editor</option>
+                                                                                            <option value="viewer">Viewer</option>
+                                                                                        </select>
+                                                                                    )}
+                                                                                    <button
+                                                                                        onClick={() => handleRemoveCollaborator(c.id)}
+                                                                                        disabled={!isOwner}
+                                                                                        className="p-1 px-2 text-[11px] font-bold text-red-500 hover:bg-red-50 rounded-md opacity-0 group-hover:opacity-100 transition-all uppercase disabled:hidden"
+                                                                                    >
+                                                                                        Remove
+                                                                                    </button>
+                                                                                </div>
+                                                                            </div>
+                                                                        ))}
+                                                                    </>
+                                                                )}
+                                                            </div>
                                                         </div>
                                                     </div>
                                                 )}
@@ -1203,7 +1556,8 @@ function FormBuilder() {
                                                     if (words.length > limit) return;
                                                     updateElement(activeElement.id, { label: val });
                                                 }}
-                                                className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-xs font-bold text-gray-900 focus:ring-1 focus:ring-blue-600 focus:bg-white outline-none"
+                                                disabled={!canEdit}
+                                                className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-xs font-bold text-gray-900 focus:ring-1 focus:ring-blue-600 focus:bg-white outline-none disabled:opacity-50"
                                             />
                                             {activeElement.type === 'paragraph' ? (
                                                 <p className="text-[8px] text-gray-400 mt-1 uppercase">Max 15 words</p>
@@ -1219,13 +1573,13 @@ function FormBuilder() {
                                                     {activeElement.options.map((opt, i) => (
                                                         <div
                                                             key={i}
-                                                            draggable
-                                                            onDragStart={() => handleOptionDragStart(i)}
-                                                            onDragOver={(e) => handleOptionDragOver(e, i)}
-                                                            onDrop={() => handleOptionDrop(i)}
+                                                            draggable={canEdit}
+                                                            onDragStart={() => canEdit && handleOptionDragStart(i)}
+                                                            onDragOver={(e) => canEdit && handleOptionDragOver(e, i)}
+                                                            onDrop={() => canEdit && handleOptionDrop(i)}
                                                             onDragEnd={handleOptionDragEnd}
                                                             className={`flex items-center gap-2 relative group transition-all ${optionDragIndex === i ? 'opacity-40 scale-[0.98]' : ''
-                                                                }`}
+                                                                } ${!canEdit ? 'cursor-default' : ''}`}
                                                         >
                                                             {optionDragOverIndex === i && optionDragIndex !== null && optionDragIndex !== i && (
                                                                 <div className="absolute -top-1.5 left-0 right-0 flex items-center gap-1.5 z-10 pointer-events-none px-6">
@@ -1233,24 +1587,26 @@ function FormBuilder() {
                                                                     <div className="flex-1 h-0.5 bg-blue-500 rounded-full shadow-sm"></div>
                                                                 </div>
                                                             )}
-                                                            <div className="p-1 cursor-grab active:cursor-grabbing text-black hover:text-gray-900 transition-colors">
+                                                            <div className={`p-1 cursor-grab active:cursor-grabbing text-black hover:text-gray-900 transition-colors ${!canEdit ? 'hidden' : ''}`}>
                                                                 <GripVertical size={12} />
                                                             </div>
                                                             <input
                                                                 type="text"
                                                                 value={opt}
+                                                                disabled={!canEdit}
                                                                 onChange={(e) => {
                                                                     const val = e.target.value;
                                                                     const words = val.trim().split(/\s+/).filter(Boolean);
                                                                     if (words.length > 10) return;
-                                                                    updateOption(activeElement.id, i, val);
+                                                                    if (activeElement) updateOption(activeElement.id, i, val);
                                                                 }}
-                                                                className="flex-1 px-3 py-1.5 bg-gray-50 border border-gray-200 rounded-md text-xs font-semibold text-gray-900 outline-none focus:ring-1 focus:ring-blue-600 focus:bg-white transition-all"
+                                                                className="flex-1 px-3 py-1.5 bg-gray-50 border border-gray-200 rounded-md text-xs font-semibold text-gray-900 outline-none focus:ring-1 focus:ring-blue-600 focus:bg-white transition-all disabled:opacity-50"
                                                             />
                                                             {(activeElement.options?.length ?? 0) > 2 && (
                                                                 <button
-                                                                    onClick={() => removeOption(activeElement.id, i)}
-                                                                    className="text-gray-400 hover:text-red-600 p-1 transition-all"
+                                                                    onClick={() => { if (activeElement && canEdit) removeOption(activeElement.id, i); }}
+                                                                    disabled={!canEdit}
+                                                                    className="text-gray-400 hover:text-red-600 p-1 transition-all disabled:hidden"
                                                                 >
                                                                     <Trash2 size={12} className="text-gray-900" />
                                                                 </button>
@@ -1259,8 +1615,9 @@ function FormBuilder() {
                                                     ))}
                                                 </div>
                                                 <button
-                                                    onClick={() => addOption(activeElement.id)}
-                                                    className="w-full py-2 border border-dashed border-gray-100 rounded-lg text-[9px] font-bold text-gray-400 uppercase tracking-widest hover:border-blue-200 hover:text-blue-500 hover:bg-blue-50 transition-all flex items-center justify-center gap-1"
+                                                    onClick={() => { if (activeElement && canEdit) addOption(activeElement.id); }}
+                                                    disabled={!canEdit}
+                                                    className="w-full py-2 border border-dashed border-gray-100 rounded-lg text-[9px] font-bold text-gray-400 uppercase tracking-widest hover:border-blue-200 hover:text-blue-500 hover:bg-blue-50 transition-all flex items-center justify-center gap-1 disabled:hidden"
                                                 >
                                                     <Plus size={12} className="text-black font-bold" />
                                                     Add Option
@@ -1291,10 +1648,11 @@ function FormBuilder() {
                                                                     value={activeElement.wordLimit || ''}
                                                                     onChange={(e) => {
                                                                         const val = parseInt(e.target.value);
-                                                                        updateElement(activeElement.id, { wordLimit: val > 0 ? val : undefined });
+                                                                        if (activeElement) updateElement(activeElement.id, { wordLimit: val > 0 ? val : undefined });
                                                                     }}
+                                                                    disabled={!canEdit}
                                                                     placeholder="No limit"
-                                                                    className="flex-1 px-3 py-2 bg-gray-50 border border-gray-100 rounded-lg text-xs font-bold text-gray-900 focus:ring-1 focus:ring-blue-600 focus:bg-white outline-none"
+                                                                    className="flex-1 px-3 py-2 bg-gray-50 border border-gray-100 rounded-lg text-xs font-bold text-gray-900 focus:ring-1 focus:ring-blue-600 focus:bg-white outline-none disabled:opacity-50"
                                                                 />
                                                                 <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">words</span>
                                                             </div>
@@ -1309,8 +1667,9 @@ function FormBuilder() {
                                             <div className="flex items-center justify-between p-3 bg-gray-100 border border-gray-200 rounded-lg">
                                                 <span className="text-[10px] font-bold text-gray-900 uppercase tracking-widest">Required</span>
                                                 <button
-                                                    onClick={() => updateElement(activeElement.id, { required: !activeElement.required })}
-                                                    className={`w-8 h-4 rounded-full relative transition-all ${activeElement.required ? '' : 'bg-gray-200'}`}
+                                                    onClick={() => { if (activeElement && canEdit) updateElement(activeElement.id, { required: !activeElement.required }); }}
+                                                    disabled={!canEdit}
+                                                    className={`w-8 h-4 rounded-full relative transition-all ${activeElement.required ? '' : 'bg-gray-200'} disabled:opacity-50`}
                                                     style={activeElement.required ? { backgroundColor: themeColor } : {}}
                                                 >
                                                     <div className={`absolute top-0.5 w-3 h-3 bg-white rounded-full transition-all ${activeElement.required ? 'left-[18px]' : 'left-0.5'}`}></div>
@@ -1338,8 +1697,8 @@ function FormBuilder() {
                                     <div className="pt-4 border-t border-gray-50 space-y-4">
                                         <div className="space-y-2">
                                             <label className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Endpoint</label>
-                                            <div className="px-3 py-2 bg-gray-50 border border-gray-100 rounded-lg text-[10px] font-mono text-gray-500 break-all leading-normal">
-                                                {window.location.origin}/view/{formId}
+                                            <div className="px-3 py-2 bg-gray-50 border border-gray-100 rounded-lg text-[10px] font-mono text-gray-500 break-all leading-normal min-h-[2.5rem]">
+                                                {isMounted ? `${window.location.origin}/view/${formId}` : 'Loading...'}
                                             </div>
                                             <button
                                                 onClick={copyLink}
@@ -1355,7 +1714,7 @@ function FormBuilder() {
                         )}
                     </div>
                 </aside>
-            </div >
+            </div>
 
             {/* Compact Publish Modal */}
             {
@@ -1384,6 +1743,181 @@ function FormBuilder() {
                     </div>
                 )
             }
-        </div >
+
+            <CommentPanel
+                isOpen={isCommentPanelOpen}
+                onClose={() => setIsCommentPanelOpen(false)}
+                elementId={activeCommentElementId}
+                comments={comments.filter(c => c.element_id === activeCommentElementId)}
+                onAddComment={(content) => handleCreateComment(activeCommentElementId, content)}
+                onDeleteComment={handleDeleteComment}
+                currentUser={user}
+                collaborators={
+                    (() => {
+                        const commenterEmails = Array.from(new Set(comments.map(c => c.user_email))).filter(email => email !== user?.email);
+                        const commenters = commenterEmails.map(email => ({ id: `commenter-${email}`, email, role: 'commenter' }));
+
+                        const baseCollabs = ownerEmail
+                            ? [...collaborators.filter(c => c.email !== ownerEmail), { id: 'owner', email: ownerEmail, role: 'owner' }]
+                            : collaborators;
+
+                        // Show all collaborators (including owner and commenters) for mention list
+                        const filteredCollabs = baseCollabs;
+
+                        // Combine with commenters
+                        const all = [...filteredCollabs];
+                        commenters.forEach(comp => {
+                            if (!all.some(a => a.email?.toLowerCase() === comp.email?.toLowerCase())) {
+                                all.push(comp);
+                            }
+                        });
+                        return all;
+                    })()
+                }
+            />
+        </div>
+    );
+}
+
+interface CommentPanelProps {
+    isOpen: boolean;
+    onClose: () => void;
+    elementId: string | null;
+    comments: FormComment[];
+    onAddComment: (content: string) => void;
+    onDeleteComment: (id: string) => void;
+    currentUser: any;
+    collaborators: any[];
+}
+
+function CommentPanel({ isOpen, onClose, elementId, comments, onAddComment, onDeleteComment, currentUser, collaborators }: CommentPanelProps) {
+    const [newComment, setNewComment] = useState('');
+    const [showMentions, setShowMentions] = useState(false);
+    const [mentionFilter, setMentionFilter] = useState('');
+    const inputRef = useRef<HTMLTextAreaElement>(null);
+
+    if (!isOpen) return null;
+
+    const handleTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+        const val = e.target.value;
+        setNewComment(val);
+
+        const cursorPosition = e.target.selectionStart;
+        const textBeforeCursor = val.slice(0, cursorPosition);
+        const atMatch = textBeforeCursor.match(/@([\w.-]*)$/);
+
+        if (atMatch) {
+            setShowMentions(true);
+            setMentionFilter(atMatch[1].toLowerCase());
+        } else {
+            setShowMentions(false);
+        }
+    };
+
+    const insertMention = (collab: any) => {
+        const cursorPosition = inputRef.current?.selectionStart || 0;
+        const textBeforeAt = newComment.slice(0, cursorPosition).replace(/@\w*$/, '');
+        const textAfterAt = newComment.slice(cursorPosition);
+        const mentionText = `@${collab.email} `;
+        setNewComment(textBeforeAt + mentionText + textAfterAt);
+        setShowMentions(false);
+        inputRef.current?.focus();
+    };
+
+    return (
+        <div className="fixed inset-0 z-[200] flex items-center justify-end">
+            <div className="absolute inset-0 bg-black/5" onClick={onClose} />
+            <div className="w-80 h-full bg-white shadow-2xl border-l border-gray-100 flex flex-col relative animate-in slide-in-from-right duration-300">
+                <div className="p-4 border-b border-gray-100 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                        <MessageSquare size={16} className="text-blue-600" />
+                        <h3 className="text-[11px] font-bold text-gray-900 uppercase tracking-widest">Comments</h3>
+                    </div>
+                    <button onClick={onClose} className="p-1 hover:bg-gray-100 rounded-md transition-all">
+                        <X size={16} />
+                    </button>
+                </div>
+
+                <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50/50">
+                    {comments.length === 0 ? (
+                        <div className="h-full flex flex-col items-center justify-center text-center p-6 bg-white rounded-xl border border-dashed border-gray-200">
+                            <MessageSquare size={24} className="text-gray-200 mb-2" />
+                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">No comments yet</p>
+                            <p className="text-[9px] text-gray-500 mt-1">Start a conversation about this field.</p>
+                        </div>
+                    ) : (
+                        comments.map((comment) => (
+                            <div key={comment.id} className="bg-white p-3 rounded-xl border border-gray-100 shadow-sm group">
+                                <div className="flex items-center justify-between mb-2">
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-5 h-5 rounded-full bg-blue-600 flex items-center justify-center text-[8px] font-extrabold text-white">
+                                            {comment.user_name?.[0]?.toUpperCase() || 'U'}
+                                        </div>
+                                        <span className="text-[10px] font-bold text-gray-900">{comment.user_name}</span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-[8px] font-medium text-gray-400">{new Date(comment.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                                        {currentUser?.email === comment.user_email && (
+                                            <button onClick={() => onDeleteComment(comment.id)} className="opacity-0 group-hover:opacity-100 p-1 text-gray-400 hover:text-red-500 transition-all">
+                                                <Trash2 size={12} />
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
+                                <p className="text-[11px] text-gray-700 leading-relaxed whitespace-pre-wrap">
+                                    {comment.content.split(/(@\S+)/).map((part, i) =>
+                                        part.startsWith('@') ? (
+                                            <span key={i} className="text-blue-600 font-bold bg-blue-50 px-1 rounded">{part}</span>
+                                        ) : part
+                                    )}
+                                </p>
+                            </div>
+                        ))
+                    )}
+                </div>
+
+                <div className="p-4 bg-white border-t border-gray-100 relative">
+                    {showMentions && (
+                        <div className="absolute bottom-full left-0 right-0 max-h-40 overflow-y-auto bg-white border border-gray-200 shadow-xl rounded-t-xl z-10 m-2">
+                            {collaborators
+                                .filter(c => c.email?.toLowerCase().includes(mentionFilter))
+                                .map(c => (
+                                    <button
+                                        key={c.id}
+                                        onClick={() => insertMention(c)}
+                                        className="w-full flex items-center gap-2 px-3 py-2 hover:bg-blue-50 text-left transition-all"
+                                    >
+                                        <AtSign size={12} className="text-gray-400" />
+                                        <span className="text-[10px] font-medium text-gray-700">{c.email}</span>
+                                    </button>
+                                ))}
+                        </div>
+                    )}
+                    <textarea
+                        ref={inputRef}
+                        value={newComment}
+                        onChange={handleTextChange}
+                        placeholder="Add a comment... (use @ to tag)"
+                        className="w-full h-24 p-3 bg-gray-50 border border-gray-100 rounded-xl text-xs font-medium focus:ring-1 focus:ring-blue-600 focus:bg-white outline-none resize-none transition-all"
+                        onKeyDown={(e) => {
+                            if (e.key === 'Enter' && !e.shiftKey) {
+                                e.preventDefault();
+                                onAddComment(newComment);
+                                setNewComment('');
+                            }
+                        }}
+                    />
+                    <div className="mt-2 flex items-center justify-between">
+                        <span className="text-[8px] font-bold text-gray-400 uppercase tracking-widest">Shift + Enter for new line</span>
+                        <button
+                            onClick={() => { onAddComment(newComment); setNewComment(''); }}
+                            className="px-4 py-1.5 bg-blue-600 text-white text-[10px] font-bold uppercase rounded-lg hover:bg-blue-700 transition-all shadow-sm"
+                        >
+                            Post
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
     );
 }
