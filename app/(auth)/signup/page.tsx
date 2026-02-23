@@ -2,13 +2,13 @@
 // 🟢 HUZAIFA - Signup Page (Google Forms Style)
 'use client';
 
-import { useState } from 'react';
+import { useState, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation'; // Redirect immediately after signup
 import { signUp, signInWithGoogle } from '@/lib/auth';
 import { Loader2, Eye, EyeOff, Mail, Lock, User } from 'lucide-react';
 
-export default function SignupPage() {
+function SignupForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const next = searchParams.get('next');
@@ -290,5 +290,17 @@ export default function SignupPage() {
         </p>
       </div>
     </div>
+  );
+}
+
+export default function SignupPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex items-center justify-center p-12">
+        <Loader2 className="h-8 w-8 animate-spin text-purple-600" />
+      </div>
+    }>
+      <SignupForm />
+    </Suspense>
   );
 }
