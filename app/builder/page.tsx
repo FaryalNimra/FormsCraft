@@ -32,6 +32,7 @@ import { useState, useEffect, useCallback, useRef, Suspense } from 'react';
 import { saveForm, getForm, FormElement, ElementType, getComments, addComment, deleteComment } from '@/lib/forms';
 import { FormComment } from '@/types/database';
 import { supabase } from '@/lib/supabase';
+import { saveForm, getForm, publishForm, FormElement, ElementType } from '@/lib/forms';
 
 const ELEMENT_ICONS: Record<ElementType, any> = {
     short_answer: Type,
@@ -218,6 +219,8 @@ function FormBuilder() {
                     }
                 } catch (error) {
                     console.error("Failed to load form:", error);
+                } catch (error: any) {
+                    console.error("Failed to load form:", error.message || error);
                 }
             };
             fetchForm();
@@ -251,6 +254,9 @@ function FormBuilder() {
         } catch (error: any) {
             console.error('Save failed:', error);
             alert(`Save failed: ${error?.message || JSON.stringify(error) || 'Unknown error'}`);
+            console.error('Save failed:', error.message || error);
+            // Optionally notify user if it was a manual save
+            if (status === 'draft') alert("Save failed: " + (error.message || "Unknown error"));
         } finally {
             setIsSaving(false);
         }
@@ -303,11 +309,14 @@ function FormBuilder() {
     };
 
     const handleSend = async () => {
+        if (!formId && !title) {
+            alert("Please save as draft first or enter a title.");
+            return;
+        }
+
         setIsSaving(true);
-        setStatus('published');
         try {
-            console.log('Publishing with expiration:', expiresAt);
-            const saved = await saveForm({
+            const result = await publishForm({
                 id: formId || undefined,
                 title,
                 description,
@@ -320,18 +329,25 @@ function FormBuilder() {
                 allow_response_editing: allowResponseEditing,
                 logo_url: logoUrl || undefined
             });
-            if (!formId) setFormId(saved.id ?? null);
+
+            if (!formId && result.version?.form_id) {
+                setFormId(result.version.form_id);
+                router.push(`/builder?id=${result.version.form_id}`, { scroll: false });
+            }
+
+            setStatus('published');
             setLastSaved(new Date());
             setIsLocalSaved(false);
             localStorage.removeItem('formcraft_progress');
             setIsSendModalOpen(true);
         } catch (error: any) {
             console.error('Publish failed:', error);
-            alert(`Publish failed: ${error.message || 'Unknown error'}. Check console for details.`);
+            alert(`Publish failed: ${error.message || 'Unknown error'}.`);
         } finally {
             setIsSaving(false);
         }
     };
+
 
     const copyLink = () => {
         const shareLink = `${isMounted ? window.location.origin : ''}/view/${formId}`;
@@ -754,11 +770,25 @@ function FormBuilder() {
                             disabled={isSaving || !isOwner}
                             className="flex items-center gap-1.5 px-3 py-1 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-all ml-0.5 disabled:opacity-50 text-[10px] font-bold uppercase"
                             title={!isOwner ? "Only owners can publish" : ""}
-                        >
-                            <Send size={14} />
-                            Publish
-                        </button>
+
                     </div>
+                    {!formId && (
+                        <button
+                            onClick={clearDraft}
+                            className="flex items-center gap-1.5 px-3 py-1 text-gray-400 hover:text-red-600 hover:bg-white rounded-md transition-all disabled:opacity-50 text-[10px] font-bold uppercase"
+                            title="Clear Draft / Reset"
+                        >
+                            <Trash2 size={14} className="text-black" />
+                        </button>
+                    )}
+                    <button
+                        onClick={handleSend}
+                        disabled={isSaving}
+                        className="flex items-center gap-1.5 px-3 py-1 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-all ml-0.5 disabled:opacity-50 text-[10px] font-bold uppercase"
+                    >
+                        <Send size={14} />
+                        Publish
+                    </button>
                 </div>
             </header>
 
