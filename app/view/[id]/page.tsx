@@ -36,7 +36,7 @@ export default function ViewForm() {
 
     const fetchForm = useCallback(async () => {
         try {
-            const data = await getForm(id as string);
+            const data = await getForm(id as string, true);
             console.log('Form fetched. Expiration:', data?.expires_at);
             if (data?.expires_at && new Date(data.expires_at) < new Date()) {
                 console.log('Form expired! Current time:', new Date().toISOString(), 'Expires at:', data.expires_at);

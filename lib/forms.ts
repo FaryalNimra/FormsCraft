@@ -29,27 +29,40 @@ export interface Form {
     updated_at?: string;
     is_archived?: boolean;
     logo_url?: string;
+    live_version_id?: string; // Pointer to the currently active FormVersion
+    version_number?: number;  // Display version if viewing a specific version
+}
+
+export interface FormVersion {
+    id: string;
+    form_id: string;
+    version_number: number;
+    content: Partial<Form>;
+    created_at: string;
 }
 
 export async function saveForm(form: Form) {
     let formId = form.id;
 
-    // 1. Save Form Metadata
+    // 1. Save Form Metadata (Updating the DRAFT state)
+    // Even if a form is 'published', edits are saved to the primary table as a DRAFT.
+    const updatePayload: any = {
+        title: form.title,
+        description: form.description,
+        status: formId ? undefined : 'draft', // New forms start as draft
+        theme_color: form.theme_color || '#2563eb',
+        expires_at: form.expires_at || null,
+        collect_email: form.collect_email || false,
+        limit_to_one_response: form.limit_to_one_response || false,
+        allow_response_editing: form.allow_response_editing || false,
+        logo_url: form.logo_url || null,
+        updated_at: new Date().toISOString()
+    };
+
     if (formId) {
         const { error } = await supabase
             .from('forms')
-            .update({
-                title: form.title,
-                description: form.description,
-                status: form.status,
-                theme_color: form.theme_color || '#2563eb',
-                expires_at: form.expires_at || null,
-                collect_email: form.collect_email || false,
-                limit_to_one_response: form.limit_to_one_response || false,
-                allow_response_editing: form.allow_response_editing || false,
-                logo_url: form.logo_url || null,
-                updated_at: new Date().toISOString()
-            })
+            .update(updatePayload)
             .eq('id', formId);
 
         if (error) throw error;
@@ -60,20 +73,8 @@ export async function saveForm(form: Form) {
         const { data, error } = await supabase
             .from('forms')
             .insert({
-                title: form.title,
-                description: form.description,
-                status: form.status,
-                theme_color: form.theme_color || '#2563eb',
-                expires_at: form.expires_at || null,
-                collect_email: form.collect_email || false,
-                limit_to_one_response: form.limit_to_one_response || false,
-                allow_response_editing: form.allow_response_editing || false,
-                logo_url: form.logo_url || null,
-                // IMPORTANT: Ensure you have run: 
-                // ALTER TABLE forms ADD COLUMN IF NOT EXISTS limit_to_one_response BOOLEAN DEFAULT FALSE;
-                // ALTER TABLE forms ADD COLUMN IF NOT EXISTS allow_response_editing BOOLEAN DEFAULT FALSE;
-                // ALTER TABLE forms ADD COLUMN IF NOT EXISTS created_by UUID REFERENCES auth.users(id);
-                // ALTER TABLE forms ADD COLUMN IF NOT EXISTS logo_url TEXT;
+                ...updatePayload,
+                status: 'draft',
                 created_by: user.id
             })
             .select()
@@ -83,12 +84,12 @@ export async function saveForm(form: Form) {
         formId = data.id;
     }
 
-    // 2. Save Form Elements
+    // 2. Save Form Elements (Updating the DRAFT state)
     const keeperIds = form.elements
         .filter(el => el.id && el.id.length > 10)
         .map(el => el.id);
 
-    // Delete elements that are no longer in the form
+    // Delete elements that are no longer in the draft
     const deleteQuery = supabase.from('form_elements').delete().eq('form_id', formId);
     if (keeperIds.length > 0) {
         deleteQuery.not('id', 'in', `(${keeperIds.join(',')})`);
@@ -97,32 +98,19 @@ export async function saveForm(form: Form) {
     const { error: deleteError } = await deleteQuery;
     if (deleteError) throw deleteError;
 
-    // Insert or update current elements
-    const elementsToUpsert = form.elements.map((el, index) => {
-        const element: any = {
-            form_id: formId,
-            type: el.type,
-            label: el.label,
-            placeholder: el.placeholder,
-            required: el.required,
-            options: el.options,
-            max_rating: el.maxRating,
-            word_limit: el.wordLimit || null,
-            order_index: index
-        };
-
-        // Ensure every element has a valid UUID. 
-        // If the database doesn't have a DEFAULT gen_random_uuid() for the id column, we must provide it.
-        if (el.id && el.id.length > 10) {
-            element.id = el.id;
-        } else {
-            element.id = typeof crypto !== 'undefined' && crypto.randomUUID
-                ? crypto.randomUUID()
-                : Math.random().toString(36).substring(2) + Date.now().toString(36);
-        }
-
-        return element;
-    });
+    // Upsert current draft elements
+    const elementsToUpsert = form.elements.map((el, index) => ({
+        id: (el.id && el.id.length > 10) ? el.id : crypto.randomUUID(),
+        form_id: formId,
+        type: el.type,
+        label: el.label,
+        placeholder: el.placeholder,
+        required: el.required,
+        options: el.options,
+        max_rating: el.maxRating,
+        word_limit: el.wordLimit || null,
+        order_index: index
+    }));
 
     if (elementsToUpsert.length > 0) {
         const { error: upsertError } = await supabase
@@ -135,8 +123,67 @@ export async function saveForm(form: Form) {
     return { id: formId };
 }
 
-export async function getForm(id: string) {
-    // 1. Fetch Form Metadata
+export async function publishForm(form: Form) {
+    // 1. Save the current state as draft first
+    // This ensures we have a form ID and that all elements are persisted to the DB
+    const { id: savedFormId } = await saveForm(form);
+
+    // Use the potentially new ID for subsequent steps
+    const activeFormId = savedFormId;
+
+    // 2. Get the latest version number
+    const { data: latestVersion } = await supabase
+        .from('form_versions')
+        .select('version_number')
+        .eq('form_id', activeFormId)
+        .order('version_number', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+    const nextVersion = (latestVersion?.version_number || 0) + 1;
+
+    // 3. Create a snapshot of the form
+    const snapshotContent = {
+        title: form.title,
+        description: form.description,
+        theme_color: form.theme_color,
+        logo_url: form.logo_url,
+        collect_email: form.collect_email,
+        limit_to_one_response: form.limit_to_one_response,
+        allow_response_editing: form.allow_response_editing,
+        expires_at: form.expires_at,
+        elements: form.elements
+    };
+
+    // 4. Insert into form_versions
+    const { data: versionData, error: versionError } = await supabase
+        .from('form_versions')
+        .insert({
+            form_id: activeFormId,
+            version_number: nextVersion,
+            content: snapshotContent
+        })
+        .select()
+        .single();
+
+    if (versionError) throw versionError;
+
+    // 5. Update form to point to the new live version
+    const { error: updateError } = await supabase
+        .from('forms')
+        .update({
+            live_version_id: versionData.id,
+            status: 'published'
+        })
+        .eq('id', activeFormId);
+
+    if (updateError) throw updateError;
+
+    return { success: true, version: versionData };
+}
+
+export async function getForm(id: string, isViewer: boolean = false) {
+    // 1. Fetch current Form state from DB
     const { data: formData, error: formError } = await supabase
         .from('forms')
         .select('*')
@@ -145,7 +192,53 @@ export async function getForm(id: string) {
 
     if (formError) throw formError;
 
-    // 2. Fetch Form Elements
+    // 2. STRICT: If viewer, LOAD ONLY THE LIVE VERSION SNAPSHOT
+    if (isViewer) {
+        // FALLBACK: If there's no live_version_id but the status is published,
+        // it means this is an old form. We load the current metadata/elements as a fallback.
+        if (!formData.live_version_id) {
+            if (formData.status === 'published') {
+                const { data: elementsData } = await supabase
+                    .from('form_elements')
+                    .select('*')
+                    .eq('form_id', id)
+                    .order('order_index', { ascending: true });
+
+                return {
+                    ...formData,
+                    elements: elementsData || []
+                } as Form;
+            }
+            throw new Error("FORM_NOT_PUBLISHED");
+        }
+
+        const { data: versionData, error: versionError } = await supabase
+            .from('form_versions')
+            .select('*')
+            .eq('id', formData.live_version_id)
+            .single();
+
+        if (versionError) throw versionError;
+
+        const snapshot = versionData.content;
+
+        // Merge metadata (id, timestamps) with versioned content (title, elements)
+        return {
+            ...formData,
+            title: snapshot.title,
+            description: snapshot.description,
+            theme_color: snapshot.theme_color,
+            logo_url: snapshot.logo_url,
+            collect_email: snapshot.collect_email,
+            limit_to_one_response: snapshot.limit_to_one_response,
+            allow_response_editing: snapshot.allow_response_editing,
+            expires_at: snapshot.expires_at,
+            elements: snapshot.elements, // CRITICAL: This loading elements from snapshot
+            version_number: versionData.version_number
+        } as Form;
+    }
+
+    // 3. For creator, fetch the CURRENT DRAFT (forms + form_elements table)
     const { data: elementsData, error: elementsError } = await supabase
         .from('form_elements')
         .select('*')
@@ -154,7 +247,6 @@ export async function getForm(id: string) {
 
     if (elementsError) throw elementsError;
 
-    // 3. Combine and Map Data
     const mappedElements: FormElement[] = elementsData.map(el => ({
         id: el.id,
         type: el.type,
@@ -163,7 +255,7 @@ export async function getForm(id: string) {
         required: el.required,
         options: el.options,
         maxRating: el.max_rating,
-        wordLimit: el.word_limit || undefined
+        wordLimit: el.word_limit
     }));
 
     return {
@@ -171,7 +263,60 @@ export async function getForm(id: string) {
         elements: mappedElements
     } as Form;
 }
+
+export async function getVersionHistory(formId: string) {
+    const { data, error } = await supabase
+        .from('form_versions')
+        .select('*')
+        .eq('form_id', formId)
+        .order('version_number', { ascending: false });
+
+    if (error) throw error;
+    return data as FormVersion[];
+}
+
+export async function rollbackToVersion(formId: string, versionId: string) {
+    const { data: versionData, error: versionError } = await supabase
+        .from('form_versions')
+        .select('*')
+        .eq('id', versionId)
+        .single();
+
+    if (versionError) throw versionError;
+
+    // Update the form to point to this version as live
+    const { error: updateError } = await supabase
+        .from('forms')
+        .update({
+            live_version_id: versionId,
+            status: 'published'
+        })
+        .eq('id', formId);
+
+    if (updateError) throw updateError;
+
+    // Optional: Overwrite current draft with this version's content?
+    // Bubble.io usually keeps drafts separate, but rollback often implies updating the current state too.
+    // For now, we only update the LIVE version pointer.
+
+    return { success: true };
+}
+
 export async function saveResponse(formId: string, responses: Record<string, any>, userEmail?: string, userId?: string) {
+    // 0. Get the current LIVE VERSION ID
+    const { data: form, error: formInfoError } = await supabase
+        .from('forms')
+        .select('live_version_id, status, allow_response_editing, limit_to_one_response')
+        .eq('id', formId)
+        .single();
+
+    if (formInfoError) throw formInfoError;
+
+    // Safety check: if no live_version_id, only allow if status is 'published' (backward compatibility)
+    if (!form.live_version_id && form.status !== 'published') {
+        throw new Error("FORM_NOT_PUBLISHED");
+    }
+
     // 1. Check for duplicate submission or update
     let existingRespId: string | null = null;
     if (userEmail) {
@@ -185,15 +330,6 @@ export async function saveResponse(formId: string, responses: Record<string, any
         if (checkError) throw checkError;
 
         if (existingResponse) {
-            // Fetch form settings to see how to handle existing response
-            const { data: form, error: formError } = await supabase
-                .from('forms')
-                .select('limit_to_one_response, allow_response_editing')
-                .eq('id', formId)
-                .single();
-
-            if (formError) throw formError;
-
             if (form.allow_response_editing) {
                 existingRespId = existingResponse.id;
             } else if (form.limit_to_one_response) {
@@ -208,7 +344,10 @@ export async function saveResponse(formId: string, responses: Record<string, any
     if (existingRespId) {
         const { error: updateError } = await supabase
             .from('responses')
-            .update({ submitted_at: new Date().toISOString() })
+            .update({
+                submitted_at: new Date().toISOString(),
+                form_version_id: form.live_version_id // Ensure always tied to the version at time of submission/edit
+            })
             .eq('id', existingRespId);
         if (updateError) throw updateError;
         responseId = existingRespId;
@@ -218,6 +357,7 @@ export async function saveResponse(formId: string, responses: Record<string, any
     } else {
         const responsePayload: any = {
             form_id: formId,
+            form_version_id: form.live_version_id, // CRITICAL: Link to version
             user_email: userEmail || null,
             submitted_at: new Date().toISOString(),
             id: typeof crypto !== 'undefined' && crypto.randomUUID
@@ -258,40 +398,45 @@ export async function saveResponse(formId: string, responses: Record<string, any
 }
 
 export async function getAllFormsWithStats() {
-    // 1. Get current user
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return [];
+    try {
+        // 1. Get current user
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return [];
 
-    // 2. Fetch forms created by this user
-    const { data: forms, error: formsError } = await supabase
-        .from('forms')
-        .select('*')
-        .eq('created_by', user.id)
-        .order('created_at', { ascending: false });
+        // 2. Fetch forms created by this user
+        const { data: forms, error: formsError } = await supabase
+            .from('forms')
+            .select('*')
+            .eq('created_by', user.id)
+            .order('created_at', { ascending: false });
 
-    if (formsError) throw formsError;
+        if (formsError) throw formsError;
 
-    // 3. Fetch response counts for these forms
-    const formIds = forms.map(f => f.id);
-    if (formIds.length === 0) return [];
+        // 3. Fetch response counts for these forms
+        const formIds = forms.map(f => f.id);
+        if (formIds.length === 0) return [];
 
-    const { data: counts, error: countsError } = await supabase
-        .from('responses')
-        .select('form_id')
-        .in('form_id', formIds);
+        const { data: counts, error: countsError } = await supabase
+            .from('responses')
+            .select('form_id')
+            .in('form_id', formIds);
 
-    if (countsError) throw countsError;
+        if (countsError) throw countsError;
 
-    // 4. Map counts to forms
-    const statsMap = counts.reduce((acc: Record<string, number>, curr: any) => {
-        acc[curr.form_id] = (acc[curr.form_id] || 0) + 1;
-        return acc;
-    }, {});
+        // 4. Map counts to forms
+        const statsMap = counts.reduce((acc: Record<string, number>, curr: any) => {
+            acc[curr.form_id] = (acc[curr.form_id] || 0) + 1;
+            return acc;
+        }, {});
 
-    return forms.map(form => ({
-        ...form,
-        response_count: statsMap[form.id] || 0
-    }));
+        return forms.map(form => ({
+            ...form,
+            response_count: statsMap[form.id] || 0
+        }));
+    } catch (err: any) {
+        console.error('CRITICAL: getAllFormsWithStats failed:', err.message || err);
+        throw err;
+    }
 }
 
 export async function getResponseDetails(formId: string) {
@@ -330,8 +475,11 @@ export async function getResponseDetails(formId: string) {
     // 6. Map answers to responses
     const responsesWithAnswers = responses.map(r => {
         const responseAnswers = answers.filter(a => a.response_id === r.id);
-        const answersMap = responseAnswers.reduce((acc: Record<string, string>, curr: any) => {
-            acc[curr.element_id] = curr.answer;
+        const answersMap = responseAnswers.reduce((acc: Record<string, any>, curr: any) => {
+            acc[curr.element_id] = {
+                answer: curr.answer,
+                file_url: curr.file_url
+            };
             return acc;
         }, {});
 
