@@ -61,23 +61,7 @@ export async function saveForm(form: Form) {
     };
 
     if (formId) {
-        const updatePayload: any = {
-            title: form.title,
-            description: form.description,
-            status: form.status,
-            theme_color: form.theme_color || '#2563eb',
-            expires_at: form.expires_at || null,
-            collect_email: form.collect_email || false,
-            limit_to_one_response: form.limit_to_one_response || false,
-            allow_response_editing: form.allow_response_editing || false,
-            logo_url: form.logo_url || null,
-            updated_at: new Date().toISOString()
-        };
-
-        if (form.created_by_email) {
-            updatePayload.created_by_email = form.created_by_email;
-        }
-
+        // ... (update branch is actually fine in line 63, but it was being overshadowed by the mess below)
         const { error } = await supabase
             .from('forms')
             .update(updatePayload)
@@ -88,26 +72,8 @@ export async function saveForm(form: Form) {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) throw new Error('User not authenticated');
 
-        const insertPayload: any = {
-            title: form.title,
-            description: form.description,
-            status: form.status,
-            theme_color: form.theme_color || '#2563eb',
-            expires_at: form.expires_at || null,
-            collect_email: form.collect_email || false,
-            limit_to_one_response: form.limit_to_one_response || false,
-            allow_response_editing: form.allow_response_editing || false,
-            logo_url: form.logo_url || null,
-            created_by: user.id
-        };
-
-        if (user.email) {
-            insertPayload.created_by_email = user.email;
-        }
-
         const { data, error } = await supabase
             .from('forms')
-            .insert(insertPayload)
             .insert({
                 ...updatePayload,
                 status: 'draft',
@@ -495,67 +461,56 @@ export async function getAllFormsWithStats() {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return [];
 
-    // 2. Fetch forms created by this user
-    const { data: ownedForms, error: formsError } = await supabase
-        .from('forms')
-        .select('*')
-        .eq('created_by', user.id)
-        .order('created_at', { ascending: false });
         // 2. Fetch forms created by this user
-        const { data: forms, error: formsError } = await supabase
+        const { data: ownedForms, error: ownedError } = await supabase
             .from('forms')
             .select('*')
             .eq('created_by', user.id)
             .order('created_at', { ascending: false });
 
-        if (formsError) throw formsError;
+        if (ownedError) throw ownedError;
 
-    // 3. Fetch forms shared with this user
-    const { data: collaborationData, error: collabError } = await supabase
-        .from('form_collaborators')
-        .select('form_id, role')
-        .eq('email', user.email?.toLowerCase());
+        // 3. Fetch forms shared with this user
+        const { data: collaborationData, error: collabError } = await supabase
+            .from('form_collaborators')
+            .select('form_id, role')
+            .eq('email', user.email?.toLowerCase());
 
-    // If table doesn't exist yet (42P01) or column 'role' is missing (42703), just skip collaboration part instead of crashing
-    if (collabError && collabError.code !== '42P01' && collabError.code !== '42703') throw collabError;
+        // Handle missing table/column cases gracefully
+        if (collabError && collabError.code !== '42P01' && collabError.code !== '42703') throw collabError;
 
-    let sharedForms: any[] = [];
-    if (collaborationData && collaborationData.length > 0) {
-        const sharedIds = collaborationData.map(c => c.form_id);
-        const { data: forms, error: sharedError } = await supabase
-            .from('forms')
-            .select('*')
-            .in('id', sharedIds)
-            .order('created_at', { ascending: false });
+        let sharedForms: any[] = [];
+        if (collaborationData && collaborationData.length > 0) {
+            const sharedIds = collaborationData.map(c => c.form_id);
+            const { data: sForms, error: sharedError } = await supabase
+                .from('forms')
+                .select('*')
+                .in('id', sharedIds)
+                .order('created_at', { ascending: false });
 
-        if (sharedError) throw sharedError;
-        sharedForms = forms || [];
-    }
+            if (sharedError) throw sharedError;
+            sharedForms = sForms || [];
+        }
 
-    // Combine and remove duplicates and attach roles
-    const allFormsMap = new Map();
-    ownedForms.forEach(f => allFormsMap.set(f.id, { ...f, role: 'editor', is_owner: true }));
-
-    sharedForms.forEach(f => {
-        const collabInfo = collaborationData?.find(c => c.form_id === f.id);
-        allFormsMap.set(f.id, {
-            ...f,
-            role: (collabInfo as any)?.role || 'editor',
-            is_owner: false
+        // Combine and attach roles
+        const allFormsMap = new Map();
+        ownedForms.forEach(f => allFormsMap.set(f.id, { ...f, role: 'editor', is_owner: true }));
+        sharedForms.forEach(f => {
+            if (!allFormsMap.has(f.id)) {
+                const collabInfo = collaborationData?.find(c => c.form_id === f.id);
+                allFormsMap.set(f.id, {
+                    ...f,
+                    role: (collabInfo as any)?.role || 'editor',
+                    is_owner: false
+                });
+            }
         });
-    });
 
-    const allForms = Array.from(allFormsMap.values());
+        const allForms = Array.from(allFormsMap.values());
+        if (allForms.length === 0) return [];
 
-    if (allForms.length === 0) return [];
-
-    // 4. Fetch response counts for these forms
-    const formIds = allForms.map(f => f.id);
-    if (formIds.length === 0) return [];
-        // 3. Fetch response counts for these forms
-        const formIds = forms.map(f => f.id);
-        if (formIds.length === 0) return [];
-
+        // 4. Fetch response counts
+        const formIds = allForms.map(f => f.id);
         const { data: counts, error: countsError } = await supabase
             .from('responses')
             .select('form_id')
@@ -563,23 +518,13 @@ export async function getAllFormsWithStats() {
 
         if (countsError) throw countsError;
 
-    // 5. Map counts to forms
-    const statsMap = counts.reduce((acc: Record<string, number>, curr: any) => {
-        acc[curr.form_id] = (acc[curr.form_id] || 0) + 1;
-        return acc;
-    }, {});
-
-    return allForms.map(form => ({
-        ...form,
-        response_count: statsMap[form.id] || 0
-    }));
-        // 4. Map counts to forms
+        // 5. Map counts to forms
         const statsMap = counts.reduce((acc: Record<string, number>, curr: any) => {
             acc[curr.form_id] = (acc[curr.form_id] || 0) + 1;
             return acc;
         }, {});
 
-        return forms.map(form => ({
+        return allForms.map(form => ({
             ...form,
             response_count: statsMap[form.id] || 0
         }));

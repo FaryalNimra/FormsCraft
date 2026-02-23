@@ -29,10 +29,9 @@ import {
 import Link from 'next/link';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useState, useEffect, useCallback, useRef, Suspense } from 'react';
-import { saveForm, getForm, FormElement, ElementType, getComments, addComment, deleteComment } from '@/lib/forms';
+import { saveForm, getForm, publishForm, FormElement, ElementType, getComments, addComment, deleteComment } from '@/lib/forms';
 import { FormComment } from '@/types/database';
 import { supabase } from '@/lib/supabase';
-import { saveForm, getForm, publishForm, FormElement, ElementType } from '@/lib/forms';
 
 const ELEMENT_ICONS: Record<ElementType, any> = {
     short_answer: Type,
@@ -117,7 +116,7 @@ function FormBuilder() {
     const [collaborators, setCollaborators] = useState<any[]>([]);
     const [newCollaboratorEmail, setNewCollaboratorEmail] = useState('');
     const [isAddingCollaborator, setIsAddingCollaborator] = useState(false);
-    const [collabMessage, setCollabMessage] = useState<{ text: string, type: 'success' | 'error' | 'info' } | null>(null);
+    const [collabMessage, setCollabMessage] = useState<{ text: string, type: 'success' | 'error' | 'info' | 'warning' } | null>(null);
     const [isOwner, setIsOwner] = useState(true);
     const [userRole, setUserRole] = useState<'viewer' | 'editor'>('editor');
     const [newCollaboratorRole, setNewCollaboratorRole] = useState<'viewer' | 'editor'>('editor');
@@ -217,8 +216,6 @@ function FormBuilder() {
                             getCollaborators(editId).then(setCollaborators);
                         }
                     }
-                } catch (error) {
-                    console.error("Failed to load form:", error);
                 } catch (error: any) {
                     console.error("Failed to load form:", error.message || error);
                 }
@@ -581,7 +578,7 @@ function FormBuilder() {
 
             // 4. Send Invitation Email
             try {
-                await fetch('/api/invite', {
+                const emailRes = await fetch('/api/invite', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -590,17 +587,30 @@ function FormBuilder() {
                         formLink: `${isMounted ? window.location.origin : ''}/login?next=${encodeURIComponent(`/builder?id=${currentFormId}`)}`
                     })
                 });
+
+                if (!emailRes.ok) {
+                    const errorData = await emailRes.json();
+                    console.error('Email invitation failed:', errorData);
+                    setCollabMessage({
+                        text: `Collaborator added, but invitation email failed: ${errorData.error}. ${errorData.hint || ''}`,
+                        type: 'warning'
+                    });
+                } else {
+                    setCollabMessage({
+                        text: `Success! Invitation link sent to ${newCollaboratorEmail}.`,
+                        type: 'success'
+                    });
+                }
             } catch (emailError) {
                 console.error('Failed to send invitation email:', emailError);
-                // We don't throw here because the collaborator was already added to the DB
+                setCollabMessage({
+                    text: `Collaborator added, but we couldn't send the invitation email.`,
+                    type: 'warning'
+                });
             }
 
             setCollaborators([...collaborators, newCollab]);
             setNewCollaboratorEmail('');
-            setCollabMessage({
-                text: `Success! Invitation link sent to ${newCollaboratorEmail}.`,
-                type: 'success'
-            });
 
             // Clear success message after 5s
             setTimeout(() => setCollabMessage(null), 5000);
@@ -767,28 +777,14 @@ function FormBuilder() {
                         )}
                         <button
                             onClick={handleSend}
-                            disabled={isSaving || !isOwner}
+                            disabled={isSaving || !canEdit || !isOwner}
                             className="flex items-center gap-1.5 px-3 py-1 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-all ml-0.5 disabled:opacity-50 text-[10px] font-bold uppercase"
-                            title={!isOwner ? "Only owners can publish" : ""}
-
-                    </div>
-                    {!formId && (
-                        <button
-                            onClick={clearDraft}
-                            className="flex items-center gap-1.5 px-3 py-1 text-gray-400 hover:text-red-600 hover:bg-white rounded-md transition-all disabled:opacity-50 text-[10px] font-bold uppercase"
-                            title="Clear Draft / Reset"
+                            title={!isOwner ? "Only owners can publish" : !canEdit ? "You don't have edit access" : ""}
                         >
-                            <Trash2 size={14} className="text-black" />
+                            <Send size={14} />
+                            Publish
                         </button>
-                    )}
-                    <button
-                        onClick={handleSend}
-                        disabled={isSaving}
-                        className="flex items-center gap-1.5 px-3 py-1 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-all ml-0.5 disabled:opacity-50 text-[10px] font-bold uppercase"
-                    >
-                        <Send size={14} />
-                        Publish
-                    </button>
+                    </div>
                 </div>
             </header>
 
@@ -1495,7 +1491,8 @@ function FormBuilder() {
                                                             {collabMessage && (
                                                                 <div className={`p-2 rounded-lg text-[10px] font-bold uppercase tracking-wider animate-in fade-in slide-in-from-top-1 duration-200 ${collabMessage.type === 'success' ? 'bg-green-50 text-green-600 border border-green-100' :
                                                                     collabMessage.type === 'error' ? 'bg-red-50 text-red-600 border border-red-100' :
-                                                                        'bg-blue-50 text-blue-600 border border-blue-100'
+                                                                        collabMessage.type === 'warning' ? 'bg-amber-50 text-amber-600 border-amber-100' :
+                                                                            'bg-blue-50 text-blue-600 border border-blue-100'
                                                                     }`}>
                                                                     {collabMessage.text}
                                                                 </div>
