@@ -94,6 +94,7 @@ function FormBuilder() {
     const [dragIndex, setDragIndex] = useState<number | null>(null);
     const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
     const [draggingType, setDraggingType] = useState<ElementType | null>(null);
+    const [showSavedFeedback, setShowSavedFeedback] = useState(false);
 
     const [formElements, setFormElements] = useState<FormElement[]>([]);
     const [activeElementId, setActiveElementId] = useState<string | null>(null);
@@ -247,6 +248,8 @@ function FormBuilder() {
             }
             setLastSaved(new Date());
             setIsLocalSaved(false);
+            setShowSavedFeedback(true);
+            setTimeout(() => setShowSavedFeedback(false), 3000);
             localStorage.removeItem('formcraft_progress');
         } catch (error: any) {
             console.error('Save failed:', error);
@@ -335,6 +338,8 @@ function FormBuilder() {
             setStatus('published');
             setLastSaved(new Date());
             setIsLocalSaved(false);
+            setShowSavedFeedback(true);
+            setTimeout(() => setShowSavedFeedback(false), 3000);
             localStorage.removeItem('formcraft_progress');
             setIsSendModalOpen(true);
         } catch (error: any) {
@@ -705,7 +710,12 @@ function FormBuilder() {
                 <div className="flex items-center gap-2">
                     <div className="hidden md:flex flex-col items-end mr-2">
                         {isSaving ? (
-                            <span className="text-[9px] font-bold text-blue-500 animate-pulse uppercase tracking-wider">Syncing...</span>
+                            <div className="flex items-center gap-1.5">
+                                <Loader2 size={10} className="animate-spin text-blue-500" />
+                                <span className="text-[9px] font-bold text-blue-500 animate-pulse uppercase tracking-wider">Saving...</span>
+                            </div>
+                        ) : showSavedFeedback ? (
+                            <span className="text-[9px] font-bold text-green-500 uppercase tracking-wider">Saved</span>
                         ) : isLocalSaved ? (
                             <span className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">Draft saved</span>
                         ) : null}
@@ -718,8 +728,12 @@ function FormBuilder() {
                             className="flex items-center gap-1.5 px-3 py-1 text-gray-400 hover:text-blue-600 hover:bg-white rounded-md transition-all disabled:opacity-50 text-[10px] font-bold uppercase"
                             title={!canEdit ? "You don't have edit access" : ""}
                         >
-                            <Save size={14} />
-                            Save
+                            {isSaving ? (
+                                <Loader2 size={14} className="animate-spin" />
+                            ) : (
+                                <Save size={14} />
+                            )}
+                            {isSaving ? 'Saving...' : 'Save'}
                         </button>
                         <div className="relative">
                             <button
@@ -1063,6 +1077,14 @@ function FormBuilder() {
                                                         const target = e.target as HTMLTextAreaElement;
                                                         target.style.height = 'auto';
                                                         target.style.height = target.scrollHeight + 'px';
+
+                                                        // Clear default label if it matches
+                                                        const defaultLabel = ELEMENT_LABELS[el.type];
+                                                        const paragraphDefault = 'Tell us more about yourself';
+                                                        const initialDefault = 'What is your name?';
+                                                        if (el.label === defaultLabel || (el.type === 'paragraph' && el.label === paragraphDefault) || el.label === initialDefault) {
+                                                            updateElement(el.id, { label: '' });
+                                                        }
                                                     }}
                                                     onChange={(e) => {
                                                         const words = e.target.value.trim().split(/\s+/).filter(Boolean);
@@ -1089,6 +1111,11 @@ function FormBuilder() {
                                                                 draggable={false}
                                                                 value={el.placeholder}
                                                                 onChange={(e) => updateElement(el.id, { placeholder: e.target.value })}
+                                                                onFocus={() => {
+                                                                    if (el.placeholder === 'Write response...') {
+                                                                        updateElement(el.id, { placeholder: '' });
+                                                                    }
+                                                                }}
                                                                 onClick={(e) => { e.stopPropagation(); setActiveElementId(el.id); }}
                                                                 disabled={!canEdit}
                                                                 className="w-full bg-transparent border-none outline-none resize-none p-0 focus:ring-0 text-gray-500 font-medium disabled:opacity-50"
@@ -1101,6 +1128,12 @@ function FormBuilder() {
                                                                 type="text"
                                                                 value={el.placeholder}
                                                                 onChange={(e) => updateElement(el.id, { placeholder: e.target.value })}
+                                                                onFocus={() => {
+                                                                    const defaults = ['Enter answer', 'Select...', 'e.g. John Doe'];
+                                                                    if (defaults.includes(el.placeholder)) {
+                                                                        updateElement(el.id, { placeholder: '' });
+                                                                    }
+                                                                }}
                                                                 onClick={(e) => { e.stopPropagation(); setActiveElementId(el.id); }}
                                                                 disabled={!canEdit}
                                                                 className="w-full bg-transparent border-none outline-none p-0 focus:ring-0 text-gray-500 font-medium disabled:opacity-50"
@@ -1131,6 +1164,11 @@ function FormBuilder() {
                                                                 value={opt}
                                                                 onClick={(e) => { e.stopPropagation(); setActiveElementId(el.id); }}
                                                                 disabled={!canEdit}
+                                                                onFocus={() => {
+                                                                    if (opt === `Option ${i + 1}`) {
+                                                                        updateOption(el.id, i, '');
+                                                                    }
+                                                                }}
                                                                 onChange={(e) => {
                                                                     const words = e.target.value.trim().split(/\s+/).filter(Boolean);
                                                                     if (words.length <= 10 || e.target.value.endsWith(' ')) {
@@ -1258,21 +1296,31 @@ function FormBuilder() {
 
                                     <div className="space-y-6">
                                         <div className="space-y-2">
-                                            <label className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Form Title</label>
+                                            <label className="block text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-2">Form Title</label>
                                             <input
                                                 type="text"
                                                 value={title}
                                                 onChange={(e) => setTitle(e.target.value)}
+                                                onFocus={() => {
+                                                    if (title === 'Untitled Form') {
+                                                        setTitle('');
+                                                    }
+                                                }}
                                                 disabled={!canEdit}
                                                 className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-xs font-bold text-gray-900 focus:ring-1 focus:ring-blue-600 focus:bg-white outline-none disabled:opacity-50"
                                             />
                                         </div>
 
                                         <div className="space-y-2">
-                                            <label className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Form Description</label>
+                                            <label className="block text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-2">Form Description</label>
                                             <textarea
                                                 value={description}
                                                 onChange={(e) => setDescription(e.target.value)}
+                                                onFocus={() => {
+                                                    if (description === 'Collect valuable feedback with ease.') {
+                                                        setDescription('');
+                                                    }
+                                                }}
                                                 rows={3}
                                                 disabled={!canEdit}
                                                 className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-xs font-medium text-gray-900 focus:ring-1 focus:ring-blue-600 focus:bg-white outline-none resize-none disabled:opacity-50"
@@ -1281,7 +1329,7 @@ function FormBuilder() {
 
                                         {/* Color Palette */}
                                         <div className="space-y-3">
-                                            <label className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Theme Color</label>
+                                            <label className="block text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-3">Theme Color</label>
                                             <div className="flex flex-wrap gap-2">
                                                 {[
                                                     '#2563eb', '#7c3aed', '#db2777', '#dc2626',
@@ -1301,8 +1349,8 @@ function FormBuilder() {
                                                     />
                                                 ))}
                                             </div>
-                                            <div className="flex items-center gap-2">
-                                                <label className="text-[9px] font-bold text-gray-400 uppercase tracking-widest flex-shrink-0">Custom</label>
+                                            <div className="flex items-center gap-4">
+                                                <label className="text-[9px] font-bold text-gray-400 uppercase tracking-widest flex-shrink-0 mr-1">Custom</label>
                                                 <div className="relative flex items-center gap-2 flex-1">
                                                     <input
                                                         type="color"
@@ -1330,7 +1378,7 @@ function FormBuilder() {
 
                                         {/* Logo Uploader */}
                                         <div className="space-y-3">
-                                            <label className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Form Logo</label>
+                                            <label className="block text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-2">Form Logo</label>
                                             <input
                                                 ref={logoFileRef}
                                                 type="file"
@@ -1456,7 +1504,7 @@ function FormBuilder() {
                                                 {headerCollabOpen && (
                                                     <div className="mt-3 space-y-4 animate-in fade-in slide-in-from-top-1 duration-200">
                                                         <div className="space-y-2">
-                                                            <label className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Add Collaborator</label>
+                                                            <label className="block text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-2">Add Collaborator</label>
                                                             <div className="space-y-2">
                                                                 <input
                                                                     type="email"
@@ -1500,7 +1548,7 @@ function FormBuilder() {
                                                         </div>
 
                                                         <div className="space-y-3">
-                                                            <label className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Manage Access</label>
+                                                            <label className="block text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-2">Manage Access</label>
                                                             <div className="space-y-2 max-h-[300px] overflow-y-auto pr-2 scrollbar-hide">
                                                                 {collaborators.length === 0 && !ownerEmail ? (
                                                                     <div className="text-center py-8 bg-gray-50 rounded-xl border border-dashed border-gray-200">
@@ -1572,10 +1620,18 @@ function FormBuilder() {
 
                                     <div className="space-y-6">
                                         <div className="space-y-2">
-                                            <label className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Field Label</label>
+                                            <label className="block text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-2">Field Label</label>
                                             <input
                                                 type="text"
                                                 value={activeElement.label}
+                                                onFocus={() => {
+                                                    const defaultLabel = ELEMENT_LABELS[activeElement.type];
+                                                    const paragraphDefault = 'Tell us more about yourself';
+                                                    const initialDefault = 'What is your name?';
+                                                    if (activeElement.label === defaultLabel || (activeElement.type === 'paragraph' && activeElement.label === paragraphDefault) || activeElement.label === initialDefault) {
+                                                        updateElement(activeElement.id, { label: '' });
+                                                    }
+                                                }}
                                                 onChange={(e) => {
                                                     const val = e.target.value;
                                                     const limit = activeElement.type === 'paragraph' ? 15 : 10;
@@ -1621,6 +1677,11 @@ function FormBuilder() {
                                                                 type="text"
                                                                 value={opt}
                                                                 disabled={!canEdit}
+                                                                onFocus={() => {
+                                                                    if (opt === `Option ${i + 1}`) {
+                                                                        if (activeElement) updateOption(activeElement.id, i, '');
+                                                                    }
+                                                                }}
                                                                 onChange={(e) => {
                                                                     const val = e.target.value;
                                                                     const words = val.trim().split(/\s+/).filter(Boolean);

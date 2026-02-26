@@ -18,7 +18,7 @@ function SignupForm() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
-  const [nameError, setNameError] = useState('');
+  const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
 
@@ -38,6 +38,14 @@ function SignupForm() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setSuccess('');
+
+    // --- 🟢 Robust Email Validation ---
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    if (!emailRegex.test(email)) {
+      setError('Please enter a valid and complete email address');
+      return;
+    }
 
     // Validation
     if (password.length < 6) {
@@ -58,10 +66,30 @@ function SignupForm() {
     setLoading(true);
 
     try {
-      await signUp(email, password, fullName);
-      // Redirect to home immediately instead of showing success message
-      router.push(next || '/');
-      router.refresh();
+      const response = await signUp(email, password, fullName);
+      const { user, session } = response;
+
+      // Log for debugging (visible in browser console)
+      console.log('Signup response:', { user, session });
+
+      // --- 🟢 Handle Email Confirmation / Verification ---
+      // If email confirmation is enabled in Supabase:
+      // 1. New users get a 'user' object but 'session' is null.
+      // 2. Existing users (security) get a 'user' object but 'session' is null (identities empty).
+      if (user && !session) {
+        setSuccess('Success! We have sent a verification link to your email. Please check your inbox (and spam folder) to activate your account before logging in.');
+        setLoading(false);
+        // Clear sensitive fields
+        setPassword('');
+        setConfirmPassword('');
+        return;
+      }
+
+      // If we have a session, the user is immediately logged in (confirmation is off or auto-verified)
+      if (session) {
+        router.push(next || '/');
+        router.refresh();
+      }
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Something went wrong';
       setError(errorMessage);
@@ -95,8 +123,32 @@ function SignupForm() {
 
         {/* Error Message */}
         {error && (
-          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">
+          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm animate-in fade-in duration-300">
             {error}
+          </div>
+        )}
+
+        {/* Success / Confirmation Box */}
+        {success && (
+          <div className="mb-6 p-5 bg-purple-50 border border-purple-100 rounded-xl animate-in zoom-in duration-500 shadow-sm relative overflow-hidden">
+            {/* Subtle background decoration */}
+            <div className="absolute top-0 right-0 w-24 h-24 bg-purple-100/50 rounded-full -mr-12 -mt-12 transition-all"></div>
+
+            <div className="flex items-start gap-4 relative z-10">
+              <div className="w-12 h-12 rounded-full bg-purple-600 flex items-center justify-center text-white shrink-0 shadow-lg shadow-purple-200">
+                <Mail className="h-6 w-6" />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-base font-bold text-purple-900 leading-tight">Verify your email</h3>
+                <p className="text-sm text-purple-700 mt-1 leading-relaxed font-medium">
+                  {success}
+                </p>
+                <div className="mt-4 flex items-center gap-2">
+                  <div className="h-1.5 w-1.5 rounded-full bg-purple-600 animate-pulse"></div>
+                  <span className="text-[10px] font-bold text-purple-600 uppercase tracking-widest">Awaiting verification...</span>
+                </div>
+              </div>
+            </div>
           </div>
         )}
 

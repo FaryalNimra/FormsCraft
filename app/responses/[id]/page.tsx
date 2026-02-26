@@ -21,7 +21,9 @@ import {
     Copy,
     Check,
     X,
-    Image as ImageIcon
+    Image as ImageIcon,
+    Printer,
+    FileDown
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -120,6 +122,10 @@ export default function ResponsesPage() {
         document.body.removeChild(link);
     };
 
+    const handlePrint = () => {
+        window.print();
+    };
+
     // Loading state
     if (isLoading) {
         return (
@@ -166,7 +172,7 @@ export default function ResponsesPage() {
             <header className="bg-white border-b border-gray-100 sticky top-0 z-50">
                 <div className="max-w-7xl mx-auto px-6 h-14 flex items-center justify-between">
                     <div className="flex items-center gap-4">
-                        <Link href="/" className="flex items-center gap-2 group">
+                        <Link href="/" className="flex items-center gap-2 group no-print">
                             <div className="w-7 h-7 bg-blue-600 rounded-lg flex items-center justify-center text-white">
                                 <ArrowLeft size={14} />
                             </div>
@@ -192,7 +198,7 @@ export default function ResponsesPage() {
                     <div className="flex items-center gap-2">
                         <button
                             onClick={copyShareLink}
-                            className="flex items-center gap-1.5 px-3 py-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all text-[10px] font-bold uppercase tracking-wider"
+                            className="flex items-center gap-1.5 px-3 py-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all text-[10px] font-bold uppercase tracking-wider no-print"
                         >
                             {copySuccess ? <Check size={14} /> : <LinkIcon size={14} />}
                             {copySuccess ? 'Copied!' : 'Share'}
@@ -200,10 +206,26 @@ export default function ResponsesPage() {
                         <button
                             onClick={exportCSV}
                             disabled={responses.length === 0}
-                            className="flex items-center gap-1.5 px-3 py-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all text-[10px] font-bold uppercase tracking-wider disabled:opacity-40 disabled:cursor-not-allowed"
+                            className="flex items-center gap-1.5 px-3 py-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all text-[10px] font-bold uppercase tracking-wider disabled:opacity-40 disabled:cursor-not-allowed no-print"
                         >
                             <Download size={14} />
-                            Export CSV
+                            CSV
+                        </button>
+                        <button
+                            onClick={handlePrint}
+                            disabled={responses.length === 0}
+                            className="flex items-center gap-1.5 px-3 py-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all text-[10px] font-bold uppercase tracking-wider disabled:opacity-40 disabled:cursor-not-allowed no-print"
+                        >
+                            <FileDown size={14} />
+                            PDF
+                        </button>
+                        <button
+                            onClick={handlePrint}
+                            disabled={responses.length === 0}
+                            className="flex items-center gap-1.5 px-3 py-1.5 text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-all text-[10px] font-bold uppercase tracking-wider disabled:opacity-40 disabled:cursor-not-allowed no-print"
+                        >
+                            <Printer size={14} />
+                            Print
                         </button>
                     </div>
                 </div>
@@ -267,7 +289,7 @@ export default function ResponsesPage() {
                 ) : (
                     <>
                         {/* Toolbar */}
-                        <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center justify-between mb-4 no-print">
                             <div className="flex items-center gap-2">
                                 <div className="relative">
                                     <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
@@ -374,7 +396,7 @@ export default function ResponsesPage() {
                                                             </span>
                                                         </td>
                                                     ))}
-                                                    <td className="px-4 py-4 text-right">
+                                                    <td className="px-4 py-4 text-right no-print">
                                                         <button
                                                             onClick={() => { setSelectedResponseIndex(index); setViewMode('individual'); }}
                                                             className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
@@ -395,7 +417,7 @@ export default function ResponsesPage() {
                         {viewMode === 'individual' && selectedResponse && (
                             <div className="space-y-4">
                                 {/* Navigation */}
-                                <div className="flex items-center justify-between bg-white rounded-2xl border border-gray-100 p-4 shadow-sm">
+                                <div className="flex items-center justify-between bg-white rounded-2xl border border-gray-100 p-4 shadow-sm no-print">
                                     <button
                                         onClick={() => setSelectedResponseIndex(Math.max(0, selectedResponseIndex - 1))}
                                         disabled={selectedResponseIndex === 0}
@@ -472,6 +494,45 @@ export default function ResponsesPage() {
                     </>
                 )}
             </main>
+
+            <style jsx global>{`
+                @media print {
+                    .no-print {
+                        display: none !important;
+                    }
+                    body {
+                        background: white !important;
+                    }
+                    .max-w-7xl {
+                        max-width: 100% !important;
+                        padding: 0 !important;
+                        margin: 0 !important;
+                    }
+                    header {
+                        position: static !important;
+                        border-bottom: 2px solid #eee !important;
+                    }
+                    main {
+                        padding: 20px !important;
+                    }
+                    .shadow-sm, .shadow-md {
+                        shadow: none !important;
+                        border: 1px solid #eee !important;
+                    }
+                    table {
+                        width: 100% !important;
+                        border-collapse: collapse !important;
+                    }
+                    th, td {
+                        border: 1px solid #eee !important;
+                        font-size: 10px !important;
+                    }
+                    .bg-gray-50, .bg-blue-50, .bg-green-50, .bg-purple-50 {
+                        background-color: transparent !important;
+                        border: 1px solid #eee !important;
+                    }
+                }
+            `}</style>
         </div>
     );
 }
