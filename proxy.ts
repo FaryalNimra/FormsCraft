@@ -4,7 +4,7 @@
 
 import { NextResponse, type NextRequest } from 'next/server';
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   // Check for Supabase auth token in cookies
   // Supabase stores session in cookies with names like 'sb-<project-ref>-auth-token'
   const hasAuthCookie = request.cookies.getAll().some(cookie =>
