@@ -18,6 +18,7 @@ function SignupForm() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
+  const [nameError, setNameError] = useState('');
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
 
@@ -41,6 +42,11 @@ function SignupForm() {
     // Validation
     if (password.length < 6) {
       setError('Password must be at least 6 characters');
+      return;
+    }
+
+    if (password.length > 32) {
+      setError('Password cannot exceed 32 characters');
       return;
     }
 
@@ -107,11 +113,37 @@ function SignupForm() {
                 id="fullName"
                 type="text"
                 value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  // Check if the input contains invalid characters
+                  if (val !== '' && !/^[A-Za-z\s]*$/.test(val)) {
+                    setNameError('Only letters and spaces are allowed (numbers/symbols not allowed)');
+                    // Clear the error message after a short delay
+                    setTimeout(() => setNameError(''), 2500);
+                    return; // Prevent adding invalid character
+                  }
+
+                  // Enforcement of 50 chars
+                  if (val.length <= 50) {
+                    setFullName(val);
+                    setNameError('');
+                  } else {
+                    setNameError('Maximum 50 characters allowed');
+                    setTimeout(() => setNameError(''), 2500);
+                  }
+                }}
                 placeholder="John Doe"
-                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none transition-all"
+                maxLength={50}
+                className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 outline-none transition-all ${nameError ? 'border-red-300 focus:ring-red-500 focus:border-red-500' : 'border-gray-300 focus:ring-purple-500 focus:border-purple-500'
+                  }`}
               />
+              <div className="absolute right-3 bottom-0 text-[10px] text-gray-400">
+                {fullName.length}/50
+              </div>
             </div>
+            {nameError && (
+              <p className="text-xs text-red-500 mt-1 animate-pulse">{nameError}</p>
+            )}
           </div>
 
           {/* Email Input */}
@@ -144,10 +176,16 @@ function SignupForm() {
                 id="password"
                 type={showPassword ? 'text' : 'password'}
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  if (val.length <= 32) {
+                    setPassword(val);
+                  }
+                }}
                 placeholder="••••••••"
                 required
                 minLength={6}
+                maxLength={32}
                 className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none transition-all"
               />
               <button
@@ -158,6 +196,9 @@ function SignupForm() {
                 {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
               </button>
             </div>
+            {password.length >= 32 && (
+              <p className="text-xs text-red-500 mt-1">Password cannot exceed 32 characters</p>
+            )}
 
             {/* Password Strength Indicator */}
             {password && (
