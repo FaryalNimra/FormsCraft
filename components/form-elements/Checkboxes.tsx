@@ -31,7 +31,7 @@ export default function Checkboxes({
 
     return (
         <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-200 transition-all">
-            <p className="text-base font-medium text-gray-900 mb-4 leading-normal break-words">
+            <p className="text-lg font-semibold text-gray-900 mb-4 leading-normal break-words">
                 {label}
                 {required && <span className="text-red-600 ml-1">*</span>}
             </p>
@@ -62,13 +62,13 @@ export default function Checkboxes({
                                     {isChecked && <Check size={12} className="text-white" strokeWidth={3} />}
                                 </div>
                             </div>
-                            <span className="text-sm font-normal text-gray-800 break-words">{option}</span>
+                            <span className="text-base font-normal text-gray-800 break-words">{option}</span>
                         </label>
                     );
                 })}
             </div>
             {error && (
-                <p className="mt-4 text-xs text-red-500 font-medium flex items-center gap-1">
+                <p className="mt-4 text-sm text-red-500 font-medium flex items-center gap-1">
                     <XCircle size={14} />
                     {error}
                 </p>

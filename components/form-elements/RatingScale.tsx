@@ -26,7 +26,7 @@ export default function RatingScale({
 
     return (
         <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-200 transition-all">
-            <p className="text-base font-medium text-gray-900 mb-4 leading-normal break-words">
+            <p className="text-lg font-semibold text-gray-900 mb-4 leading-normal break-words">
                 {label}
                 {required && <span className="text-red-600 ml-1">*</span>}
             </p>
@@ -59,11 +59,11 @@ export default function RatingScale({
                     );
                 })}
                 {value > 0 && (
-                    <span className="ml-2 text-xs font-bold text-gray-400">{value}/{maxRating}</span>
+                    <span className="ml-2 text-sm font-bold text-gray-400">{value}/{maxRating}</span>
                 )}
             </div>
             {error && (
-                <p className="mt-4 text-xs text-red-500 font-medium flex items-center gap-1">
+                <p className="mt-4 text-sm text-red-500 font-medium flex items-center gap-1">
                     <XCircle size={14} />
                     {error}
                 </p>

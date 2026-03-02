@@ -23,7 +23,7 @@ export default function DatePicker({
 }: DatePickerProps) {
     return (
         <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-200 transition-all">
-            <label htmlFor={id} className="block text-base font-medium text-gray-900 mb-4 leading-normal break-words">
+            <label htmlFor={id} className="block text-lg font-semibold text-gray-900 mb-4 leading-normal break-words">
                 {label}
                 {required && <span className="text-red-600 ml-1">*</span>}
             </label>
@@ -33,7 +33,7 @@ export default function DatePicker({
                     type="date"
                     value={value}
                     onChange={(e) => onChange(e.target.value)}
-                    className={`w-full px-4 py-3 border rounded-lg text-sm text-gray-900 placeholder:text-gray-400 bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all appearance-none ${error ? 'border-red-300 bg-red-50' : 'border-gray-300'}`}
+                    className={`w-full px-4 py-3 border rounded-lg text-base text-gray-900 placeholder:text-gray-400 bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all appearance-none ${error ? 'border-red-300 bg-red-50' : 'border-gray-300'}`}
                     required={required}
                 />
                 <Calendar
@@ -42,7 +42,7 @@ export default function DatePicker({
                 />
             </div>
             {error && (
-                <p className="mt-4 text-xs text-red-500 font-medium flex items-center gap-1">
+                <p className="mt-4 text-sm text-red-500 font-medium flex items-center gap-1">
                     <XCircle size={14} />
                     {error}
                 </p>

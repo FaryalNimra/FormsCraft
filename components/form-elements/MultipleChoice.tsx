@@ -23,7 +23,7 @@ export default function MultipleChoice({
 }: MultipleChoiceProps) {
     return (
         <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-200 transition-all">
-            <p className="text-base font-medium text-gray-900 mb-4 leading-normal break-words">
+            <p className="text-lg font-semibold text-gray-900 mb-4 leading-normal break-words">
                 {label}
                 {required && <span className="text-red-600 ml-1">*</span>}
             </p>
@@ -56,7 +56,7 @@ export default function MultipleChoice({
                                 )}
                             </div>
                         </div>
-                        <span className="text-sm font-normal text-gray-800 break-words">{option}</span>
+                        <span className="text-base font-normal text-gray-800 break-words">{option}</span>
                     </label>
                 ))}
             </div>
@@ -64,13 +64,13 @@ export default function MultipleChoice({
                 <button
                     type="button"
                     onClick={() => onChange('')}
-                    className="mt-3 text-xs font-medium text-gray-400 hover:text-gray-600 transition-colors"
+                    className="mt-3 text-sm font-medium text-gray-400 hover:text-gray-600 transition-colors"
                 >
                     Clear selection
                 </button>
             )}
             {error && (
-                <p className="mt-4 text-xs text-red-500 font-medium flex items-center gap-1">
+                <p className="mt-4 text-sm text-red-500 font-medium flex items-center gap-1">
                     <XCircle size={14} />
                     {error}
                 </p>

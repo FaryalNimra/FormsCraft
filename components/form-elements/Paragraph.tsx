@@ -12,6 +12,7 @@ interface ParagraphProps {
     onChange: (value: string) => void;
     error?: string;
     wordLimit?: number;
+    charLimit?: number;
 }
 
 export default function Paragraph({
@@ -23,6 +24,7 @@ export default function Paragraph({
     onChange,
     error,
     wordLimit,
+    charLimit,
 }: ParagraphProps) {
     const [wordCount, setWordCount] = useState(0);
 
@@ -36,6 +38,7 @@ export default function Paragraph({
     }, [value]);
 
     const handleChange = (newValue: string) => {
+        if (charLimit && newValue.length > charLimit) return;
         if (wordLimit) {
             const words = newValue.trim().split(/\s+/).filter(Boolean);
             if (words.length > wordLimit) return;
@@ -47,7 +50,7 @@ export default function Paragraph({
 
     return (
         <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-200 transition-all">
-            <label htmlFor={id} className="block text-base font-medium text-gray-900 mb-4 leading-normal break-words">
+            <label htmlFor={id} className="block text-lg font-semibold text-gray-900 mb-4 leading-normal break-words">
                 {label}
                 {required && <span className="text-red-600 ml-1">*</span>}
             </label>
@@ -57,18 +60,25 @@ export default function Paragraph({
                 value={value}
                 onChange={(e) => handleChange(e.target.value)}
                 rows={4}
-                className={`w-full border-b py-2 focus:border-b-2 focus:outline-none transition-all text-sm font-normal text-gray-900 placeholder:text-gray-400 bg-transparent resize-none ${error ? 'border-red-300' : 'border-gray-300'}`}
+                className={`w-full border-b py-2 focus:border-b-2 focus:outline-none transition-all text-base font-normal text-gray-900 placeholder:text-gray-400 bg-transparent resize-none ${error ? 'border-red-300' : 'border-gray-300'}`}
                 required={required}
             />
-            {wordLimit && (
-                <div className="flex justify-end mt-2">
-                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${isOverLimit ? 'text-red-500 bg-red-50' : 'text-gray-400 bg-gray-50'}`}>
-                        {wordCount} / {wordLimit} words
-                    </span>
+            {(wordLimit || charLimit) && (
+                <div className="flex justify-end mt-2 gap-2">
+                    {charLimit && (
+                        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md ${value.length > charLimit ? 'text-red-500 bg-red-50' : 'text-gray-400 bg-gray-50'}`}>
+                            {value.length} / {charLimit} chars
+                        </span>
+                    )}
+                    {wordLimit && (
+                        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md ${isOverLimit ? 'text-red-500 bg-red-50' : 'text-gray-400 bg-gray-50'}`}>
+                            {wordCount} / {wordLimit} words
+                        </span>
+                    )}
                 </div>
             )}
             {error && (
-                <p className="mt-4 text-xs text-red-500 font-medium flex items-center gap-1">
+                <p className="mt-4 text-sm text-red-500 font-medium flex items-center gap-1">
                     <XCircle size={14} />
                     {error}
                 </p>

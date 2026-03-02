@@ -132,6 +132,12 @@ export default function ViewForm() {
             return;
         }
 
+        // Prevent creators from submitting
+        if (user && form?.created_by === user.id) {
+            alert('Form creators cannot submit responses to their own forms.');
+            return;
+        }
+
         setIsSubmitting(true);
         try {
             await saveResponse(id as string, responses, form?.collect_email ? userEmail : undefined, user?.id);
@@ -166,11 +172,11 @@ export default function ViewForm() {
                         <div className="w-12 h-12 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
                             <XCircle size={24} />
                         </div>
-                        <h1 className="text-lg font-bold text-gray-900 mb-2">Form Not Found</h1>
-                        <p className="text-gray-500 text-xs mb-6">{error || 'The link you followed might be broken.'}</p>
+                        <h1 className="text-xl font-bold text-gray-900 mb-2">Form Not Found</h1>
+                        <p className="text-gray-500 text-sm mb-6">{error || 'The link you followed might be broken.'}</p>
                         <a
                             href="/"
-                            className="inline-block px-6 py-2 text-white rounded font-medium text-xs transition-colors hover:opacity-90 shadow-sm"
+                            className="inline-block px-6 py-2 text-white rounded font-medium text-sm transition-colors hover:opacity-90 shadow-sm"
                             style={{ backgroundColor: form?.theme_color || '#2563eb' }}
                         >
                             Go back
@@ -186,7 +192,7 @@ export default function ViewForm() {
             <div className="min-h-screen bg-[#F0EBF8] flex items-center justify-center p-4">
                 <div className="bg-white p-10 rounded-lg shadow-sm text-left max-w-2xl w-full border border-gray-200 relative overflow-hidden">
                     <div className="absolute top-0 left-0 w-full h-2.5" style={{ backgroundColor: (!form.theme_color || form.theme_color === '#2563eb') ? 'var(--primary-600)' : form.theme_color }}></div>
-                    <h1 className="text-3xl font-medium text-gray-900 mb-4">{form.title}</h1>
+                    <h1 className="text-4xl font-medium text-gray-900 mb-4 break-words">{form.title}</h1>
                     <p className="text-gray-700 font-normal mb-8 leading-relaxed">Your response has been recorded.</p>
                     <div className="flex flex-col items-start gap-4">
                         <button
@@ -195,7 +201,7 @@ export default function ViewForm() {
                                 setResponses({});
                                 setUserEmail('');
                             }}
-                            className="text-xs font-bold uppercase tracking-widest hover:opacity-80 transition-all select-none"
+                            className="text-sm font-bold uppercase tracking-widest hover:opacity-80 transition-all select-none"
                             style={{ color: (!form.theme_color || form.theme_color === '#2563eb') ? 'var(--primary-600)' : form.theme_color }}
                         >
                             Submit another response
@@ -215,12 +221,12 @@ export default function ViewForm() {
                         <div className="w-12 h-12 bg-amber-50 text-amber-500 rounded-full flex items-center justify-center mx-auto mb-4">
                             <XCircle size={24} />
                         </div>
-                        <h1 className="text-lg font-bold text-gray-900 mb-2">Already Submitted</h1>
-                        <p className="text-gray-500 text-xs mb-6">You have already submitted a response for this form. Responses are limited to one per person.</p>
+                        <h1 className="text-xl font-bold text-gray-900 mb-2">Already Submitted</h1>
+                        <p className="text-gray-500 text-sm mb-6">You have already submitted a response for this form. Responses are limited to one per person.</p>
                         {form.allow_response_editing && (
                             <button
                                 onClick={() => setAlreadySubmitted(false)}
-                                className="inline-block px-6 py-2 text-white rounded font-medium text-xs transition-colors hover:opacity-90 shadow-sm"
+                                className="inline-block px-6 py-2 text-white rounded font-medium text-sm transition-colors hover:opacity-90 shadow-sm"
                                 style={{ backgroundColor: form.theme_color || '#2563eb' }}
                             >
                                 Edit your response
@@ -238,11 +244,11 @@ export default function ViewForm() {
                 <div className="bg-white rounded-lg shadow-sm text-center max-w-md w-full border border-gray-200 overflow-hidden relative">
                     <div className="absolute top-0 left-0 w-full h-2" style={{ backgroundColor: form.theme_color || '#2563eb' }}></div>
                     <div className="p-8">
-                        <h1 className="text-xl font-bold text-gray-900 mb-2 capitalize">{form.title}</h1>
-                        <p className="text-gray-500 text-xs mb-8">Sign in with Google to continue. Your identity will be used to limit responses to one per person.</p>
+                        <h1 className="text-2xl font-bold text-gray-900 mb-2 capitalize break-words">{form.title}</h1>
+                        <p className="text-gray-500 text-sm mb-8">Sign in with Google to continue. Your identity will be used to limit responses to one per person.</p>
                         <button
-                            onClick={() => signInWithGoogle()}
-                            className="w-full flex items-center justify-center gap-3 px-6 py-3 bg-white border border-gray-300 rounded-lg font-bold text-xs text-gray-700 hover:bg-gray-50 transition-all shadow-sm active:scale-[0.98]"
+                            onClick={() => signInWithGoogle(window.location.pathname)}
+                            className="w-full flex items-center justify-center gap-3 px-6 py-3 bg-white border border-gray-300 rounded-lg font-bold text-sm text-gray-700 hover:bg-gray-50 transition-all shadow-sm active:scale-[0.98]"
                         >
                             <img src="https://www.google.com/favicon.ico" alt="Google" className="w-4 h-4" />
                             Sign in with Google
@@ -252,6 +258,11 @@ export default function ViewForm() {
             </div>
         );
     }
+
+    const isCreator = !!(user && form.created_by === user.id);
+
+    // We no longer block the creator from viewing the response page.
+    // This allows them to preview the live form and submit test responses.
 
     return (
         <div className="min-h-screen bg-[#F0EBF8] pb-12">
@@ -269,12 +280,12 @@ export default function ViewForm() {
                         <div className="absolute top-0 left-0 w-full h-1 bg-white/20"></div>
                         <div className="p-8 pt-10 flex items-start gap-4">
                             <div className="flex-1 text-white">
-                                <h1 className="text-3xl font-extrabold mb-3 tracking-tight">{form.title}</h1>
+                                <h1 className="text-4xl font-extrabold mb-3 tracking-tight break-words">{form.title}</h1>
                                 {form.description && (
-                                    <p className="text-sm font-medium text-white/80 leading-relaxed whitespace-pre-wrap">{form.description}</p>
+                                    <p className="text-base font-medium text-white/80 leading-relaxed whitespace-pre-wrap">{form.description}</p>
                                 )}
                                 {form.expires_at && (
-                                    <div className="mt-4 flex items-center gap-2 text-white/60 text-[10px] font-bold uppercase tracking-wider bg-black/10 w-fit px-3 py-1 rounded-md border border-white/5">
+                                    <div className="mt-4 flex items-center gap-2 text-white/60 text-xs font-bold uppercase tracking-wider bg-black/10 w-fit px-3 py-1 rounded-md border border-white/5">
                                         <Clock size={10} className="text-white/40" />
                                         <span>Deadline: {new Date(form.expires_at).toLocaleString([], {
                                             dateStyle: 'medium',
@@ -282,7 +293,7 @@ export default function ViewForm() {
                                         })}</span>
                                     </div>
                                 )}
-                                <div className="mt-4 pt-4 border-t border-white/10 flex items-center gap-1.5 text-xs text-white/60">
+                                <div className="mt-4 pt-4 border-t border-white/10 flex items-center gap-1.5 text-sm text-white/60">
                                     <span className="text-white/80">*</span> Indicates required question
                                 </div>
                             </div>
@@ -303,7 +314,7 @@ export default function ViewForm() {
                         >
                             <label className="block text-base font-medium text-gray-900 mb-4 leading-normal">
                                 Email Address <span className="text-red-600 ml-1">*</span>
-                                <p className="text-[10px] text-gray-500 font-normal mt-1 uppercase tracking-tight">Your email will be recorded with this response</p>
+                                <p className="text-xs text-gray-500 font-normal mt-1 uppercase tracking-tight">Your email will be recorded with this response</p>
                             </label>
                             <div className="group relative">
                                 <input
@@ -320,7 +331,7 @@ export default function ViewForm() {
                                             });
                                         }
                                     }}
-                                    className={`w-full border-b py-2 focus:border-b-2 focus:outline-none transition-all text-sm font-normal text-gray-900 placeholder:text-gray-400 bg-transparent ${validationErrors['email'] ? 'border-red-500' : 'border-gray-300'}`}
+                                    className={`w-full border-b py-2 focus:border-b-2 focus:outline-none transition-all text-base font-normal text-gray-900 placeholder:text-gray-400 bg-transparent ${validationErrors['email'] ? 'border-red-500' : 'border-gray-300'}`}
                                     style={{
                                         borderBottomColor: validationErrors['email']
                                             ? '#ef4444'
@@ -331,7 +342,7 @@ export default function ViewForm() {
                                 />
                             </div>
                             {validationErrors['email'] && (
-                                <p className="mt-4 text-xs text-red-500 font-medium flex items-center gap-1">
+                                <p className="mt-4 text-sm text-red-500 font-medium flex items-center gap-1">
                                     <XCircle size={14} />
                                     {validationErrors['email']}
                                 </p>
@@ -347,7 +358,8 @@ export default function ViewForm() {
                                     element={{
                                         ...el,
                                         max_rating: el.maxRating ?? null,
-                                        word_limit: el.wordLimit ?? null
+                                        word_limit: el.wordLimit ?? null,
+                                        char_limit: el.charLimit ?? null
                                     } as any}
                                     value={responses[el.id] ?? null}
                                     onChange={(val) => handleInputChange(el.id, val)}
@@ -360,18 +372,25 @@ export default function ViewForm() {
                     <div className="pt-6 flex flex-col items-start gap-4">
                         <button
                             type="submit"
-                            disabled={isSubmitting}
-                            className="px-8 py-2.5 text-white rounded shadow-sm font-bold text-xs uppercase tracking-widest transition-all disabled:opacity-50 hover:opacity-90 active:scale-95"
+                            disabled={isSubmitting || isCreator}
+                            className="px-8 py-2.5 text-white rounded shadow-sm font-bold text-sm uppercase tracking-widest transition-all disabled:opacity-50 hover:opacity-90 active:scale-95"
                             style={{
                                 backgroundColor: (!form.theme_color || form.theme_color === '#2563eb')
                                     ? 'var(--primary-600)'
                                     : form.theme_color
                             }}
                         >
-                            {isSubmitting ? 'Sending...' : (isEditing ? 'Update Response' : 'Submit')}
+                            {isSubmitting ? 'Sending...' : (isCreator ? 'Creator Preview' : (isEditing ? 'Update Response' : 'Submit'))}
                         </button>
 
-                        <div className="flex items-center gap-1.5 opacity-50 text-[10px] text-gray-500 font-medium select-none mt-2">
+                        {isCreator && (
+                            <div className="text-xs font-bold text-blue-600 uppercase tracking-widest bg-blue-50 px-3 py-1.5 rounded-lg border border-blue-100 flex items-center gap-2">
+                                <div className="w-1.5 h-1.5 rounded-full bg-blue-600 animate-pulse"></div>
+                                <span>You are viewing as the creator. Submissions are disabled.</span>
+                            </div>
+                        )}
+
+                        <div className="flex items-center gap-1.5 opacity-50 text-xs text-gray-500 font-medium select-none mt-2">
                             <span>Never submit passwords through Formcraft.</span>
                         </div>
                     </div>
@@ -380,8 +399,8 @@ export default function ViewForm() {
 
             <footer className="max-w-2xl mx-auto px-4 mt-12 mb-8 text-center opacity-30">
                 <div className="flex items-center justify-center gap-1.5">
-                    <span className="text-xs font-bold text-gray-900 tracking-tight">Formcraft</span>
-                    <span className="text-[10px] font-normal text-gray-500">Forms</span>
+                    <span className="text-sm font-bold text-gray-900 tracking-tight">Formcraft</span>
+                    <span className="text-sm font-normal text-gray-500">Forms</span>
                 </div>
             </footer>
         </div>

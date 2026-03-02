@@ -118,13 +118,13 @@ function SignupForm() {
       <div className="p-8">
         {/* Header */}
         <div className="text-center mb-6">
-          <h2 className="text-2xl font-semibold text-gray-800">Create an account</h2>
-          <p className="text-gray-500 mt-1">Start building forms today</p>
+          <h2 className="text-3xl font-semibold text-gray-800">Create an account</h2>
+          <p className="text-base text-gray-500 mt-1">Start building forms today</p>
         </div>
 
         {/* Error Message */}
         {error && (
-          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm animate-in fade-in duration-300">
+          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-base animate-in fade-in duration-300">
             {error}
           </div>
         )}
@@ -146,7 +146,7 @@ function SignupForm() {
                 </p>
                 <div className="mt-4 flex items-center gap-2">
                   <div className="h-1.5 w-1.5 rounded-full bg-purple-600 animate-pulse"></div>
-                  <span className="text-[10px] font-bold text-purple-600 uppercase tracking-widest">Awaiting verification...</span>
+                  <span className="text-xs font-bold text-purple-600 uppercase tracking-widest">Awaiting verification...</span>
                 </div>
               </div>
             </div>
@@ -157,7 +157,7 @@ function SignupForm() {
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Full Name Input */}
           <div>
-            <label htmlFor="fullName" className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="fullName" className="block text-base font-medium text-gray-700 mb-1">
               Full Name
             </label>
             <div className="relative">
@@ -190,18 +190,18 @@ function SignupForm() {
                 className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 outline-none transition-all ${nameError ? 'border-red-300 focus:ring-red-500 focus:border-red-500' : 'border-gray-300 focus:ring-purple-500 focus:border-purple-500'
                   }`}
               />
-              <div className="absolute right-3 bottom-0 text-[10px] text-gray-400">
+              <div className="absolute right-3 bottom-0 text-xs text-gray-400">
                 {fullName.length}/50
               </div>
             </div>
             {nameError && (
-              <p className="text-xs text-red-500 mt-1 animate-pulse">{nameError}</p>
+              <p className="text-sm text-red-500 mt-1 animate-pulse">{nameError}</p>
             )}
           </div>
 
           {/* Email Input */}
           <div>
-            <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="email" className="block text-base font-medium text-gray-700 mb-1">
               Email address <span className="text-red-500">*</span>
             </label>
             <div className="relative">
@@ -213,14 +213,14 @@ function SignupForm() {
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@example.com"
                 required
-                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none transition-all"
+                className="w-full text-base pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none transition-all"
               />
             </div>
           </div>
 
           {/* Password Input */}
           <div>
-            <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="password" className="block text-base font-medium text-gray-700 mb-1">
               Password <span className="text-red-500">*</span>
             </label>
             <div className="relative">
@@ -271,7 +271,7 @@ function SignupForm() {
                     />
                   ))}
                 </div>
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-sm text-gray-500 mt-1">
                   {passwordStrength <= 2 ? 'Weak' : passwordStrength <= 3 ? 'Medium' : 'Strong'} password
                 </p>
               </div>
@@ -280,7 +280,7 @@ function SignupForm() {
 
           {/* Confirm Password Input */}
           <div>
-            <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="confirmPassword" className="block text-base font-medium text-gray-700 mb-1">
               Confirm Password <span className="text-red-500">*</span>
             </label>
             <div className="relative">
@@ -307,7 +307,7 @@ function SignupForm() {
           <button
             type="submit"
             disabled={loading || (!!confirmPassword && password !== confirmPassword)}
-            className="w-full py-3 px-4 bg-purple-600 hover:bg-purple-700 text-white font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 mt-6"
+            className="w-full py-3 px-4 bg-purple-600 hover:bg-purple-700 text-white text-base font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 mt-6"
           >
             {loading ? (
               <>
@@ -326,7 +326,7 @@ function SignupForm() {
             type="button"
             onClick={handleGoogleSignIn}
             disabled={googleLoading || loading}
-            className="w-full py-3 px-4 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 font-medium rounded-lg transition-colors flex items-center justify-center gap-2"
+            className="w-full py-3 px-4 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 text-base font-medium rounded-lg transition-colors flex items-center justify-center gap-2"
           >
             {googleLoading ? (
               <Loader2 className="h-5 w-5 animate-spin text-purple-600" />
@@ -355,7 +355,7 @@ function SignupForm() {
         </div>
 
         {/* Terms */}
-        <p className="text-xs text-gray-500 text-center mt-4">
+        <p className="text-sm text-gray-500 text-center mt-4">
           By signing up, you agree to our{' '}
           <Link href="/terms" className="text-purple-600 hover:underline">Terms of Service</Link>
           {' '}and{' '}
@@ -373,11 +373,11 @@ function SignupForm() {
         </div>
 
         {/* Login Link */}
-        <p className="text-center text-gray-600">
+        <p className="text-center text-base text-gray-600">
           Already have an account?{' '}
           <Link
             href={`/login${next ? `?next=${encodeURIComponent(next)}` : ''}`}
-            className="text-purple-600 hover:text-purple-700 font-medium hover:underline"
+            className="text-purple-600 hover:text-purple-700 font-bold hover:underline"
           >
             Sign in
           </Link>

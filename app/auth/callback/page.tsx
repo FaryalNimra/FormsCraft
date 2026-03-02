@@ -32,15 +32,17 @@ function AuthCallbackContent() {
           setStatus('error');
           setErrorMessage(exchangeError.message);
         } else if (data.session) {
-          // Immediately redirect without showing success screen
-          router.push('/');
+          // Redirect to next or home
+          const next = searchParams.get('next') || '/';
+          router.push(next);
           router.refresh();
         }
       } else {
         // No code, check if we already have a session (implicit flow or already logged in)
         const { data: { session } } = await supabase.auth.getSession();
         if (session) {
-          router.push('/');
+          const next = searchParams.get('next') || '/';
+          router.push(next);
         } else {
           setStatus('error');
           setErrorMessage('No authentication code found.');

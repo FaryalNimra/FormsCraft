@@ -54,6 +54,7 @@ export interface FormElement {
   options: string[] | null;  // For MCQ, Checkboxes, Dropdown
   max_rating: number | null; // For Rating Scale
   word_limit: number | null; // For Paragraph
+  char_limit: number | null; // For Short Answer
   order_index: number;
   created_at: string;
 }

@@ -39,7 +39,7 @@ function LoginForm() {
     try {
       setGoogleLoading(true);
       setError('');
-      await signInWithGoogle();
+      await signInWithGoogle(next || undefined);
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Google sign in failed';
       setError(errorMessage);
@@ -55,13 +55,13 @@ function LoginForm() {
       <div className="p-8">
         {/* Header */}
         <div className="text-center mb-6">
-          <h2 className="text-2xl font-semibold text-gray-800">Welcome back</h2>
-          <p className="text-gray-500 mt-1">Sign in to your account</p>
+          <h2 className="text-3xl font-semibold text-gray-800">Welcome back</h2>
+          <p className="text-sm text-gray-500 mt-1">Sign in to your account</p>
         </div>
 
         {/* Error Message */}
         {error && (
-          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">
+          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-base">
             {error}
           </div>
         )}
@@ -70,7 +70,7 @@ function LoginForm() {
         <form onSubmit={handleSubmit} className="space-y-5">
           {/* Email Input */}
           <div>
-            <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="email" className="block text-base font-medium text-gray-700 mb-1">
               Email address
             </label>
             <div className="relative">
@@ -82,14 +82,14 @@ function LoginForm() {
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@example.com"
                 required
-                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none transition-all"
+                className="w-full text-base pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none transition-all"
               />
             </div>
           </div>
 
           {/* Password Input */}
           <div>
-            <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="password" className="block text-base font-medium text-gray-700 mb-1">
               Password
             </label>
             <div className="relative">
@@ -101,7 +101,7 @@ function LoginForm() {
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
                 required
-                className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none transition-all"
+                className="w-full text-base pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none transition-all"
               />
               <button
                 type="button"
@@ -117,7 +117,7 @@ function LoginForm() {
           <div className="text-right">
             <Link
               href="/forgot-password"
-              className="text-sm text-purple-600 hover:text-purple-700 hover:underline"
+              className="text-base text-purple-600 hover:text-purple-700 hover:underline"
             >
               Forgot password?
             </Link>
@@ -127,7 +127,7 @@ function LoginForm() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3 px-4 bg-purple-600 hover:bg-purple-700 text-white font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            className="w-full py-3 px-4 bg-purple-600 hover:bg-purple-700 text-white text-base font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           >
             {loading ? (
               <>
@@ -146,7 +146,7 @@ function LoginForm() {
             type="button"
             onClick={handleGoogleSignIn}
             disabled={googleLoading || loading}
-            className="w-full py-3 px-4 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 font-medium rounded-lg transition-colors flex items-center justify-center gap-2"
+            className="w-full py-3 px-4 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 text-base font-medium rounded-lg transition-colors flex items-center justify-center gap-2"
           >
             {googleLoading ? (
               <Loader2 className="h-5 w-5 animate-spin text-purple-600" />
@@ -180,16 +180,16 @@ function LoginForm() {
             <div className="w-full border-t border-gray-200" />
           </div>
           <div className="relative flex justify-center text-sm">
-            <span className="px-4 bg-white text-gray-500">or</span>
+            <span className="px-4 text-base bg-white text-gray-500">or</span>
           </div>
         </div>
 
         {/* Sign Up Link */}
-        <p className="text-center text-gray-600">
+        <p className="text-center text-base text-gray-600">
           Don&apos;t have an account?{' '}
           <Link
             href={`/signup${next ? `?next=${encodeURIComponent(next)}` : ''}`}
-            className="text-purple-600 hover:text-purple-700 font-medium hover:underline"
+            className="text-purple-600 hover:text-purple-700 font-bold hover:underline"
           >
             Sign up
           </Link>

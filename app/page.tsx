@@ -95,12 +95,12 @@ export default function Home() {
         <header className="mb-8">
           <div className="flex items-center gap-2 mb-2">
             <div className="w-8 h-1 rounded-full" style={{ backgroundColor: 'var(--primary-600)' }}></div>
-            <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Workspace Overview</span>
+            <span className="text-sm font-bold text-gray-500 uppercase tracking-widest">Workspace Overview</span>
           </div>
-          <h1 className="text-3xl font-extrabold text-gray-900 mb-2 tracking-tight">
+          <h1 className="text-4xl font-extrabold text-gray-900 mb-2 tracking-tight">
             Design, Build, & Track yours.
           </h1>
-          <p className="text-gray-500 text-sm font-medium max-w-xl">
+          <p className="text-base font-medium">
             Welcome back. Here's a quick look at your projects and their performance.
           </p>
         </header>
@@ -133,14 +133,14 @@ export default function Home() {
         <div className="flex items-center gap-1 mb-6 p-1 bg-gray-50/50 w-fit rounded-xl border border-gray-100">
           <button
             onClick={() => setProjectSource('owned')}
-            className={`px-6 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-all ${projectSource === 'owned' ? 'bg-white text-blue-600 shadow-sm border border-gray-100' : 'text-gray-400 hover:text-gray-600'
+            className={`px-6 py-2 rounded-lg text-base font-bold ${projectSource === 'owned' ? 'bg-white text-blue-600 shadow-sm border border-gray-100' : 'text-gray-400 hover:text-gray-600'
               }`}
           >
             My Projects
           </button>
           <button
             onClick={() => setProjectSource('collaborated')}
-            className={`px-6 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-all ${projectSource === 'collaborated' ? 'bg-white text-blue-600 shadow-sm border border-gray-100' : 'text-gray-400 hover:text-gray-600'
+            className={`px-6 py-2 rounded-lg text-base font-bold ${projectSource === 'collaborated' ? 'bg-white text-blue-600 shadow-sm border border-gray-100' : 'text-gray-400 hover:text-gray-600'
               }`}
           >
             Collaborated
@@ -149,7 +149,7 @@ export default function Home() {
 
         <section>
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2 relative">
+            <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2 relative">
               <button
                 onClick={() => setIsFilterOpen(!isFilterOpen)}
                 className="flex items-center gap-2 hover:text-blue-600 transition-colors group"
@@ -164,14 +164,14 @@ export default function Home() {
                   <div className="absolute top-full left-0 mt-1 w-48 bg-white border border-gray-100 rounded-xl shadow-xl z-40 py-2 animate-in fade-in slide-in-from-top-2 duration-200">
                     <button
                       onClick={() => { setViewFilter('active'); setIsFilterOpen(false); }}
-                      className={`w-full text-left px-4 py-2 text-[10px] font-bold uppercase tracking-wider transition-colors hover:bg-gray-50 flex items-center gap-2 ${viewFilter === 'active' ? 'text-blue-600 bg-blue-50/50' : 'text-gray-500'}`}
+                      className={`w-full text-left px-4 py-2 text-sm font-bold transition-colors ${viewFilter === 'active' ? 'text-blue-600 bg-blue-50/50' : 'text-gray-500'}`}
                     >
                       <Layout size={12} />
                       Active Projects
                     </button>
                     <button
                       onClick={() => { setViewFilter('archived'); setIsFilterOpen(false); }}
-                      className={`w-full text-left px-4 py-2 text-[10px] font-bold uppercase tracking-wider transition-colors hover:bg-gray-50 flex items-center gap-2 ${viewFilter === 'archived' ? 'text-blue-600 bg-blue-50/50' : 'text-gray-500'}`}
+                      className={`w-full text-left px-4 py-2 text-sm font-bold transition-colors ${viewFilter === 'archived' ? 'text-blue-600 bg-blue-50/50' : 'text-gray-500'}`}
                     >
                       <Archive size={12} />
                       Archived Projects
@@ -181,7 +181,7 @@ export default function Home() {
               )}
 
               {sortedForms.length > 0 && (
-                <span className="text-[10px] font-bold bg-gray-100 text-gray-500 px-2 py-1 rounded-full uppercase tracking-wider">
+                <span className="text-sm font-bold bg-gray-100">
                   {sortedForms.length}
                 </span>
               )}
@@ -194,14 +194,14 @@ export default function Home() {
                     placeholder="Search projects..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-9 pr-4 py-2 bg-white border border-gray-100 rounded-lg text-xs font-bold text-gray-900 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none w-64 transition-all"
+                    className="pl-9 pr-4 py-2 bg-white border border-gray-100 rounded-lg text-base font-bold text-gray-900"
                   />
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-blue-500 transition-colors" size={14} />
                 </div>
               )}
               <button
                 onClick={() => router.push('/builder')}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg text-xs font-bold hover:bg-blue-700 transition-all flex items-center gap-2 shadow-sm whitespace-nowrap"
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg text-base font-bold hover:bg-blue-700"
               >
                 <Plus size={14} />
                 New Form
@@ -223,10 +223,10 @@ export default function Home() {
                   </div>
                 </div>
                 <h3 className="text-lg font-bold text-gray-900">Start your first project</h3>
-                <p className="text-gray-400 text-xs max-w-xs mx-auto">Create a form to start collecting responses.</p>
+                <p className="text-sm max-w-xs mx-auto">Create a form to start collecting responses.</p>
                 <button
                   onClick={() => router.push('/builder')}
-                  className="px-6 py-2 bg-blue-600 text-white rounded-lg text-xs font-bold hover:bg-blue-700 transition-all"
+                  className="px-6 py-2 bg-blue-600 text-white rounded-lg text-sm font-bold hover:bg-blue-700 transition-all"
                 >
                   Get Started
                 </button>
@@ -235,7 +235,7 @@ export default function Home() {
               <div className="overflow-x-auto min-h-[300px]">
                 <table className="w-full text-left">
                   <thead>
-                    <tr className="bg-gray-50/50 border-b border-gray-50 text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                    <tr className="bg-gray-50/50 border-b border-gray-50 text-sm font-bold text-gray-400 uppercase tracking-widest">
                       <th className="px-6 py-4">Project</th>
                       <th className="px-4 py-4">Status</th>
                       <th className="px-4 py-4 relative">
@@ -265,7 +265,7 @@ export default function Home() {
                                     setSortBy(item.id as any);
                                     setIsSortOpen(false);
                                   }}
-                                  className={`w-full text-left px-4 py-2 text-[10px] font-bold uppercase tracking-wider transition-colors hover:bg-gray-50 ${sortBy === item.id ? 'text-blue-600 bg-blue-50/50' : 'text-gray-500'}`}
+                                  className={`w-full text-left px-4 py-2 text-xs font-bold uppercase tracking-wider transition-colors hover:bg-gray-50 ${sortBy === item.id ? 'text-blue-600 bg-blue-50/50' : 'text-gray-500'}`}
                                 >
                                   {item.label}
                                 </button>
@@ -291,14 +291,14 @@ export default function Home() {
                               <FileText size={18} />
                             </div>
                             <div>
-                              <p className="font-bold text-gray-900 group-hover:text-blue-600 transition-colors uppercase tracking-tight text-xs">{form.title}</p>
-                              <p className="text-[10px] text-gray-400 font-medium">#{form.id.substring(0, 8)}</p>
+                              <p className="text-base font-bold text-gray-900 group-hover:text-blue-600 transition-colors uppercase tracking-tight">{form.title}</p>
+                              <p className="text-sm text-gray-900 font-medium">#{form.id.substring(0, 8)}</p>
                             </div>
                           </div>
                         </td>
                         <td className="px-4 py-4">
                           <div className="flex items-center gap-2">
-                            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider border ${form.status === 'published'
+                            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-sm font-bold uppercase tracking-wider border ${form.status === 'published'
                               ? 'bg-green-50 text-green-600 border-green-100'
                               : form.status === 'in_progress'
                                 ? 'bg-blue-50 text-blue-600 border-blue-100'
@@ -307,13 +307,13 @@ export default function Home() {
                               {form.status.replace('_', ' ')}
                             </span>
                             {form.last_edited_at && new Date(form.last_edited_at).getTime() - new Date(form.created_at).getTime() > 10000 && (
-                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider border bg-blue-50 text-blue-600 border-blue-100">
+                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-sm font-bold uppercase tracking-wider border bg-blue-50 text-blue-600 border-blue-100">
                                 Edited
                               </span>
                             )}
                           </div>
                         </td>
-                        <td className="px-4 py-4 text-xs font-medium text-gray-500">
+                        <td className="px-4 py-4 text-base font-medium text-gray-500">
                           {formatTime(sortBy === 'creation_date' ? form.created_at : (sortBy === 'last_modified' ? (form.last_edited_at || form.created_at) : (form.last_accessed_at || form.last_edited_at || form.created_at)))}
                         </td>
                         <td className="px-4 py-4">
@@ -357,7 +357,7 @@ export default function Home() {
                                   <div className="absolute right-0 top-full mt-1 w-40 bg-white border border-gray-100 rounded-xl shadow-xl z-50 py-2 animate-in fade-in zoom-in-95 duration-200">
                                     <button
                                       onClick={(e) => { e.stopPropagation(); handleArchive(form.id, !form.is_archived); }}
-                                      className="w-full text-left px-4 py-2 text-[10px] font-bold uppercase tracking-wider text-gray-600 hover:bg-gray-50 hover:text-blue-600 flex items-center gap-2 transition-colors"
+                                      className="w-full text-left px-4 py-2 text-sm font-bold uppercase tracking-wider text-gray-600"
                                     >
                                       {form.is_archived ? <RotateCcw size={12} /> : <Archive size={12} />}
                                       {form.is_archived ? 'Unarchive' : 'Archive'}
@@ -365,7 +365,7 @@ export default function Home() {
                                     <div className="mx-2 my-1 border-t border-gray-50"></div>
                                     <button
                                       onClick={(e) => { e.stopPropagation(); handleDelete(form.id, form.title); }}
-                                      className="w-full text-left px-4 py-2 text-[10px] font-bold uppercase tracking-wider text-red-500 hover:bg-red-50 flex items-center gap-2 transition-colors"
+                                      className="w-full text-left px-4 py-2 text-sm font-bold uppercase tracking-wider text-red-500"
                                     >
                                       <Trash2 size={12} />
                                       Delete

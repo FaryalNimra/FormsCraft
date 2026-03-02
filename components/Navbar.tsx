@@ -55,14 +55,14 @@ export default function Navbar() {
         </div>
         <div className="flex flex-col">
           <span className="text-lg font-bold text-gray-900 leading-none tracking-tight">FormCraft</span>
-          <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest leading-none mt-0.5">Professional</span>
+          <span className="text-xs font-bold text-gray-400 uppercase tracking-widest leading-none mt-0.5">Professional</span>
         </div>
       </Link>
 
       <div className="flex items-center gap-6">
         <div className="hidden md:flex items-center gap-5">
-          <button className="text-[10px] font-bold text-gray-400 hover:text-blue-600 uppercase tracking-widest transition-colors">Resources</button>
-          <button className="text-[10px] font-bold text-gray-400 hover:text-blue-600 uppercase tracking-widest transition-colors">Help</button>
+          <button className="text-sm font-bold text-gray-400 hover:text-blue-600 uppercase tracking-widest transition-colors">Resources</button>
+          <button className="text-sm font-bold text-gray-400 hover:text-blue-600 uppercase tracking-widest transition-colors">Help</button>
         </div>
 
         <div className="h-4 w-px bg-gray-100 mx-1"></div>
@@ -94,7 +94,7 @@ export default function Navbar() {
                   ))}
               </div>
               <div className="hidden sm:flex items-center gap-1.5">
-                <span className="text-[10px] font-bold text-gray-900 uppercase tracking-wider">Workspace</span>
+                <span className="text-sm font-bold text-gray-900 uppercase tracking-wider">Workspace</span>
                 <ChevronDown size={12} className={`text-gray-400 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
               </div>
             </div>
@@ -102,7 +102,7 @@ export default function Navbar() {
             {isOpen && (
               <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-xl border border-gray-100 p-3 animate-in fade-in zoom-in duration-200 z-[70]">
                 <div className="mb-3 px-2">
-                  <h3 className="text-[9px] font-extrabold text-gray-400 uppercase tracking-widest">Workspace Theme</h3>
+                  <h3 className="text-sm font-extrabold text-gray-400 uppercase tracking-widest">Workspace Theme</h3>
                 </div>
                 <div className="grid grid-cols-1 gap-1">
                   {Object.entries(availableThemes).map(([id, t]) => (
@@ -120,14 +120,14 @@ export default function Navbar() {
                           className="w-5 h-5 rounded-full border border-white shadow-sm"
                           style={{ backgroundColor: t.primary }}
                         ></div>
-                        <span className="text-[11px] font-bold tracking-tight">{t.name}</span>
+                        <span className="text-sm font-bold tracking-tight">{t.name}</span>
                       </div>
                       {theme === id && <Check size={12} className="text-blue-600" />}
                     </button>
                   ))}
                 </div>
                 <div className="mt-3 pt-3 border-t border-gray-50 px-2">
-                  <p className="text-[8px] font-medium text-gray-400 leading-relaxed italic">Changes global primary colors across all projects.</p>
+                  <p className="text-xs font-medium text-gray-400 leading-relaxed italic">Changes global primary colors across all projects.</p>
                 </div>
               </div>
             )}
@@ -142,7 +142,7 @@ export default function Navbar() {
                 onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
                 className="flex items-center gap-2 hover:opacity-80 transition-opacity"
               >
-                <div className="w-8 h-8 rounded-full bg-purple-600 flex items-center justify-center text-white text-xs font-bold shadow-sm">
+                <div className="w-8 h-8 rounded-full bg-purple-600 flex items-center justify-center text-white text-sm font-bold shadow-sm">
                   {getUserInitials()}
                 </div>
               </button>
@@ -150,15 +150,15 @@ export default function Navbar() {
               {isUserMenuOpen && (
                 <div className="absolute right-0 mt-2 w-64 bg-white rounded-xl shadow-xl border border-gray-100 overflow-hidden animate-in fade-in zoom-in duration-200 z-[70]">
                   <div className="px-4 py-3 border-b border-gray-100 bg-gray-50/50">
-                    <p className="text-sm font-semibold text-gray-900 truncate">
+                    <p className="text-base font-semibold text-gray-900 truncate">
                       {user.user_metadata?.full_name || 'User'}
                     </p>
-                    <p className="text-xs text-gray-500 truncate">{user.email}</p>
+                    <p className="text-sm text-gray-500 truncate">{user.email}</p>
                   </div>
                   <div className="p-2">
                     <button
                       onClick={handleSignOut}
-                      className="flex items-center gap-3 w-full px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                      className="flex items-center gap-3 w-full px-3 py-2 text-base text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                     >
                       <LogOut size={16} />
                       <span>Sign out</span>
@@ -170,7 +170,7 @@ export default function Navbar() {
           ) : (
             <Link
               href="/login"
-              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 rounded-lg transition-colors shadow-sm"
+              className="flex items-center gap-2 px-4 py-2 text-base font-medium text-white bg-purple-600 hover:bg-purple-700 rounded-lg transition-colors shadow-sm"
             >
               <LogIn size={16} />
               <span>Sign in</span>

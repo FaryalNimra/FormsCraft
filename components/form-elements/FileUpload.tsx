@@ -125,10 +125,10 @@ export default function FileUpload({
         >
           <Upload size={32} className={dragActive ? 'text-blue-500' : displayError ? 'text-red-400' : 'text-black font-bold'} />
           <div className="text-center">
-            <p className={`text-sm font-semibold ${displayError ? 'text-red-900' : 'text-gray-600'}`}>
+            <p className={`text-base font-semibold ${displayError ? 'text-red-900' : 'text-gray-600'}`}>
               Click or drag file to upload
             </p>
-            <p className={`text-xs mt-1 ${displayError ? 'text-red-400' : 'text-gray-400'}`}>
+            <p className={`text-sm mt-1 ${displayError ? 'text-red-400' : 'text-gray-400'}`}>
               PDF, JPG, PNG up to {maxSizeMB}MB
             </p>
           </div>
@@ -137,8 +137,8 @@ export default function FileUpload({
         <div className={`flex items-center gap-4 p-4 bg-gray-50 rounded-xl border ${displayError ? 'border-red-200 bg-red-50' : 'border-gray-200'}`}>
           {getFileIcon(value)}
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold text-gray-900 truncate">{value.name}</p>
-            <p className="text-xs text-gray-500">{formatFileSize(value.size)}</p>
+            <p className="text-base font-semibold text-gray-900 truncate">{value.name}</p>
+            <p className="text-sm text-gray-500">{formatFileSize(value.size)}</p>
           </div>
           <button
             type="button"
@@ -160,7 +160,7 @@ export default function FileUpload({
       />
 
       {displayError && (
-        <p className="mt-4 text-xs text-red-500 font-medium flex items-center gap-1">
+        <p className="mt-4 text-sm text-red-500 font-medium flex items-center gap-1">
           <XCircle size={14} />
           {displayError}
         </p>

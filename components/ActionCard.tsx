@@ -25,8 +25,8 @@ export default function ActionCard({ icon: Icon, title, description, iconBgColor
             </div>
 
             <div className="space-y-1">
-                <h3 className="text-xs font-bold text-gray-900 uppercase tracking-widest">{title}</h3>
-                <p className="text-gray-400 text-[10px] font-medium leading-relaxed line-clamp-1">{description}</p>
+                <h3 className="text-sm font-bold text-gray-900 uppercase tracking-widest">{title}</h3>
+                <p className="text-gray-400 text-xs font-medium leading-relaxed line-clamp-1">{description}</p>
             </div>
         </div>
     );
