@@ -750,7 +750,7 @@ function FormBuilder() {
                                 <div className="absolute top-full right-0 mt-2 w-64 bg-white rounded-xl shadow-2xl border border-gray-100 p-4 z-[100] animate-in fade-in slide-in-from-top-2 duration-300">
                                     <div className="space-y-4">
                                         <div className="flex items-center justify-between">
-                                            <h3 className="text-[10px] font-bold text-gray-900 uppercase tracking-widest">Form Expiration</h3>
+                                            <h3 className="text-xs font-bold text-gray-900 uppercase tracking-widest">Form Expiration</h3>
                                             <button onClick={() => setIsExpirationOpen(false)} className="text-black hover:bg-gray-100 p-1 rounded-md transition-colors"><X size={14} /></button>
                                         </div>
                                         <div className="space-y-3">
@@ -806,7 +806,7 @@ function FormBuilder() {
                 {/* Dense Elements Sidebar */}
                 <aside className="w-60 bg-white border-r border-gray-100 overflow-y-auto scrollbar-hide p-4 hidden lg:flex flex-col">
                     <div className="mb-6">
-                        <h2 className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-3">Components</h2>
+                        <h2 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Components</h2>
                         <div className="grid grid-cols-1 gap-1">
                             {(Object.keys(ELEMENT_LABELS) as ElementType[]).map((type) => {
                                 const Icon = ELEMENT_ICONS[type];
@@ -853,12 +853,23 @@ function FormBuilder() {
                             <div className="absolute top-0 left-0 w-full h-1 bg-white/20"></div>
                             <div className="p-8 pb-10 flex items-start gap-4">
                                 <div className="flex-1">
-                                    <input
-                                        type="text"
+                                    <textarea
+                                        rows={1}
                                         value={title}
-                                        onChange={(e) => setTitle(e.target.value)}
+                                        onChange={(e) => {
+                                            setTitle(e.target.value);
+                                            const target = e.target as HTMLTextAreaElement;
+                                            target.style.height = 'auto';
+                                            target.style.height = target.scrollHeight + 'px';
+                                        }}
+                                        onFocus={(e) => {
+                                            const target = e.target as HTMLTextAreaElement;
+                                            target.style.height = 'auto';
+                                            target.style.height = target.scrollHeight + 'px';
+                                            if (title === 'Untitled Form') setTitle('');
+                                        }}
                                         disabled={!canEdit}
-                                        className="text-3xl font-extrabold text-white bg-transparent border-none outline-none w-full placeholder:text-white/40 block transition-all tracking-tight leading-tight disabled:opacity-50"
+                                        className="text-3xl font-extrabold text-white bg-transparent border-none outline-none w-full placeholder:text-white/40 block transition-all tracking-tight leading-tight disabled:opacity-50 resize-none overflow-hidden break-words break-all"
                                         placeholder="Untitled Form"
                                     />
                                     <div className="mt-3 relative group/desc">
@@ -866,7 +877,7 @@ function FormBuilder() {
                                             value={description}
                                             onChange={(e) => setDescription(e.target.value)}
                                             disabled={!canEdit}
-                                            className="text-white/80 text-sm font-medium bg-transparent border-none outline-none w-full placeholder:text-white/40 block resize-none min-h-[24px] leading-relaxed disabled:opacity-50"
+                                            className="text-white/80 text-sm font-medium bg-transparent border-none outline-none w-full placeholder:text-white/40 block resize-none min-h-[24px] leading-relaxed disabled:opacity-50 break-words break-all"
                                             placeholder="Add a description..."
                                             rows={1}
                                         />
@@ -890,8 +901,8 @@ function FormBuilder() {
 
                                 if (isPreview) {
                                     return (
-                                        <div key={el.id} className="bg-white rounded-lg p-6 shadow-sm border border-gray-200 transition-all">
-                                            <label className="block text-base font-medium text-gray-900 mb-6 leading-normal">
+                                        <div key={el.id} className="bg-white rounded-lg p-6 shadow-sm border border-gray-200 transition-all overflow-hidden">
+                                            <label className="block text-base font-medium text-gray-900 mb-6 leading-normal break-words break-all">
                                                 {el.label}
                                                 {el.required && <span className="text-red-600 ml-1">*</span>}
                                             </label>
@@ -918,7 +929,7 @@ function FormBuilder() {
                                                     {el.options?.map((opt, i) => (
                                                         <div key={i} className="flex items-center gap-3">
                                                             <div className="w-5 h-5 rounded-full border-2 border-gray-300"></div>
-                                                            <span className="text-sm font-normal text-gray-800">{opt}</span>
+                                                            <span className="text-sm font-normal text-gray-800 break-words break-all">{opt}</span>
                                                         </div>
                                                     ))}
                                                 </div>
@@ -946,7 +957,7 @@ function FormBuilder() {
                                                     {el.options?.map((opt, i) => (
                                                         <div key={i} className="flex items-center gap-3">
                                                             <div className="w-5 h-5 rounded border-2 border-gray-300 transition-all"></div>
-                                                            <span className="text-sm font-normal text-gray-800">{opt}</span>
+                                                            <span className="text-sm font-normal text-gray-800 break-words break-all">{opt}</span>
                                                         </div>
                                                     ))}
                                                 </div>
@@ -1022,7 +1033,7 @@ function FormBuilder() {
                                                 >
                                                     <Icon size={14} />
                                                 </div>
-                                                <span className={`text-[9px] font-bold uppercase tracking-widest ${isActive ? '' : 'text-gray-400'}`}
+                                                <span className={`text-xs font-bold uppercase tracking-widest ${isActive ? '' : 'text-gray-400'}`}
                                                     style={isActive ? { color: 'var(--primary-600)' } : {}}
                                                 >
                                                     {ELEMENT_LABELS[el.type]}
@@ -1097,57 +1108,19 @@ function FormBuilder() {
                                                         target.style.height = target.scrollHeight + 'px';
                                                     }}
                                                     onKeyDown={(e) => { if (e.key === 'Enter') e.preventDefault(); }}
-                                                    className="w-full text-sm font-bold text-gray-900 tracking-tight leading-snug break-words bg-transparent border-none outline-none resize-none p-0 focus:ring-0 transition-all hover:bg-gray-50/50 rounded-sm disabled:opacity-70 disabled:cursor-not-allowed"
+                                                    className="w-full text-base font-bold text-gray-900 tracking-tight leading-snug break-words break-all bg-transparent border-none outline-none resize-none p-0 focus:ring-0 transition-all hover:bg-gray-50/50 rounded-sm disabled:opacity-70 disabled:cursor-not-allowed"
                                                     placeholder="Enter question here..."
                                                 />
                                                 {el.required && <span className="absolute -right-3 top-0 text-red-500">*</span>}
                                             </div>
 
                                             {(el.type === 'short_answer' || el.type === 'paragraph') && (
-                                                <div>
-                                                    <div className={`w-full bg-gray-50 border-2 border-gray-200 rounded-lg px-4 flex items-center text-gray-400 text-xs italic font-medium transition-all hover:border-[var(--primary-200)] ${el.type === 'paragraph' ? 'h-24 py-3 items-start' : 'h-11'}`}>
-                                                        {el.type === 'paragraph' ? (
-                                                            <textarea
-                                                                draggable={false}
-                                                                value={el.placeholder}
-                                                                onChange={(e) => updateElement(el.id, { placeholder: e.target.value })}
-                                                                onFocus={() => {
-                                                                    if (el.placeholder === 'Write response...') {
-                                                                        updateElement(el.id, { placeholder: '' });
-                                                                    }
-                                                                }}
-                                                                onClick={(e) => { e.stopPropagation(); setActiveElementId(el.id); }}
-                                                                disabled={!canEdit}
-                                                                className="w-full bg-transparent border-none outline-none resize-none p-0 focus:ring-0 text-gray-500 font-medium disabled:opacity-50"
-                                                                placeholder="Write response..."
-                                                                rows={2}
-                                                            />
-                                                        ) : (
-                                                            <input
-                                                                draggable={false}
-                                                                type="text"
-                                                                value={el.placeholder}
-                                                                onChange={(e) => updateElement(el.id, { placeholder: e.target.value })}
-                                                                onFocus={() => {
-                                                                    const defaults = ['Enter answer', 'Select...', 'e.g. John Doe'];
-                                                                    if (defaults.includes(el.placeholder)) {
-                                                                        updateElement(el.id, { placeholder: '' });
-                                                                    }
-                                                                }}
-                                                                onClick={(e) => { e.stopPropagation(); setActiveElementId(el.id); }}
-                                                                disabled={!canEdit}
-                                                                className="w-full bg-transparent border-none outline-none p-0 focus:ring-0 text-gray-500 font-medium disabled:opacity-50"
-                                                                placeholder="Enter answer hint..."
-                                                            />
-                                                        )}
+                                                <div className="pointer-events-none select-none">
+                                                    <div className={`w-full bg-gray-50/50 border border-gray-100 rounded-lg px-4 flex items-center text-gray-300 text-sm font-medium ${el.type === 'paragraph' ? 'h-20 py-3 items-start' : 'h-10'}`}>
+                                                        <span>
+                                                            {el.type === 'paragraph' ? 'Long answer text' : 'Short answer text'}
+                                                        </span>
                                                     </div>
-                                                    {el.wordLimit && (
-                                                        <div className="flex justify-end mt-2">
-                                                            <span className="text-[10px] font-bold text-gray-400 bg-gray-50 px-2 py-0.5 rounded-md">
-                                                                0 / {el.wordLimit} · {el.wordLimit} left
-                                                            </span>
-                                                        </div>
-                                                    )}
                                                 </div>
                                             )}
 
@@ -1156,15 +1129,19 @@ function FormBuilder() {
                                                     {el.options?.map((opt, i) => (
                                                         <div key={i} className="flex items-center gap-3 p-3 rounded-xl bg-gray-50/50 border border-gray-100 group/opt transition-all hover:bg-white hover:border-blue-100 hover:shadow-sm">
                                                             <div className={`w-4 h-4 border-2 border-gray-200 flex-shrink-0 ${el.type === 'multiple_choice' ? 'rounded-full' : (el.type === 'dropdown' ? 'rounded-md bg-gray-100 border-none relative' : 'rounded-md')}`}>
-                                                                {el.type === 'dropdown' && <span className="text-[8px] font-bold text-gray-400 absolute inset-0 flex items-center justify-center">{i + 1}</span>}
+                                                                {el.type === 'dropdown' && <span className="text-[10px] font-bold text-gray-400 absolute inset-0 flex items-center justify-center">{i + 1}</span>}
                                                             </div>
-                                                            <input
+                                                            <textarea
+                                                                rows={1}
                                                                 draggable={false}
-                                                                type="text"
                                                                 value={opt}
                                                                 onClick={(e) => { e.stopPropagation(); setActiveElementId(el.id); }}
                                                                 disabled={!canEdit}
-                                                                onFocus={() => {
+                                                                onFocus={(e) => {
+                                                                    const target = e.target as HTMLTextAreaElement;
+                                                                    target.style.height = 'auto';
+                                                                    target.style.height = target.scrollHeight + 'px';
+
                                                                     if (opt === `Option ${i + 1}`) {
                                                                         updateOption(el.id, i, '');
                                                                     }
@@ -1174,8 +1151,11 @@ function FormBuilder() {
                                                                     if (words.length <= 10 || e.target.value.endsWith(' ')) {
                                                                         updateOption(el.id, i, e.target.value);
                                                                     }
+                                                                    const target = e.target as HTMLTextAreaElement;
+                                                                    target.style.height = 'auto';
+                                                                    target.style.height = target.scrollHeight + 'px';
                                                                 }}
-                                                                className="flex-1 bg-transparent border-none outline-none p-0 text-xs text-gray-700 font-bold placeholder:text-gray-300 focus:ring-0 disabled:opacity-50"
+                                                                className="flex-1 bg-transparent border-none outline-none p-0 text-xs text-gray-700 font-bold placeholder:text-gray-300 focus:ring-0 disabled:opacity-50 resize-none overflow-hidden break-words break-all"
                                                                 placeholder={`Option ${i + 1}`}
                                                             />
                                                             <button
@@ -1195,39 +1175,25 @@ function FormBuilder() {
                                                         <div className="p-0.5 rounded-full bg-blue-100 group-hover:bg-blue-600 group-hover:text-white transition-all">
                                                             <Plus size={10} />
                                                         </div>
-                                                        <span className="text-[10px] font-bold uppercase tracking-widest">Add Option</span>
+                                                        <span className="text-sm font-bold uppercase tracking-widest">Add Option</span>
                                                     </button>
                                                 </div>
                                             )}
 
                                             {el.type === 'date' && (
-                                                <div className="w-full max-w-xs px-4 py-2.5 bg-gray-50 border-2 border-gray-100 rounded-xl flex items-center justify-between group/date transition-all hover:border-blue-100 hover:bg-white">
-                                                    <input
-                                                        draggable={false}
-                                                        type="text"
-                                                        value={el.placeholder}
-                                                        onChange={(e) => updateElement(el.id, { placeholder: e.target.value })}
-                                                        onClick={(e) => { e.stopPropagation(); setActiveElementId(el.id); }}
-                                                        disabled={!canEdit}
-                                                        className="w-full bg-transparent border-none outline-none p-0 focus:ring-0 text-xs text-gray-400 font-medium disabled:opacity-50"
-                                                        placeholder="mm/dd/yyyy"
-                                                    />
+                                                <div className="w-full max-w-xs px-4 py-2.5 bg-gray-50 border-2 border-gray-100 rounded-xl flex items-center justify-between group/date transition-all hover:border-blue-100 hover:bg-white pointer-events-none">
+                                                    <span className="text-xs text-gray-400 font-medium">
+                                                        {el.placeholder || 'mm/dd/yyyy'}
+                                                    </span>
                                                     <Calendar size={14} className="text-gray-300 group-hover/date:text-blue-500 transition-colors" />
                                                 </div>
                                             )}
 
                                             {el.type === 'time' && (
-                                                <div className="w-full max-w-xs px-4 py-2.5 bg-gray-50 border-2 border-gray-100 rounded-xl flex items-center justify-between group/time transition-all hover:border-blue-100 hover:bg-white">
-                                                    <input
-                                                        draggable={false}
-                                                        type="text"
-                                                        value={el.placeholder}
-                                                        onChange={(e) => updateElement(el.id, { placeholder: e.target.value })}
-                                                        onClick={(e) => { e.stopPropagation(); setActiveElementId(el.id); }}
-                                                        disabled={!canEdit}
-                                                        className="w-full bg-transparent border-none outline-none p-0 focus:ring-0 text-xs text-gray-400 font-medium disabled:opacity-50"
-                                                        placeholder="hh:mm"
-                                                    />
+                                                <div className="w-full max-w-xs px-4 py-2.5 bg-gray-50 border-2 border-gray-100 rounded-xl flex items-center justify-between group/time transition-all hover:border-blue-100 hover:bg-white pointer-events-none">
+                                                    <span className="text-xs text-gray-400 font-medium">
+                                                        {el.placeholder || 'hh:mm'}
+                                                    </span>
                                                     <Clock size={14} className="text-gray-300 group-hover/time:text-blue-500 transition-colors" />
                                                 </div>
                                             )}
@@ -1235,16 +1201,9 @@ function FormBuilder() {
                                             {el.type === 'file_upload' && (
                                                 <div className="w-full bg-gray-50 border-2 border-dashed border-gray-200 rounded-xl p-4 flex flex-col items-center justify-center gap-2 group/file transition-all hover:border-blue-200 hover:bg-blue-50/10">
                                                     <Upload size={18} className="text-gray-300 group-hover/file:text-blue-500 transition-colors" />
-                                                    <input
-                                                        draggable={false}
-                                                        type="text"
-                                                        value={el.placeholder}
-                                                        onChange={(e) => updateElement(el.id, { placeholder: e.target.value })}
-                                                        onClick={(e) => { e.stopPropagation(); setActiveElementId(el.id); }}
-                                                        disabled={!canEdit}
-                                                        className="w-full bg-transparent border-none outline-none p-0 focus:ring-0 text-xs text-center text-gray-400 font-medium disabled:opacity-50"
-                                                        placeholder="Click or drag file to upload"
-                                                    />
+                                                    <div className="text-xs text-center text-gray-400 font-medium truncate w-full px-2">
+                                                        {el.placeholder || 'Click or drag file to upload'}
+                                                    </div>
                                                 </div>
                                             )}
 
@@ -1271,14 +1230,14 @@ function FormBuilder() {
                     <div className="p-2 border-b border-gray-50 flex gap-0.5 sticky top-0 bg-white z-20">
                         <button
                             onClick={() => setIsPreview(false)}
-                            className={`flex-1 py-2 rounded-lg text-[9px] font-bold uppercase tracking-widest transition-all ${!isPreview ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-blue-600 hover:bg-blue-50'
+                            className={`flex-1 py-2 rounded-lg text-xs font-bold uppercase tracking-widest transition-all ${!isPreview ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-blue-600 hover:bg-blue-50'
                                 }`}
                         >
                             Build
                         </button>
                         <button
                             onClick={() => setIsPreview(true)}
-                            className={`flex-1 py-2 rounded-lg text-[9px] font-bold uppercase tracking-widest transition-all ${isPreview ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-blue-600 hover:bg-blue-50'
+                            className={`flex-1 py-2 rounded-lg text-xs font-bold uppercase tracking-widest transition-all ${isPreview ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-blue-600 hover:bg-blue-50'
                                 }`}
                         >
                             Preview
@@ -1290,29 +1249,35 @@ function FormBuilder() {
                             activeElementId === 'header' ? (
                                 <div className="space-y-6 animate-in fade-in duration-300">
                                     <div className="flex items-center justify-between">
-                                        <h2 className="text-[10px] font-bold text-gray-900 uppercase tracking-widest">Form Header</h2>
+                                        <h2 className="text-sm font-bold text-gray-900 uppercase tracking-widest">Form Header</h2>
                                         <button onClick={() => setActiveElementId(null)} className="p-1.5 text-black hover:bg-gray-100 rounded-lg transition-colors"><X size={16} /></button>
                                     </div>
 
                                     <div className="space-y-6">
                                         <div className="space-y-2">
-                                            <label className="block text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-2">Form Title</label>
-                                            <input
-                                                type="text"
+                                            <label className="block text-sm font-bold text-gray-400 uppercase tracking-widest mb-2">Form Title</label>
+                                            <textarea
+                                                rows={1}
                                                 value={title}
-                                                onChange={(e) => setTitle(e.target.value)}
-                                                onFocus={() => {
-                                                    if (title === 'Untitled Form') {
-                                                        setTitle('');
-                                                    }
+                                                onChange={(e) => {
+                                                    setTitle(e.target.value);
+                                                    const target = e.target as HTMLTextAreaElement;
+                                                    target.style.height = 'auto';
+                                                    target.style.height = target.scrollHeight + 'px';
+                                                }}
+                                                onFocus={(e) => {
+                                                    const target = e.target as HTMLTextAreaElement;
+                                                    target.style.height = 'auto';
+                                                    target.style.height = target.scrollHeight + 'px';
+                                                    if (title === 'Untitled Form') setTitle('');
                                                 }}
                                                 disabled={!canEdit}
-                                                className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-xs font-bold text-gray-900 focus:ring-1 focus:ring-blue-600 focus:bg-white outline-none disabled:opacity-50"
+                                                className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-base font-bold text-gray-900 focus:ring-1 focus:ring-blue-600 focus:bg-white outline-none disabled:opacity-50 resize-none overflow-hidden break-words break-all"
                                             />
                                         </div>
 
                                         <div className="space-y-2">
-                                            <label className="block text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-2">Form Description</label>
+                                            <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Form Description</label>
                                             <textarea
                                                 value={description}
                                                 onChange={(e) => setDescription(e.target.value)}
@@ -1323,7 +1288,7 @@ function FormBuilder() {
                                                 }}
                                                 rows={3}
                                                 disabled={!canEdit}
-                                                className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-xs font-medium text-gray-900 focus:ring-1 focus:ring-blue-600 focus:bg-white outline-none resize-none disabled:opacity-50"
+                                                className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-xs font-medium text-gray-900 focus:ring-1 focus:ring-blue-600 focus:bg-white outline-none resize-none disabled:opacity-50 break-words break-all"
                                             />
                                         </div>
 
@@ -1378,7 +1343,7 @@ function FormBuilder() {
 
                                         {/* Logo Uploader */}
                                         <div className="space-y-3">
-                                            <label className="block text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-2">Form Logo</label>
+                                            <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Form Logo</label>
                                             <input
                                                 ref={logoFileRef}
                                                 type="file"
@@ -1438,7 +1403,7 @@ function FormBuilder() {
                                                     onClick={() => setHeaderAdvancedOpen(!headerAdvancedOpen)}
                                                     className="flex items-center justify-between w-full p-3 bg-gray-100 border border-gray-200 rounded-lg hover:bg-gray-200 transition-all group"
                                                 >
-                                                    <span className="text-[10px] font-bold text-gray-900 uppercase tracking-widest">Advanced</span>
+                                                    <span className="text-sm font-bold text-gray-900 uppercase tracking-widest">Advanced</span>
                                                     <ChevronRight size={14} className={`text-black transition-transform duration-200 ${headerAdvancedOpen ? 'rotate-90' : ''}`} />
                                                 </button>
 
@@ -1446,8 +1411,8 @@ function FormBuilder() {
                                                     <div className="mt-3 space-y-3 animate-in fade-in slide-in-from-top-1 duration-200">
                                                         <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-100">
                                                             <div className="flex flex-col">
-                                                                <span className="text-[10px] font-bold text-gray-900 uppercase tracking-widest">Collect Email</span>
-                                                                <span className="text-[8px] text-gray-500 uppercase tracking-tight">Prevent duplicate entries</span>
+                                                                <span className="text-xs font-bold text-gray-900 uppercase tracking-widest">Collect Email</span>
+                                                                <span className="text-[10px] text-gray-500 uppercase tracking-tight">Prevent duplicate entries</span>
                                                             </div>
                                                             <button
                                                                 onClick={() => canEdit && setCollectEmail(!collectEmail)}
@@ -1461,8 +1426,8 @@ function FormBuilder() {
 
                                                         <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-100">
                                                             <div className="flex flex-col">
-                                                                <span className="text-[10px] font-bold text-gray-900 uppercase tracking-widest">Limit to 1 response</span>
-                                                                <span className="text-[8px] text-gray-500 uppercase tracking-tight">Requires Google sign-in</span>
+                                                                <span className="text-xs font-bold text-gray-900 uppercase tracking-widest">Limit to 1 response</span>
+                                                                <span className="text-[10px] text-gray-500 uppercase tracking-tight">Requires Google sign-in</span>
                                                             </div>
                                                             <button
                                                                 onClick={() => canEdit && setLimitToOneResponse(!limitToOneResponse)}
@@ -1476,8 +1441,8 @@ function FormBuilder() {
 
                                                         <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-100">
                                                             <div className="flex flex-col">
-                                                                <span className="text-[10px] font-bold text-gray-900 uppercase tracking-widest">Allow Edit</span>
-                                                                <span className="text-[8px] text-gray-500 uppercase tracking-tight">Respondents can update answers</span>
+                                                                <span className="text-xs font-bold text-gray-900 uppercase tracking-widest">Allow Edit</span>
+                                                                <span className="text-[10px] text-gray-500 uppercase tracking-tight">Respondents can update answers</span>
                                                             </div>
                                                             <button
                                                                 onClick={() => canEdit && setAllowResponseEditing(!allowResponseEditing)}
@@ -1497,14 +1462,14 @@ function FormBuilder() {
                                                     onClick={() => setHeaderCollabOpen(!headerCollabOpen)}
                                                     className="flex items-center justify-between w-full p-3 bg-gray-100 border border-gray-200 rounded-lg hover:bg-gray-200 transition-all group"
                                                 >
-                                                    <span className="text-[10px] font-bold text-gray-900 uppercase tracking-widest">Collaborators</span>
+                                                    <span className="text-xs font-bold text-gray-900 uppercase tracking-widest">Collaborators</span>
                                                     <ChevronRight size={14} className={`text-black transition-transform duration-200 ${headerCollabOpen ? 'rotate-90' : ''}`} />
                                                 </button>
 
                                                 {headerCollabOpen && (
                                                     <div className="mt-3 space-y-4 animate-in fade-in slide-in-from-top-1 duration-200">
                                                         <div className="space-y-2">
-                                                            <label className="block text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-2">Add Collaborator</label>
+                                                            <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Add Collaborator</label>
                                                             <div className="space-y-2">
                                                                 <input
                                                                     type="email"
@@ -1512,14 +1477,14 @@ function FormBuilder() {
                                                                     onChange={(e) => setNewCollaboratorEmail(e.target.value)}
                                                                     placeholder="Email address"
                                                                     disabled={!isOwner}
-                                                                    className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-xs font-medium focus:ring-1 focus:ring-blue-600 focus:bg-white outline-none disabled:opacity-50"
+                                                                    className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm font-medium focus:ring-1 focus:ring-blue-600 focus:bg-white outline-none disabled:opacity-50"
                                                                 />
                                                                 <div className="flex gap-2">
                                                                     {isOwner && (
                                                                         <select
                                                                             value={newCollaboratorRole}
                                                                             onChange={(e) => setNewCollaboratorRole(e.target.value as 'viewer' | 'editor')}
-                                                                            className="flex-1 px-2 py-2 bg-gray-50 border border-gray-200 rounded-lg text-[10px] font-bold uppercase outline-none focus:ring-1 focus:ring-blue-600"
+                                                                            className="flex-1 px-2 py-2 bg-gray-50 border border-gray-200 rounded-lg text-xs font-bold uppercase outline-none focus:ring-1 focus:ring-blue-600"
                                                                         >
                                                                             <option value="editor">Editor</option>
                                                                             <option value="viewer">Viewer</option>
@@ -1532,12 +1497,12 @@ function FormBuilder() {
                                                                         style={{ backgroundColor: themeColor }}
                                                                     >
                                                                         {isAddingCollaborator ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} />}
-                                                                        {!isAddingCollaborator && <span className="ml-2 text-[10px] font-bold uppercase tracking-widest">Add</span>}
+                                                                        {!isAddingCollaborator && <span className="ml-2 text-xs font-bold uppercase tracking-widest">Add</span>}
                                                                     </button>
                                                                 </div>
                                                             </div>
                                                             {collabMessage && (
-                                                                <div className={`p-2 rounded-lg text-[10px] font-bold uppercase tracking-wider animate-in fade-in slide-in-from-top-1 duration-200 ${collabMessage.type === 'success' ? 'bg-green-50 text-green-600 border border-green-100' :
+                                                                <div className={`p-2 rounded-lg text-xs font-bold uppercase tracking-wider animate-in fade-in slide-in-from-top-1 duration-200 ${collabMessage.type === 'success' ? 'bg-green-50 text-green-600 border border-green-100' :
                                                                     collabMessage.type === 'error' ? 'bg-red-50 text-red-600 border border-red-100' :
                                                                         collabMessage.type === 'warning' ? 'bg-amber-50 text-amber-600 border-amber-100' :
                                                                             'bg-blue-50 text-blue-600 border border-blue-100'
@@ -1548,23 +1513,23 @@ function FormBuilder() {
                                                         </div>
 
                                                         <div className="space-y-3">
-                                                            <label className="block text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-2">Manage Access</label>
+                                                            <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Manage Access</label>
                                                             <div className="space-y-2 max-h-[300px] overflow-y-auto pr-2 scrollbar-hide">
                                                                 {collaborators.length === 0 && !ownerEmail ? (
                                                                     <div className="text-center py-8 bg-gray-50 rounded-xl border border-dashed border-gray-200">
-                                                                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">No collaborators yet</p>
+                                                                        <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">No collaborators yet</p>
                                                                     </div>
                                                                 ) : (
                                                                     <>
                                                                         {ownerEmail && (
                                                                             <div className="flex items-center justify-between p-3 bg-blue-50/30 border border-blue-100 rounded-xl shadow-sm group mb-2">
                                                                                 <div className="flex items-center gap-2 overflow-hidden">
-                                                                                    <div className="w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center text-[10px] font-bold uppercase shrink-0">
+                                                                                    <div className="w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs font-bold uppercase shrink-0">
                                                                                         {ownerEmail[0]?.toUpperCase() || 'O'}
                                                                                     </div>
                                                                                     <div className="flex flex-col min-w-0">
-                                                                                        <span className="text-[10px] font-bold text-gray-700 truncate">{ownerEmail}</span>
-                                                                                        <span className="text-[8px] font-bold text-blue-600 uppercase tracking-tight">Owner</span>
+                                                                                        <span className="text-xs font-bold text-gray-700 truncate">{ownerEmail}</span>
+                                                                                        <span className="text-[10px] font-bold text-blue-600 uppercase tracking-tight">Owner</span>
                                                                                     </div>
                                                                                 </div>
                                                                             </div>
@@ -1572,12 +1537,12 @@ function FormBuilder() {
                                                                         {collaborators.map((c) => (
                                                                             <div key={c.id} className="flex items-center justify-between p-3 bg-white border border-gray-100 rounded-xl shadow-sm group">
                                                                                 <div className="flex items-center gap-2 overflow-hidden">
-                                                                                    <div className="w-6 h-6 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-[10px] font-bold uppercase shrink-0">
+                                                                                    <div className="w-6 h-6 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xs font-bold uppercase shrink-0">
                                                                                         {c.email?.[0]?.toUpperCase() || '?'}
                                                                                     </div>
                                                                                     <div className="flex flex-col min-w-0">
-                                                                                        <span className="text-[10px] font-bold text-gray-700 truncate">{c.email}</span>
-                                                                                        <span className="text-[8px] font-bold text-gray-400 uppercase tracking-tight">{c.role}</span>
+                                                                                        <span className="text-xs font-bold text-gray-700 truncate">{c.email}</span>
+                                                                                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-tight">{c.role}</span>
                                                                                     </div>
                                                                                 </div>
                                                                                 <div className="flex items-center gap-1 shrink-0">
@@ -1585,7 +1550,7 @@ function FormBuilder() {
                                                                                         <select
                                                                                             value={c.role}
                                                                                             onChange={(e) => handleUpdateRole(c.id, e.target.value as 'viewer' | 'editor')}
-                                                                                            className="p-1 px-1.5 bg-gray-50 border border-gray-100 rounded text-[9px] font-bold uppercase text-gray-600 outline-none hover:bg-white transition-all"
+                                                                                            className="p-1 px-1.5 bg-gray-50 border border-gray-100 rounded text-xs font-bold uppercase text-gray-600 outline-none hover:bg-white transition-all"
                                                                                         >
                                                                                             <option value="editor">Editor</option>
                                                                                             <option value="viewer">Viewer</option>
@@ -1594,7 +1559,7 @@ function FormBuilder() {
                                                                                     <button
                                                                                         onClick={() => handleRemoveCollaborator(c.id)}
                                                                                         disabled={!isOwner}
-                                                                                        className="p-1 px-2 text-[11px] font-bold text-red-500 hover:bg-red-50 rounded-md opacity-0 group-hover:opacity-100 transition-all uppercase disabled:hidden"
+                                                                                        className="p-1 px-2 text-sm font-bold text-red-500 hover:bg-red-50 rounded-md opacity-0 group-hover:opacity-100 transition-all uppercase disabled:hidden"
                                                                                     >
                                                                                         Remove
                                                                                     </button>
@@ -1614,17 +1579,22 @@ function FormBuilder() {
                             ) : activeElement ? (
                                 <div className="space-y-6 animate-in fade-in duration-300">
                                     <div className="flex items-center justify-between">
-                                        <h2 className="text-[10px] font-bold text-gray-900 uppercase tracking-widest">Configuration</h2>
+                                        <h2 className="text-sm font-bold text-gray-900 uppercase tracking-widest">Configuration</h2>
                                         <button onClick={() => setActiveElementId(null)} className="p-1.5 text-black hover:bg-gray-100 rounded-lg transition-colors"><X size={16} /></button>
                                     </div>
 
                                     <div className="space-y-6">
                                         <div className="space-y-2">
-                                            <label className="block text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-2">Field Label</label>
-                                            <input
-                                                type="text"
+                                            <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Field Label</label>
+                                            <textarea
+                                                rows={1}
                                                 value={activeElement.label}
-                                                onFocus={() => {
+                                                maxLength={250}
+                                                onFocus={(e) => {
+                                                    const target = e.target as HTMLTextAreaElement;
+                                                    target.style.height = 'auto';
+                                                    target.style.height = target.scrollHeight + 'px';
+
                                                     const defaultLabel = ELEMENT_LABELS[activeElement.type];
                                                     const paragraphDefault = 'Tell us more about yourself';
                                                     const initialDefault = 'What is your name?';
@@ -1638,15 +1608,37 @@ function FormBuilder() {
                                                     const words = val.trim().split(/\s+/).filter(Boolean);
                                                     if (words.length > limit) return;
                                                     updateElement(activeElement.id, { label: val });
+
+                                                    const target = e.target as HTMLTextAreaElement;
+                                                    target.style.height = 'auto';
+                                                    target.style.height = target.scrollHeight + 'px';
                                                 }}
                                                 disabled={!canEdit}
-                                                className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-xs font-bold text-gray-900 focus:ring-1 focus:ring-blue-600 focus:bg-white outline-none disabled:opacity-50"
+                                                className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-base font-bold text-gray-900 focus:ring-1 focus:ring-blue-600 focus:bg-white outline-none disabled:opacity-50 resize-none overflow-hidden break-words break-all"
                                             />
-                                            {activeElement.type === 'paragraph' ? (
-                                                <p className="text-[8px] text-gray-400 mt-1 uppercase">Max 15 words</p>
-                                            ) : (
-                                                <p className="text-[8px] text-gray-400 mt-1 uppercase">Max 10 words</p>
-                                            )}
+                                            <div className="flex justify-between items-center mt-1">
+                                                {activeElement.type === 'paragraph' ? (
+                                                    <p className="text-[9px] text-gray-400 uppercase font-bold">Max 15 words</p>
+                                                ) : (
+                                                    <p className="text-[9px] text-gray-400 uppercase font-bold">Max 10 words</p>
+                                                )}
+                                                <p className="text-[9px] text-gray-400 uppercase font-bold">{activeElement.label.length}/250</p>
+                                            </div>
+                                        </div>
+
+                                        <div className="space-y-2 pt-4 border-t border-gray-50">
+                                            <div className="flex justify-between items-center mb-2">
+                                                <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">Placeholder / Hint</label>
+                                                <p className="text-[9px] text-gray-400 uppercase font-bold">{(activeElement.placeholder || '').length}/100</p>
+                                            </div>
+                                            <input
+                                                type="text"
+                                                maxLength={100}
+                                                value={activeElement.placeholder || ''}
+                                                disabled={true}
+                                                className="w-full px-3 py-2 bg-gray-100 border border-gray-200 rounded-lg text-sm font-medium text-gray-400 cursor-not-allowed outline-none"
+                                                placeholder="Placeholder is disabled"
+                                            />
                                         </div>
 
                                         {activeElement.options && (
@@ -1673,11 +1665,15 @@ function FormBuilder() {
                                                             <div className={`p-1 cursor-grab active:cursor-grabbing text-black hover:text-gray-900 transition-colors ${!canEdit ? 'hidden' : ''}`}>
                                                                 <GripVertical size={12} />
                                                             </div>
-                                                            <input
-                                                                type="text"
+                                                            <textarea
+                                                                rows={1}
                                                                 value={opt}
                                                                 disabled={!canEdit}
-                                                                onFocus={() => {
+                                                                onFocus={(e) => {
+                                                                    const target = e.target as HTMLTextAreaElement;
+                                                                    target.style.height = 'auto';
+                                                                    target.style.height = target.scrollHeight + 'px';
+
                                                                     if (opt === `Option ${i + 1}`) {
                                                                         if (activeElement) updateOption(activeElement.id, i, '');
                                                                     }
@@ -1687,8 +1683,12 @@ function FormBuilder() {
                                                                     const words = val.trim().split(/\s+/).filter(Boolean);
                                                                     if (words.length > 10) return;
                                                                     if (activeElement) updateOption(activeElement.id, i, val);
+
+                                                                    const target = e.target as HTMLTextAreaElement;
+                                                                    target.style.height = 'auto';
+                                                                    target.style.height = target.scrollHeight + 'px';
                                                                 }}
-                                                                className="flex-1 px-3 py-1.5 bg-gray-50 border border-gray-200 rounded-md text-xs font-semibold text-gray-900 outline-none focus:ring-1 focus:ring-blue-600 focus:bg-white transition-all disabled:opacity-50"
+                                                                className="flex-1 px-3 py-1.5 bg-gray-50 border border-gray-200 rounded-md text-sm font-semibold text-gray-900 outline-none focus:ring-1 focus:ring-blue-600 focus:bg-white transition-all disabled:opacity-50 resize-none overflow-hidden break-words break-all"
                                                             />
                                                             {(activeElement.options?.length ?? 0) > 2 && (
                                                                 <button
@@ -1705,7 +1705,7 @@ function FormBuilder() {
                                                 <button
                                                     onClick={() => { if (activeElement && canEdit) addOption(activeElement.id); }}
                                                     disabled={!canEdit}
-                                                    className="w-full py-2 border border-dashed border-gray-100 rounded-lg text-[9px] font-bold text-gray-400 uppercase tracking-widest hover:border-blue-200 hover:text-blue-500 hover:bg-blue-50 transition-all flex items-center justify-center gap-1 disabled:hidden"
+                                                    className="w-full py-2 border border-dashed border-gray-100 rounded-lg text-sm font-bold text-gray-400 uppercase tracking-widest hover:border-blue-200 hover:text-blue-500 hover:bg-blue-50 transition-all flex items-center justify-center gap-1 disabled:hidden"
                                                 >
                                                     <Plus size={12} className="text-black font-bold" />
                                                     Add Option
@@ -1721,14 +1721,14 @@ function FormBuilder() {
                                                     onClick={() => setAdvancedOpen(!advancedOpen)}
                                                     className="flex items-center justify-between w-full p-3 bg-gray-100 border border-gray-200 rounded-lg hover:bg-gray-200 transition-all group"
                                                 >
-                                                    <span className="text-[10px] font-bold text-gray-900 uppercase tracking-widest">Advanced</span>
+                                                    <span className="text-sm font-bold text-gray-900 uppercase tracking-widest">Advanced</span>
                                                     <ChevronRight size={14} className={`text-black transition-transform duration-200 ${advancedOpen ? 'rotate-90' : ''}`} />
                                                 </button>
 
                                                 {advancedOpen && (
                                                     <div className="mt-3 space-y-3 animate-in fade-in slide-in-from-top-1 duration-200">
                                                         <div className="space-y-2">
-                                                            <label className="text-[9px] font-bold text-gray-600 uppercase tracking-widest">Word Limit</label>
+                                                            <label className="text-sm font-bold text-gray-600 uppercase tracking-widest">Word Limit</label>
                                                             <div className="flex items-center gap-2">
                                                                 <input
                                                                     type="number"
@@ -1740,11 +1740,30 @@ function FormBuilder() {
                                                                     }}
                                                                     disabled={!canEdit}
                                                                     placeholder="No limit"
-                                                                    className="flex-1 px-3 py-2 bg-gray-50 border border-gray-100 rounded-lg text-xs font-bold text-gray-900 focus:ring-1 focus:ring-blue-600 focus:bg-white outline-none disabled:opacity-50"
+                                                                    className="flex-1 px-3 py-2 bg-gray-50 border border-gray-100 rounded-lg text-sm font-bold text-gray-900 focus:ring-1 focus:ring-blue-600 focus:bg-white outline-none disabled:opacity-50"
                                                                 />
-                                                                <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">words</span>
+                                                                <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">words</span>
                                                             </div>
-                                                            <p className="text-[9px] text-gray-500 leading-relaxed">Leave empty for unlimited words.</p>
+                                                        </div>
+
+                                                        <div className="space-y-2">
+                                                            <label className="text-sm font-bold text-gray-600 uppercase tracking-widest">Char Limit</label>
+                                                            <div className="flex items-center gap-2">
+                                                                <input
+                                                                    type="number"
+                                                                    min={0}
+                                                                    value={activeElement.charLimit || ''}
+                                                                    onChange={(e) => {
+                                                                        const val = parseInt(e.target.value);
+                                                                        if (activeElement) updateElement(activeElement.id, { charLimit: val > 0 ? val : undefined });
+                                                                    }}
+                                                                    disabled={!canEdit}
+                                                                    placeholder="No limit"
+                                                                    className="flex-1 px-3 py-2 bg-gray-50 border border-gray-100 rounded-lg text-sm font-bold text-gray-900 focus:ring-1 focus:ring-blue-600 focus:bg-white outline-none disabled:opacity-50"
+                                                                />
+                                                                <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">chars</span>
+                                                            </div>
+                                                            <p className="text-xs text-gray-500 leading-relaxed uppercase font-bold">Leave empty for unlimited.</p>
                                                         </div>
                                                     </div>
                                                 )}
@@ -1753,7 +1772,7 @@ function FormBuilder() {
 
                                         <div className="pt-4 border-t border-gray-50">
                                             <div className="flex items-center justify-between p-3 bg-gray-100 border border-gray-200 rounded-lg">
-                                                <span className="text-[10px] font-bold text-gray-900 uppercase tracking-widest">Required</span>
+                                                <span className="text-sm font-bold text-gray-900 uppercase tracking-widest">Required</span>
                                                 <button
                                                     onClick={() => { if (activeElement && canEdit) updateElement(activeElement.id, { required: !activeElement.required }); }}
                                                     disabled={!canEdit}
@@ -1773,24 +1792,24 @@ function FormBuilder() {
 
 
                                     <div className="pt-6 border-t border-gray-50 flex flex-col items-center justify-center p-6 text-center text-gray-300">
-                                        <h3 className="text-[9px] font-bold uppercase tracking-widest">Select an element to configure</h3>
+                                        <h3 className="text-xs font-bold uppercase tracking-widest">Select an element to configure</h3>
                                     </div>
                                 </div>
                             )
                         ) : (
                             <div className="space-y-6 animate-in fade-in duration-300">
-                                <h2 className="text-[10px] font-bold text-gray-900 uppercase tracking-widest">Published Feed</h2>
+                                <h2 className="text-sm font-bold text-gray-900 uppercase tracking-widest">Published Feed</h2>
 
                                 {formId && (
                                     <div className="pt-4 border-t border-gray-50 space-y-4">
                                         <div className="space-y-2">
-                                            <label className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Endpoint</label>
-                                            <div className="px-3 py-2 bg-gray-50 border border-gray-100 rounded-lg text-[10px] font-mono text-gray-500 break-all leading-normal min-h-[2.5rem]">
+                                            <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">Endpoint</label>
+                                            <div className="px-3 py-2 bg-gray-50 border border-gray-100 rounded-lg text-xs font-mono text-gray-500 break-all leading-normal min-h-[2.5rem]">
                                                 {isMounted ? `${window.location.origin}/view/${formId}` : 'Loading...'}
                                             </div>
                                             <button
                                                 onClick={copyLink}
-                                                className={`w-full py-2 rounded-lg font-bold text-[9px] uppercase tracking-widest transition-all flex items-center justify-center gap-2 ${copySuccess ? 'bg-green-500 text-white' : 'bg-blue-600 text-white'
+                                                className={`w-full py-2 rounded-lg font-bold text-xs uppercase tracking-widest transition-all flex items-center justify-center gap-2 ${copySuccess ? 'bg-green-500 text-white' : 'bg-blue-600 text-white'
                                                     }`}
                                             >
                                                 {copySuccess ? 'Copied' : 'Copy link'}
@@ -1813,7 +1832,7 @@ function FormBuilder() {
                                 <Send size={28} />
                             </div>
                             <h2 className="text-xl font-bold text-gray-900 mb-2 uppercase tracking-tight">Form is Live</h2>
-                            <p className="text-xs text-gray-500 mb-8 max-w-xs mx-auto">Your form is now ready to collect responses.</p>
+                            <p className="text-sm text-gray-500 mb-8 max-w-xs mx-auto">Your form is now ready to collect responses.</p>
                             <button
                                 onClick={copyLink}
                                 className={`w-full py-3 rounded-xl font-bold text-xs uppercase tracking-widest mb-4 transition-all ${copySuccess ? 'bg-green-500 text-white' : 'bg-blue-600 text-white hover:bg-blue-700'
@@ -1823,7 +1842,7 @@ function FormBuilder() {
                             </button>
                             <button
                                 onClick={() => setIsSendModalOpen(false)}
-                                className="text-[10px] font-bold text-gray-400 uppercase tracking-widest hover:text-gray-900"
+                                className="text-xs font-bold text-gray-400 uppercase tracking-widest hover:text-gray-900"
                             >
                                 Back to Editor
                             </button>
@@ -1919,7 +1938,7 @@ function CommentPanel({ isOpen, onClose, elementId, comments, onAddComment, onDe
                 <div className="p-4 border-b border-gray-100 flex items-center justify-between">
                     <div className="flex items-center gap-2">
                         <MessageSquare size={16} className="text-blue-600" />
-                        <h3 className="text-[11px] font-bold text-gray-900 uppercase tracking-widest">Comments</h3>
+                        <h3 className="text-sm font-bold text-gray-900 uppercase tracking-widest">Comments</h3>
                     </div>
                     <button onClick={onClose} className="p-1 hover:bg-gray-100 rounded-md transition-all">
                         <X size={16} />
@@ -1930,7 +1949,7 @@ function CommentPanel({ isOpen, onClose, elementId, comments, onAddComment, onDe
                     {comments.length === 0 ? (
                         <div className="h-full flex flex-col items-center justify-center text-center p-6 bg-white rounded-xl border border-dashed border-gray-200">
                             <MessageSquare size={24} className="text-gray-200 mb-2" />
-                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">No comments yet</p>
+                            <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">No comments yet</p>
                             <p className="text-[9px] text-gray-500 mt-1">Start a conversation about this field.</p>
                         </div>
                     ) : (
@@ -1941,10 +1960,10 @@ function CommentPanel({ isOpen, onClose, elementId, comments, onAddComment, onDe
                                         <div className="w-5 h-5 rounded-full bg-blue-600 flex items-center justify-center text-[8px] font-extrabold text-white">
                                             {comment.user_name?.[0]?.toUpperCase() || 'U'}
                                         </div>
-                                        <span className="text-[10px] font-bold text-gray-900">{comment.user_name}</span>
+                                        <span className="text-sm font-bold text-gray-900 break-words break-all">{comment.user_name}</span>
                                     </div>
                                     <div className="flex items-center gap-2">
-                                        <span className="text-[8px] font-medium text-gray-400">{new Date(comment.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                                        <span className="text-[10px] font-medium text-gray-400">{new Date(comment.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                                         {currentUser?.email === comment.user_email && (
                                             <button onClick={() => onDeleteComment(comment.id)} className="opacity-0 group-hover:opacity-100 p-1 text-gray-400 hover:text-red-500 transition-all">
                                                 <Trash2 size={12} />
@@ -1952,7 +1971,7 @@ function CommentPanel({ isOpen, onClose, elementId, comments, onAddComment, onDe
                                         )}
                                     </div>
                                 </div>
-                                <p className="text-[11px] text-gray-700 leading-relaxed whitespace-pre-wrap">
+                                <p className="text-[11px] text-gray-700 leading-relaxed whitespace-pre-wrap break-words break-all">
                                     {comment.content.split(/(@\S+)/).map((part, i) =>
                                         part.startsWith('@') ? (
                                             <span key={i} className="text-blue-600 font-bold bg-blue-50 px-1 rounded">{part}</span>
@@ -1976,7 +1995,7 @@ function CommentPanel({ isOpen, onClose, elementId, comments, onAddComment, onDe
                                         className="w-full flex items-center gap-2 px-3 py-2 hover:bg-blue-50 text-left transition-all"
                                     >
                                         <AtSign size={12} className="text-gray-400" />
-                                        <span className="text-[10px] font-medium text-gray-700">{c.email}</span>
+                                        <span className="text-xs font-medium text-gray-700">{c.email}</span>
                                     </button>
                                 ))}
                         </div>
@@ -1986,7 +2005,7 @@ function CommentPanel({ isOpen, onClose, elementId, comments, onAddComment, onDe
                         value={newComment}
                         onChange={handleTextChange}
                         placeholder="Add a comment... (use @ to tag)"
-                        className="w-full h-24 p-3 bg-gray-50 border border-gray-100 rounded-xl text-xs font-medium focus:ring-1 focus:ring-blue-600 focus:bg-white outline-none resize-none transition-all"
+                        className="w-full h-24 p-3 bg-gray-50 border border-gray-100 rounded-xl text-sm font-medium focus:ring-1 focus:ring-blue-600 focus:bg-white outline-none resize-none transition-all"
                         onKeyDown={(e) => {
                             if (e.key === 'Enter' && !e.shiftKey) {
                                 e.preventDefault();
@@ -1996,7 +2015,7 @@ function CommentPanel({ isOpen, onClose, elementId, comments, onAddComment, onDe
                         }}
                     />
                     <div className="mt-2 flex items-center justify-between">
-                        <span className="text-[8px] font-bold text-gray-400 uppercase tracking-widest">Shift + Enter for new line</span>
+                        <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">Shift + Enter for new line</span>
                         <button
                             onClick={() => { onAddComment(newComment); setNewComment(''); }}
                             className="px-4 py-1.5 bg-blue-600 text-white text-[10px] font-bold uppercase rounded-lg hover:bg-blue-700 transition-all shadow-sm"

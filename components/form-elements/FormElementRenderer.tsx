@@ -23,6 +23,7 @@ interface FormElementRendererProps {
     options: string[] | null;
     max_rating: number | null;
     word_limit?: number | null;
+    char_limit?: number | null;
   };
   value: string | string[] | number | File | null;
   onChange: (value: string | string[] | number | File | null) => void;
@@ -47,6 +48,7 @@ export default function FormElementRenderer({
           onChange={(v) => onChange(v)}
           error={error}
           wordLimit={element.word_limit || undefined}
+          charLimit={element.char_limit || undefined}
         />
       );
 

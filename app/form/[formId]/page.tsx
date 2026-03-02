@@ -25,6 +25,18 @@ export default function FormResponsePage() {
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [fetchError, setFetchError] = useState<string | null>(null);
+  const [user, setUser] = useState<any>(null);
+
+  // Get current user
+  useEffect(() => {
+    const fetchUser = async () => {
+      const { data: { user: u } } = await supabase.auth.getUser();
+      setUser(u);
+    };
+    fetchUser();
+  }, []);
+
+  const isCreator = !!(user && form && form.created_by === user.id);
 
   // Fetch form and elements
   const fetchForm = useCallback(async () => {
@@ -170,6 +182,12 @@ export default function FormResponsePage() {
       return;
     }
 
+    // Prevent creators from submitting
+    if (isCreator) {
+      alert('Form creators cannot submit responses to their own forms.');
+      return;
+    }
+
     try {
       setSubmitting(true);
       await saveResponse(formId, values);
@@ -187,7 +205,7 @@ export default function FormResponsePage() {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <Loader2 size={48} className="text-blue-500 animate-spin mx-auto mb-4" />
-          <p className="text-gray-600 font-medium">Loading form...</p>
+          <p className="text-base text-gray-600 font-medium">Loading form...</p>
         </div>
       </div>
     );
@@ -201,8 +219,8 @@ export default function FormResponsePage() {
           <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <AlertCircle size={32} className="text-red-500" />
           </div>
-          <h1 className="text-xl font-bold text-gray-900 mb-2">Form Not Available</h1>
-          <p className="text-gray-500 mb-6">{fetchError}</p>
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">Form Not Available</h1>
+          <p className="text-sm text-gray-500 mb-6">{fetchError}</p>
           <button
             onClick={() => router.push('/')}
             className="inline-flex items-center gap-2 px-6 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold rounded-xl transition-colors"
@@ -223,8 +241,8 @@ export default function FormResponsePage() {
           <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
             <CheckCircle size={40} className="text-green-500" />
           </div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">Thank You!</h1>
-          <p className="text-gray-500 mb-8">Your response has been submitted successfully.</p>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">Thank You!</h1>
+          <p className="text-base text-gray-500 mb-8">Your response has been submitted successfully.</p>
           <div className="space-y-3">
             <button
               onClick={() => {
@@ -268,7 +286,7 @@ export default function FormResponsePage() {
             <div className="bg-blue-600 p-1.5 rounded-lg text-white">
               <FileText size={18} fill="white" />
             </div>
-            <span className="text-lg font-bold text-gray-900">FormCraft</span>
+            <span className="text-xl font-bold text-gray-900">FormCraft</span>
           </div>
         </div>
       </header>
@@ -280,12 +298,12 @@ export default function FormResponsePage() {
           <div className="bg-purple-600 rounded-2xl p-8 text-white shadow-xl shadow-purple-200/50 relative overflow-hidden mb-6">
             <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 blur-3xl"></div>
             <div className="relative">
-              <h1 className="text-2xl font-bold mb-2">{form?.title}</h1>
+              <h1 className="text-3xl font-bold mb-2">{form?.title}</h1>
               {form?.description && (
-                <p className="text-purple-100 text-sm whitespace-pre-wrap">{form.description}</p>
+                <p className="text-purple-100 text-base whitespace-pre-wrap">{form.description}</p>
               )}
               {form?.expires_at && (
-                <div className="mt-4 flex items-center gap-2 text-white/70 text-xs font-semibold bg-white/10 w-fit px-3 py-1.5 rounded-full border border-white/10 backdrop-blur-sm">
+                <div className="mt-4 flex items-center gap-2 text-white/70 text-sm font-semibold bg-white/10 w-fit px-3 py-1.5 rounded-full border border-white/10 backdrop-blur-sm">
                   <Clock size={12} className="text-white/80" />
                   <span>
                     Deadline: {new Date(form.expires_at).toLocaleString([], {
@@ -314,11 +332,11 @@ export default function FormResponsePage() {
 
           {/* Submit Button */}
           {elements.length > 0 && (
-            <div className="mt-8">
+            <div className="mt-8 space-y-4">
               <button
                 type="submit"
-                disabled={submitting}
-                className="w-full flex items-center justify-center gap-3 px-8 py-4 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-semibold rounded-xl transition-colors shadow-lg shadow-blue-200/50"
+                disabled={submitting || isCreator}
+                className={`w-full flex items-center justify-center gap-3 px-8 py-4 ${isCreator ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700 shadow-blue-200/50'} text-white font-semibold rounded-xl transition-colors shadow-lg`}
               >
                 {submitting ? (
                   <>
@@ -328,10 +346,17 @@ export default function FormResponsePage() {
                 ) : (
                   <>
                     <Send size={20} />
-                    Submit
+                    {isCreator ? 'Creator Preview' : 'Submit'}
                   </>
                 )}
               </button>
+
+              {isCreator && (
+                <p className="text-center text-sm font-bold text-blue-600 uppercase tracking-widest bg-blue-50 py-2 rounded-xl border border-blue-100 flex items-center justify-center gap-2">
+                  <span className="w-1.5 h-1.5 rounded-full bg-blue-600 animate-pulse"></span>
+                  Viewing as creator. You cannot submit responses.
+                </p>
+              )}
             </div>
           )}
 
@@ -341,8 +366,8 @@ export default function FormResponsePage() {
               <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
                 <FileText size={32} className="text-gray-400" />
               </div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">No Questions Yet</h3>
-              <p className="text-gray-500">This form doesn&apos;t have any questions yet.</p>
+              <h3 className="text-xl font-semibold text-gray-900 mb-2">No Questions Yet</h3>
+              <p className="text-sm text-gray-500">This form doesn&apos;t have any questions yet.</p>
             </div>
           )}
         </form>

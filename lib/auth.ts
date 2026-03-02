@@ -42,11 +42,11 @@ export async function signIn(email: string, password: string) {
 // ============================================================
 // SIGN IN WITH GOOGLE - OAuth via Supabase
 // ============================================================
-export async function signInWithGoogle() {
+export async function signInWithGoogle(next?: string) {
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: 'google',
     options: {
-      redirectTo: `${window.location.origin}/auth/callback`,
+      redirectTo: `${window.location.origin}/auth/callback${next ? `?next=${encodeURIComponent(next)}` : ''}`,
     },
   });
 

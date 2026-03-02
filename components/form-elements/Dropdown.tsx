@@ -39,7 +39,7 @@ export default function Dropdown({
 
     return (
         <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-200 transition-all">
-            <p className="text-base font-medium text-gray-900 mb-4 leading-normal break-words">
+            <p className="text-lg font-semibold text-gray-900 mb-4 leading-normal break-words">
                 {label}
                 {required && <span className="text-red-600 ml-1">*</span>}
             </p>
@@ -47,7 +47,7 @@ export default function Dropdown({
                 <button
                     type="button"
                     onClick={() => setIsOpen(!isOpen)}
-                    className={`w-full px-4 py-3 bg-white border rounded-lg text-sm text-left flex items-center justify-between transition-all ${isOpen ? 'border-blue-500 ring-2 ring-blue-100' : error ? 'border-red-300 bg-red-50' : 'border-gray-300 hover:border-gray-400'
+                    className={`w-full px-4 py-3 bg-white border rounded-lg text-base text-left flex items-center justify-between transition-all ${isOpen ? 'border-blue-500 ring-2 ring-blue-100' : error ? 'border-red-300 bg-red-50' : 'border-gray-300 hover:border-gray-400'
                         }`}
                 >
                     <span className={`break-words ${value ? 'text-gray-900 font-normal' : 'text-gray-400'}`}>
@@ -69,7 +69,7 @@ export default function Dropdown({
                                     onChange(option);
                                     setIsOpen(false);
                                 }}
-                                className={`w-full text-left px-4 py-2.5 text-sm transition-all flex items-center justify-between ${value === option
+                                className={`w-full text-left px-4 py-2.5 text-base transition-all flex items-center justify-between ${value === option
                                     ? 'bg-blue-50 text-blue-700 font-medium'
                                     : 'text-gray-700 hover:bg-gray-50'
                                     }`}
@@ -85,13 +85,13 @@ export default function Dropdown({
                 <button
                     type="button"
                     onClick={() => onChange('')}
-                    className="mt-3 text-xs font-medium text-gray-400 hover:text-gray-600 transition-colors"
+                    className="mt-3 text-sm font-medium text-gray-400 hover:text-gray-600 transition-colors"
                 >
                     Clear selection
                 </button>
             )}
             {error && (
-                <p className="mt-4 text-xs text-red-500 font-medium flex items-center gap-1">
+                <p className="mt-4 text-sm text-red-500 font-medium flex items-center gap-1">
                     <XCircle size={14} />
                     {error}
                 </p>

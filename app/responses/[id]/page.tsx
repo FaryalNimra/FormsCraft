@@ -145,17 +145,17 @@ export default function ResponsesPage() {
                     <div className="w-12 h-12 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
                         {isUnauthorized ? <User size={24} /> : <X size={24} />}
                     </div>
-                    <h1 className="text-lg font-bold text-gray-900 mb-2">
+                    <h1 className="text-xl font-bold text-gray-900 mb-2">
                         {isUnauthorized ? 'Access Denied' : 'Error'}
                     </h1>
-                    <p className="text-gray-500 text-xs mb-6 lowercase first-letter:uppercase">
+                    <p className="text-gray-500 text-sm mb-6 lowercase first-letter:uppercase">
                         {isUnauthorized
                             ? "You don't have permission to view responses for this form. Only the creator can access this data."
                             : (error || 'Form not found.')}
                     </p>
                     <Link
                         href="/"
-                        className="inline-block px-6 py-2 bg-blue-600 text-white rounded-lg font-medium text-xs transition-colors hover:bg-blue-700 shadow-sm uppercase tracking-widest"
+                        className="inline-block px-6 py-2 bg-blue-600 text-white rounded-lg font-medium text-sm transition-colors hover:bg-blue-700 shadow-sm uppercase tracking-widest"
                     >
                         Back to Dashboard
                     </Link>
@@ -176,19 +176,19 @@ export default function ResponsesPage() {
                             <div className="w-7 h-7 bg-blue-600 rounded-lg flex items-center justify-center text-white">
                                 <ArrowLeft size={14} />
                             </div>
-                            <span className="text-[10px] font-bold text-gray-900 group-hover:text-blue-600 transition-colors uppercase tracking-widest hidden sm:block">Dashboard</span>
+                            <span className="text-xs font-bold text-gray-900 group-hover:text-blue-600 transition-colors uppercase tracking-widest hidden sm:block">Dashboard</span>
                         </Link>
                         <div className="h-4 w-px bg-gray-100"></div>
                         <div>
-                            <h1 className="text-sm font-bold text-gray-900 tracking-tight">{form.title}</h1>
+                            <h1 className="text-base font-bold text-gray-900 tracking-tight">{form.title}</h1>
                             <div className="flex items-center gap-2">
-                                <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded uppercase tracking-widest ${form.status === 'published'
+                                <span className={`text-xs font-bold px-1.5 py-0.5 rounded uppercase tracking-widest ${form.status === 'published'
                                     ? 'bg-green-50 text-green-600'
                                     : 'bg-amber-50 text-amber-600'
                                     }`}>
                                     {form.status}
                                 </span>
-                                <span className="text-[10px] text-gray-400 font-medium">
+                                <span className="text-xs text-gray-400 font-medium">
                                     {responses.length} response{responses.length !== 1 ? 's' : ''}
                                 </span>
                             </div>
@@ -198,7 +198,7 @@ export default function ResponsesPage() {
                     <div className="flex items-center gap-2">
                         <button
                             onClick={copyShareLink}
-                            className="flex items-center gap-1.5 px-3 py-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all text-[10px] font-bold uppercase tracking-wider no-print"
+                            className="flex items-center gap-1.5 px-3 py-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all text-xs font-bold uppercase tracking-wider no-print"
                         >
                             {copySuccess ? <Check size={14} /> : <LinkIcon size={14} />}
                             {copySuccess ? 'Copied!' : 'Share'}
@@ -206,7 +206,7 @@ export default function ResponsesPage() {
                         <button
                             onClick={exportCSV}
                             disabled={responses.length === 0}
-                            className="flex items-center gap-1.5 px-3 py-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all text-[10px] font-bold uppercase tracking-wider disabled:opacity-40 disabled:cursor-not-allowed no-print"
+                            className="flex items-center gap-1.5 px-3 py-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all text-xs font-bold uppercase tracking-wider disabled:opacity-40 disabled:cursor-not-allowed no-print"
                         >
                             <Download size={14} />
                             CSV
@@ -214,7 +214,7 @@ export default function ResponsesPage() {
                         <button
                             onClick={handlePrint}
                             disabled={responses.length === 0}
-                            className="flex items-center gap-1.5 px-3 py-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all text-[10px] font-bold uppercase tracking-wider disabled:opacity-40 disabled:cursor-not-allowed no-print"
+                            className="flex items-center gap-1.5 px-3 py-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all text-xs font-bold uppercase tracking-wider disabled:opacity-40 disabled:cursor-not-allowed no-print"
                         >
                             <FileDown size={14} />
                             PDF
@@ -222,7 +222,7 @@ export default function ResponsesPage() {
                         <button
                             onClick={handlePrint}
                             disabled={responses.length === 0}
-                            className="flex items-center gap-1.5 px-3 py-1.5 text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-all text-[10px] font-bold uppercase tracking-wider disabled:opacity-40 disabled:cursor-not-allowed no-print"
+                            className="flex items-center gap-1.5 px-3 py-1.5 text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-all text-xs font-bold uppercase tracking-wider disabled:opacity-40 disabled:cursor-not-allowed no-print"
                         >
                             <Printer size={14} />
                             Print
@@ -239,27 +239,27 @@ export default function ResponsesPage() {
                             <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
                                 <MessageSquare size={18} />
                             </div>
-                            <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Total Responses</span>
+                            <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">Total Responses</span>
                         </div>
-                        <p className="text-3xl font-extrabold text-gray-900 tracking-tight">{responses.length}</p>
+                        <p className="text-4xl font-extrabold text-gray-900 tracking-tight">{responses.length}</p>
                     </div>
                     <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm">
                         <div className="flex items-center gap-3 mb-3">
                             <div className="w-9 h-9 rounded-xl bg-green-50 text-green-600 flex items-center justify-center">
                                 <BarChart3 size={18} />
                             </div>
-                            <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Questions</span>
+                            <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">Questions</span>
                         </div>
-                        <p className="text-3xl font-extrabold text-gray-900 tracking-tight">{form.elements?.length || 0}</p>
+                        <p className="text-4xl font-extrabold text-gray-900 tracking-tight">{form.elements?.length || 0}</p>
                     </div>
                     <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm">
                         <div className="flex items-center gap-3 mb-3">
                             <div className="w-9 h-9 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center">
                                 <Clock size={18} />
                             </div>
-                            <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Last Response</span>
+                            <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">Last Response</span>
                         </div>
-                        <p className="text-sm font-bold text-gray-900">
+                        <p className="text-base font-bold text-gray-900">
                             {responses.length > 0
                                 ? new Date(responses[0].submitted_at).toLocaleDateString([], { dateStyle: 'medium' })
                                 : 'No responses yet'
@@ -275,12 +275,12 @@ export default function ResponsesPage() {
                             <FileText size={32} />
                         </div>
                         <h3 className="text-lg font-bold text-gray-900 mb-2">No responses yet</h3>
-                        <p className="text-gray-400 text-xs max-w-xs mx-auto mb-6">
+                        <p className="text-gray-400 text-sm max-w-xs mx-auto mb-6">
                             Share your form to start collecting responses. They'll appear here in real-time.
                         </p>
                         <button
                             onClick={copyShareLink}
-                            className="px-6 py-2 bg-blue-600 text-white rounded-lg text-xs font-bold hover:bg-blue-700 transition-all inline-flex items-center gap-2"
+                            className="px-6 py-2 bg-blue-600 text-white rounded-lg text-sm font-bold hover:bg-blue-700 transition-all inline-flex items-center gap-2"
                         >
                             <LinkIcon size={14} />
                             Copy Form Link
@@ -298,11 +298,11 @@ export default function ResponsesPage() {
                                         placeholder="Search responses..."
                                         value={searchQuery}
                                         onChange={(e) => setSearchQuery(e.target.value)}
-                                        className="pl-9 pr-4 py-2 bg-white border border-gray-200 rounded-lg text-xs text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 w-64 transition-all"
+                                        className="pl-9 pr-4 py-2 bg-white border border-gray-200 rounded-lg text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 w-64 transition-all"
                                     />
                                 </div>
                                 {searchQuery && (
-                                    <span className="text-[10px] font-bold text-gray-400">
+                                    <span className="text-xs font-bold text-gray-400">
                                         {filteredResponses.length} of {responses.length} results
                                     </span>
                                 )}
@@ -312,7 +312,7 @@ export default function ResponsesPage() {
                             <div className="flex items-center bg-gray-50 p-0.5 rounded-lg border border-gray-100">
                                 <button
                                     onClick={() => setViewMode('table')}
-                                    className={`px-3 py-1.5 rounded-md text-[10px] font-bold uppercase tracking-widest transition-all ${viewMode === 'table'
+                                    className={`px-3 py-1.5 rounded-md text-xs font-bold uppercase tracking-widest transition-all ${viewMode === 'table'
                                         ? 'bg-white text-blue-600 shadow-sm'
                                         : 'text-gray-400 hover:text-gray-600'
                                         }`}
@@ -321,7 +321,7 @@ export default function ResponsesPage() {
                                 </button>
                                 <button
                                     onClick={() => setViewMode('individual')}
-                                    className={`px-3 py-1.5 rounded-md text-[10px] font-bold uppercase tracking-widest transition-all ${viewMode === 'individual'
+                                    className={`px-3 py-1.5 rounded-md text-xs font-bold uppercase tracking-widest transition-all ${viewMode === 'individual'
                                         ? 'bg-white text-blue-600 shadow-sm'
                                         : 'text-gray-400 hover:text-gray-600'
                                         }`}
@@ -335,9 +335,9 @@ export default function ResponsesPage() {
                         {viewMode === 'table' && (
                             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
                                 <div className="overflow-x-auto">
-                                    <table className="w-full text-left text-sm">
+                                    <table className="w-full text-left text-base">
                                         <thead>
-                                            <tr className="bg-gray-50/50 border-b border-gray-50 text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                                            <tr className="bg-gray-50/50 border-b border-gray-50 text-xs font-bold text-gray-400 uppercase tracking-widest">
                                                 <th className="px-6 py-4 w-10">#</th>
                                                 <th
                                                     className="px-4 py-4 cursor-pointer hover:text-gray-600 transition-colors select-none"
@@ -362,8 +362,8 @@ export default function ResponsesPage() {
                                         <tbody className="divide-y divide-gray-50">
                                             {filteredResponses.map((response, index) => (
                                                 <tr key={response.id} className="hover:bg-gray-50/50 transition-all group">
-                                                    <td className="px-6 py-4 text-xs font-bold text-gray-400">{index + 1}</td>
-                                                    <td className="px-4 py-4 text-xs text-gray-500 font-medium whitespace-nowrap">
+                                                    <td className="px-6 py-4 text-sm font-bold text-gray-400">{index + 1}</td>
+                                                    <td className="px-4 py-4 text-sm text-gray-500 font-medium whitespace-nowrap">
                                                         {new Date(response.submitted_at).toLocaleString([], {
                                                             dateStyle: 'medium',
                                                             timeStyle: 'short',
@@ -371,7 +371,7 @@ export default function ResponsesPage() {
                                                     </td>
                                                     {form.collect_email && (
                                                         <td className="px-4 py-4">
-                                                            <span className="text-xs font-medium text-gray-700 flex items-center gap-1.5">
+                                                            <span className="text-sm font-medium text-gray-700 flex items-center gap-1.5">
                                                                 <Mail size={12} className="text-gray-300" />
                                                                 {response.user_email || '—'}
                                                             </span>
@@ -379,7 +379,7 @@ export default function ResponsesPage() {
                                                     )}
                                                     {form.elements?.map((el: any) => (
                                                         <td key={el.id} className="px-4 py-4 max-w-[200px]">
-                                                            <span className="text-xs text-gray-700 font-normal truncate block">
+                                                            <span className="text-sm text-gray-700 font-normal truncate block">
                                                                 {el.type === 'file_upload' && response.answers[el.id]?.file_url ? (
                                                                     <a
                                                                         href={response.answers[el.id].file_url!}
@@ -391,7 +391,7 @@ export default function ResponsesPage() {
                                                                         View File
                                                                     </a>
                                                                 ) : (
-                                                                    response.answers[el.id]?.answer || <span className="text-[10px] font-bold text-red-400 uppercase tracking-tighter">Nil</span>
+                                                                    response.answers[el.id]?.answer || <span className="text-xs font-bold text-red-400 uppercase tracking-tighter">Nil</span>
                                                                 )}
                                                             </span>
                                                         </td>
@@ -421,17 +421,17 @@ export default function ResponsesPage() {
                                     <button
                                         onClick={() => setSelectedResponseIndex(Math.max(0, selectedResponseIndex - 1))}
                                         disabled={selectedResponseIndex === 0}
-                                        className="px-3 py-1.5 text-xs font-bold text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all disabled:opacity-30 disabled:cursor-not-allowed uppercase tracking-widest"
+                                        className="px-3 py-1.5 text-sm font-bold text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all disabled:opacity-30 disabled:cursor-not-allowed uppercase tracking-widest"
                                     >
                                         ← Previous
                                     </button>
-                                    <span className="text-xs font-bold text-gray-400">
+                                    <span className="text-sm font-bold text-gray-400">
                                         {selectedResponseIndex + 1} of {filteredResponses.length}
                                     </span>
                                     <button
                                         onClick={() => setSelectedResponseIndex(Math.min(filteredResponses.length - 1, selectedResponseIndex + 1))}
                                         disabled={selectedResponseIndex === filteredResponses.length - 1}
-                                        className="px-3 py-1.5 text-xs font-bold text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all disabled:opacity-30 disabled:cursor-not-allowed uppercase tracking-widest"
+                                        className="px-3 py-1.5 text-sm font-bold text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all disabled:opacity-30 disabled:cursor-not-allowed uppercase tracking-widest"
                                     >
                                         Next →
                                     </button>
@@ -465,24 +465,24 @@ export default function ResponsesPage() {
                                             key={el.id}
                                             className="bg-white rounded-lg p-6 shadow-sm border border-gray-200"
                                         >
-                                            <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">
+                                            <p className="text-sm font-bold text-gray-400 uppercase tracking-widest mb-2">
                                                 {el.label}
                                                 {el.required && <span className="text-red-500 ml-1">*</span>}
                                             </p>
-                                            <div className="text-sm text-gray-900 font-normal leading-relaxed whitespace-pre-wrap">
+                                            <div className="text-base text-gray-900 font-normal leading-relaxed whitespace-pre-wrap">
                                                 {el.type === 'file_upload' && selectedResponse.answers[el.id]?.file_url ? (
                                                     <a
                                                         href={selectedResponse.answers[el.id].file_url!}
                                                         target="_blank"
                                                         rel="noopener noreferrer"
-                                                        className="inline-flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors font-bold text-xs uppercase tracking-widest"
+                                                        className="inline-flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors font-bold text-sm uppercase tracking-widest"
                                                     >
                                                         <Download size={14} />
                                                         Download File
                                                     </a>
                                                 ) : (
                                                     selectedResponse.answers[el.id]?.answer || (
-                                                        <span className="text-[10px] font-bold text-red-400 uppercase tracking-tighter">Nil</span>
+                                                        <span className="text-xs font-bold text-red-400 uppercase tracking-tighter">Nil</span>
                                                     )
                                                 )}
                                             </div>

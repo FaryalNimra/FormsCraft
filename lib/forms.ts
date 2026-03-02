@@ -11,6 +11,7 @@ export interface FormElement {
     options?: string[];
     maxRating?: number;
     wordLimit?: number;
+    charLimit?: number;
 }
 
 export interface Form {
@@ -111,6 +112,7 @@ export async function saveForm(form: Form) {
         options: el.options,
         max_rating: el.maxRating,
         word_limit: el.wordLimit || null,
+        char_limit: el.charLimit || null,
         order_index: index
     }));
 
@@ -257,7 +259,8 @@ export async function getForm(id: string, isViewer: boolean = false) {
         required: el.required,
         options: el.options,
         maxRating: el.max_rating,
-        wordLimit: el.word_limit
+        wordLimit: el.word_limit,
+        charLimit: el.char_limit
     }));
 
     return {
