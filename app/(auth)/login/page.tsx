@@ -6,12 +6,13 @@ import { useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { signIn, signInWithGoogle } from '@/lib/auth';
-import { Loader2, Eye, EyeOff, Mail, Lock } from 'lucide-react';
+import { Loader2, Eye, EyeOff, Mail, Lock, CheckCircle2 } from 'lucide-react';
 
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const next = searchParams.get('next');
+  const isVerified = searchParams.get('verified') === 'true';
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -58,6 +59,17 @@ function LoginForm() {
           <h2 className="text-3xl font-semibold text-gray-800">Welcome back</h2>
           <p className="text-sm text-gray-500 mt-1">Sign in to your account</p>
         </div>
+
+        {/* Email Verified Success Banner */}
+        {isVerified && (
+          <div className="mb-5 p-4 bg-green-50 border border-green-200 rounded-xl animate-in fade-in duration-300 flex items-start gap-3">
+            <CheckCircle2 className="h-5 w-5 text-green-600 shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm font-bold text-green-800">Email verified successfully!</p>
+              <p className="text-sm text-green-700 mt-0.5">Your account is now active. Please sign in below.</p>
+            </div>
+          </div>
+        )}
 
         {/* Error Message */}
         {error && (
