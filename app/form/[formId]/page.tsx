@@ -75,6 +75,7 @@ export default function FormResponsePage() {
         .from(TABLES.FORM_ELEMENTS)
         .select('*')
         .eq('form_id', formId)
+        .gte('order_index', 0)
         .order('order_index', { ascending: true });
 
       if (elementsError) {

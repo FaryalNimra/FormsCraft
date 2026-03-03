@@ -1,4 +1,4 @@
-import { supabase } from './supabase';
+import { supabase, generateUploadPath } from './supabase';
 
 export type ElementType = 'short_answer' | 'paragraph' | 'multiple_choice' | 'checkboxes' | 'dropdown' | 'date' | 'time' | 'file_upload' | 'rating_scale';
 
@@ -92,14 +92,18 @@ export async function saveForm(form: Form) {
         .filter(el => el.id && el.id.length > 10)
         .map(el => el.id);
 
-    // Delete elements that are no longer in the draft
-    const deleteQuery = supabase.from('form_elements').delete().eq('form_id', formId);
+    // Soft-delete elements that are no longer in the draft by setting order_index to -1
+    // This allows them to stay in the DB for referential integrity (old form versions/responses)
+    const hideQuery = supabase.from('form_elements')
+        .update({ order_index: -1 })
+        .eq('form_id', formId);
+
     if (keeperIds.length > 0) {
-        deleteQuery.not('id', 'in', `(${keeperIds.join(',')})`);
+        hideQuery.not('id', 'in', `(${keeperIds.join(',')})`);
     }
 
-    const { error: deleteError } = await deleteQuery;
-    if (deleteError) throw deleteError;
+    const { error: hideError } = await hideQuery;
+    if (hideError) throw hideError;
 
     // Upsert current draft elements
     const elementsToUpsert = form.elements.map((el, index) => ({
@@ -247,6 +251,7 @@ export async function getForm(id: string, isViewer: boolean = false) {
         .from('form_elements')
         .select('*')
         .eq('form_id', id)
+        .gte('order_index', 0)
         .order('order_index', { ascending: true });
 
     if (elementsError) throw elementsError;
@@ -381,16 +386,17 @@ export async function saveResponse(formId: string, responses: Record<string, any
     // 1. Check for duplicate submission or update
     let existingRespId: string | null = null;
     if (userEmail) {
-        const { data: existingResponse, error: checkError } = await supabase
+        const { data: existingResponses, error: checkError } = await supabase
             .from('responses')
             .select('id')
             .eq('form_id', formId)
             .eq('user_email', userEmail)
-            .maybeSingle();
+            .limit(1);
 
         if (checkError) throw checkError;
 
-        if (existingResponse) {
+        if (existingResponses && existingResponses.length > 0) {
+            const existingResponse = existingResponses[0];
             if (form.allow_response_editing) {
                 existingRespId = existingResponse.id;
             } else if (form.limit_to_one_response) {
@@ -426,24 +432,44 @@ export async function saveResponse(formId: string, responses: Record<string, any
                 : Math.random().toString(36).substring(2) + Date.now().toString(36)
         };
 
-        const { data: responseData, error: responseError } = await supabase
+        const { error: responseError } = await supabase
             .from('responses')
-            .insert(responsePayload)
-            .select()
-            .single();
+            .insert(responsePayload);
 
         if (responseError) throw responseError;
-        responseId = responseData.id;
+        responseId = responsePayload.id;
     }
 
     // 2. Map form responses to 'response_answers' table format
-    const answersToInsert = Object.entries(responses).map(([elementId, answer]) => ({
-        id: typeof crypto !== 'undefined' && crypto.randomUUID
-            ? crypto.randomUUID()
-            : Math.random().toString(36).substring(2) + Date.now().toString(36),
-        response_id: responseId,
-        element_id: elementId,
-        answer: Array.isArray(answer) ? answer.join(', ') : String(answer),
+    const answersToInsert = await Promise.all(Object.entries(responses).map(async ([elementId, answer]) => {
+        let fileUrl = null;
+        let processedAnswer = answer;
+
+        if (answer instanceof File) {
+            const filePath = generateUploadPath(formId, answer.name);
+            const { error: uploadError } = await supabase.storage
+                .from('images') // Using 'images' bucket based on screenshots
+                .upload(filePath, answer);
+
+            if (uploadError) throw uploadError;
+
+            const { data: { publicUrl } } = supabase.storage
+                .from('images')
+                .getPublicUrl(filePath);
+
+            fileUrl = publicUrl;
+            processedAnswer = answer.name;
+        }
+
+        return {
+            id: typeof crypto !== 'undefined' && crypto.randomUUID
+                ? crypto.randomUUID()
+                : Math.random().toString(36).substring(2) + Date.now().toString(36),
+            response_id: responseId,
+            element_id: elementId,
+            answer: Array.isArray(processedAnswer) ? processedAnswer.join(', ') : String(processedAnswer),
+            file_url: fileUrl
+        };
     }));
 
     // 3. Insert all answers into the 'response_answers' table
