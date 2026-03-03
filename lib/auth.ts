@@ -12,6 +12,7 @@ export async function signUp(
   password: string,
   fullName?: string
 ) {
+  const origin = typeof window !== 'undefined' ? window.location.origin : '';
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
@@ -19,6 +20,7 @@ export async function signUp(
       data: {
         full_name: fullName,
       },
+      emailRedirectTo: `${origin}/auth/callback?type=signup`,
     },
   });
 
