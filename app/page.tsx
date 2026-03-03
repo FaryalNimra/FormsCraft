@@ -2,7 +2,7 @@
 
 import Navbar from '@/components/Navbar';
 import ActionCard from '@/components/ActionCard';
-import { Plus, Layout, BarChart2, Loader2, FileText, Eye, Edit2, MessageSquare, MoreVertical, Trash2, ChevronDown, Archive, RotateCcw, Search } from 'lucide-react';
+import { Plus, Layout, BarChart2, Loader2, FileText, Eye, Edit2, MessageSquare, MoreVertical, Trash2, ChevronDown, Archive, RotateCcw, Search, Link as LinkIcon, Share2, Check } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { getAllFormsWithStats, deleteForm, toggleArchiveForm } from '@/lib/forms';
@@ -18,6 +18,7 @@ export default function Home() {
   const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [projectSource, setProjectSource] = useState<'owned' | 'collaborated'>('owned');
+  const [copySuccessId, setCopySuccessId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchForms();
@@ -53,6 +54,31 @@ export default function Home() {
       setActiveMenuId(null);
     } catch (error) {
       console.error('Failed to update archive status:', error);
+    }
+  };
+
+  const handleCopyLink = (id: string) => {
+    const link = `${window.location.origin}/view/${id}`;
+    navigator.clipboard.writeText(link);
+    setCopySuccessId(id);
+    setTimeout(() => setCopySuccessId(null), 2000);
+  };
+
+  const handleShare = async (id: string, title: string) => {
+    const link = `${window.location.origin}/view/${id}`;
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: title,
+          text: `Check out this form: ${title}`,
+          url: link,
+        });
+      } catch (error) {
+        console.error('Error sharing:', error);
+        handleCopyLink(id);
+      }
+    } else {
+      handleCopyLink(id);
     }
   };
 
@@ -201,10 +227,10 @@ export default function Home() {
               )}
               <button
                 onClick={() => router.push('/builder')}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg text-base font-bold hover:bg-blue-700"
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg text-base font-bold hover:bg-blue-700 flex items-center justify-center gap-2 transition-all shadow-sm active:scale-[0.98]"
               >
-                <Plus size={14} />
-                New Form
+                <Plus size={16} strokeWidth={2.5} />
+                <span>New Form</span>
               </button>
             </div>
           </div>
@@ -226,9 +252,10 @@ export default function Home() {
                 <p className="text-sm max-w-xs mx-auto">Create a form to start collecting responses.</p>
                 <button
                   onClick={() => router.push('/builder')}
-                  className="px-6 py-2 bg-blue-600 text-white rounded-lg text-sm font-bold hover:bg-blue-700 transition-all"
+                  className="px-6 py-2 bg-blue-600 text-white rounded-lg text-sm font-bold hover:bg-blue-700 transition-all flex items-center justify-center gap-2 mx-auto shadow-sm active:scale-[0.98]"
                 >
-                  Get Started
+                  <Plus size={14} strokeWidth={2.5} />
+                  <span>Get Started</span>
                 </button>
               </div>
             ) : (
@@ -327,11 +354,18 @@ export default function Home() {
                             {!form.is_archived && (
                               <>
                                 <button
-                                  onClick={(e) => { e.stopPropagation(); router.push(`/responses/${form.id}`); }}
+                                  onClick={(e) => { e.stopPropagation(); router.push(`/view/${form.id}`); }}
                                   className="p-2 text-black hover:bg-gray-100 rounded-lg transition-all"
-                                  title="View"
+                                  title="Preview"
                                 >
                                   <Eye size={16} />
+                                </button>
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); router.push(`/responses/${form.id}`); }}
+                                  className="p-2 text-black hover:bg-gray-100 rounded-lg transition-all"
+                                  title="Submissions"
+                                >
+                                  <BarChart2 size={16} />
                                 </button>
                                 <button
                                   onClick={(e) => { e.stopPropagation(); router.push(`/builder?id=${form.id}`); }}
@@ -354,10 +388,25 @@ export default function Home() {
                               {activeMenuId === form.id && (
                                 <>
                                   <div className="fixed inset-0 z-40" onClick={(e) => { e.stopPropagation(); setActiveMenuId(null); }}></div>
-                                  <div className="absolute right-0 top-full mt-1 w-40 bg-white border border-gray-100 rounded-xl shadow-xl z-50 py-2 animate-in fade-in zoom-in-95 duration-200">
+                                  <div className="absolute right-0 top-full mt-1 w-44 bg-white border border-gray-100 rounded-xl shadow-xl z-50 py-2 animate-in fade-in zoom-in-95 duration-200">
+                                    <button
+                                      onClick={(e) => { e.stopPropagation(); handleCopyLink(form.id); }}
+                                      className="w-full text-left px-4 py-2 text-sm font-bold uppercase tracking-wider text-gray-600 flex items-center gap-2 hover:bg-gray-50 transition-colors"
+                                    >
+                                      {copySuccessId === form.id ? <Check size={12} className="text-green-500" /> : <LinkIcon size={12} />}
+                                      {copySuccessId === form.id ? 'Copied!' : 'Copy Link'}
+                                    </button>
+                                    <button
+                                      onClick={(e) => { e.stopPropagation(); handleShare(form.id, form.title); }}
+                                      className="w-full text-left px-4 py-2 text-sm font-bold uppercase tracking-wider text-gray-600 flex items-center gap-2 hover:bg-gray-50 transition-colors"
+                                    >
+                                      <Share2 size={12} />
+                                      Share
+                                    </button>
+                                    <div className="mx-2 my-1 border-t border-gray-50"></div>
                                     <button
                                       onClick={(e) => { e.stopPropagation(); handleArchive(form.id, !form.is_archived); }}
-                                      className="w-full text-left px-4 py-2 text-sm font-bold uppercase tracking-wider text-gray-600"
+                                      className="w-full text-left px-4 py-2 text-sm font-bold uppercase tracking-wider text-gray-600 flex items-center gap-2 hover:bg-gray-50 transition-colors"
                                     >
                                       {form.is_archived ? <RotateCcw size={12} /> : <Archive size={12} />}
                                       {form.is_archived ? 'Unarchive' : 'Archive'}
@@ -365,7 +414,7 @@ export default function Home() {
                                     <div className="mx-2 my-1 border-t border-gray-50"></div>
                                     <button
                                       onClick={(e) => { e.stopPropagation(); handleDelete(form.id, form.title); }}
-                                      className="w-full text-left px-4 py-2 text-sm font-bold uppercase tracking-wider text-red-500"
+                                      className="w-full text-left px-4 py-2 text-sm font-bold uppercase tracking-wider text-red-500 flex items-center gap-2 hover:bg-red-50 transition-colors"
                                     >
                                       <Trash2 size={12} />
                                       Delete

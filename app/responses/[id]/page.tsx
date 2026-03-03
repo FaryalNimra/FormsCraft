@@ -23,7 +23,8 @@ import {
     X,
     Image as ImageIcon,
     Printer,
-    FileDown
+    FileDown,
+    Share2
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -100,6 +101,24 @@ export default function ResponsesPage() {
         setTimeout(() => setCopySuccess(false), 2000);
     };
 
+    const handleShare = async () => {
+        const link = `${window.location.origin}/view/${id}`;
+        if (navigator.share) {
+            try {
+                await navigator.share({
+                    title: form?.title || 'Form',
+                    text: `Check out this form: ${form?.title}`,
+                    url: link,
+                });
+            } catch (error) {
+                console.error('Error sharing:', error);
+                copyShareLink();
+            }
+        } else {
+            copyShareLink();
+        }
+    };
+
     const exportCSV = () => {
         if (!form || responses.length === 0) return;
 
@@ -108,7 +127,13 @@ export default function ResponsesPage() {
             i + 1,
             new Date(r.submitted_at).toLocaleString(),
             ...(form.collect_email ? [r.user_email || ''] : []),
-            ...form.elements.map((el: any) => r.answers[el.id]?.file_url || r.answers[el.id]?.answer || '')
+            ...form.elements.map((el: any) => {
+                const answer = r.answers[el.id];
+                if (el.type === 'file_upload' && answer?.file_url) {
+                    return answer.file_url;
+                }
+                return answer?.answer || '';
+            })
         ]);
 
         const csvContent = [headers.join(','), ...rows.map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))].join('\n');
@@ -179,16 +204,16 @@ export default function ResponsesPage() {
                             <span className="text-xs font-bold text-gray-900 group-hover:text-blue-600 transition-colors uppercase tracking-widest hidden sm:block">Dashboard</span>
                         </Link>
                         <div className="h-4 w-px bg-gray-100"></div>
-                        <div>
-                            <h1 className="text-base font-bold text-gray-900 tracking-tight">{form.title}</h1>
-                            <div className="flex items-center gap-2">
-                                <span className={`text-xs font-bold px-1.5 py-0.5 rounded uppercase tracking-widest ${form.status === 'published'
+                        <div className="flex flex-col items-start gap-0.5">
+                            <h1 className="text-base font-bold text-gray-900 tracking-tight leading-tight">{form.title}</h1>
+                            <div className="flex items-center gap-2 leading-none">
+                                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded uppercase tracking-widest ${form.status === 'published'
                                     ? 'bg-green-50 text-green-600'
                                     : 'bg-amber-50 text-amber-600'
                                     }`}>
                                     {form.status}
                                 </span>
-                                <span className="text-xs text-gray-400 font-medium">
+                                <span className="text-[10px] text-gray-400 font-bold uppercase tracking-tight">
                                     {responses.length} response{responses.length !== 1 ? 's' : ''}
                                 </span>
                             </div>
@@ -197,10 +222,10 @@ export default function ResponsesPage() {
 
                     <div className="flex items-center gap-2">
                         <button
-                            onClick={copyShareLink}
-                            className="flex items-center gap-1.5 px-3 py-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all text-xs font-bold uppercase tracking-wider no-print"
+                            onClick={handleShare}
+                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all text-xs font-bold uppercase tracking-wider no-print ${copySuccess ? 'text-green-600 bg-green-50' : 'text-gray-500 hover:text-blue-600 hover:bg-blue-50'}`}
                         >
-                            {copySuccess ? <Check size={14} /> : <LinkIcon size={14} />}
+                            {copySuccess ? <Check size={14} /> : <Share2 size={14} />}
                             {copySuccess ? 'Copied!' : 'Share'}
                         </button>
                         <button

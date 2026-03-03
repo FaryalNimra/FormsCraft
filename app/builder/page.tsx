@@ -1827,7 +1827,13 @@ function FormBuilder() {
             {
                 isSendModalOpen && (
                     <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/10 backdrop-blur-sm animate-in fade-in duration-300">
-                        <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl p-10 text-center animate-in zoom-in-95 duration-500 border border-gray-100">
+                        <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl p-10 text-center animate-in zoom-in-95 duration-500 border border-gray-100 relative">
+                            <button
+                                onClick={() => setIsSendModalOpen(false)}
+                                className="absolute top-4 right-4 p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-50 rounded-full transition-all"
+                            >
+                                <X size={18} />
+                            </button>
                             <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center mx-auto mb-6">
                                 <Send size={28} />
                             </div>
@@ -1841,10 +1847,10 @@ function FormBuilder() {
                                 {copySuccess ? 'Link Copied' : 'Copy Share Link'}
                             </button>
                             <button
-                                onClick={() => setIsSendModalOpen(false)}
+                                onClick={() => router.push('/')}
                                 className="text-xs font-bold text-gray-400 uppercase tracking-widest hover:text-gray-900"
                             >
-                                Back to Editor
+                                Back to Home
                             </button>
                         </div>
                     </div>
