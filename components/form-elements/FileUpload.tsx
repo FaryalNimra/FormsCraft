@@ -40,9 +40,17 @@ export default function FileUpload({
       }
 
       // Validate file type
-      const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'application/pdf'];
+      const allowedTypes = [
+        'image/jpeg', 'image/png', 'image/gif', 'image/webp',
+        'application/pdf',
+        'application/msword',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'application/vnd.ms-excel',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        'text/plain'
+      ];
       if (!allowedTypes.includes(file.type)) {
-        setLocalError('Only images (JPG, PNG, GIF, WebP) and PDF files are allowed');
+        setLocalError('Invalid file type. Allowed: JPG, PNG, GIF, WebP, PDF, Word, Excel, and Text files');
         return;
       }
     }
@@ -84,10 +92,22 @@ export default function FileUpload({
   };
 
   const getFileIcon = (file: File) => {
-    if (file.type.startsWith('image/')) {
+    const type = file.type;
+    if (type.startsWith('image/')) {
       return <ImageIcon size={24} className="text-blue-500" />;
-    } else if (file.type === 'application/pdf') {
+    } else if (type === 'application/pdf') {
       return <FileText size={24} className="text-red-500" />;
+    } else if (
+      type === 'application/msword' ||
+      type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
+      type === 'text/plain'
+    ) {
+      return <FileText size={24} className="text-blue-600" />;
+    } else if (
+      type === 'application/vnd.ms-excel' ||
+      type === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    ) {
+      return <File size={24} className="text-green-600" />;
     }
     return <File size={24} className="text-gray-500" />;
   };
@@ -101,7 +121,7 @@ export default function FileUpload({
   const displayError = error || localError;
 
   return (
-    <div className={`bg-white rounded-xl p-6 shadow-sm border-2 transition-all ${displayError ? 'border-red-500 ring-4 ring-red-50' : 'border-gray-100'}`}>
+    <div className={`bg-white rounded-xl p-6 shadow-sm border-2 transition-all ${displayError ? 'border-red-500 ring-4 ring-red-50 animate-shake' : 'border-gray-100'}`}>
 
 
       <p className="text-lg font-semibold text-gray-900 mb-4 break-words">
@@ -129,7 +149,7 @@ export default function FileUpload({
               Click or drag file to upload
             </p>
             <p className={`text-sm mt-1 ${displayError ? 'text-red-400' : 'text-gray-400'}`}>
-              PDF, JPG, PNG up to {maxSizeMB}MB
+              Images, PDF, Word, Excel up to {maxSizeMB}MB
             </p>
           </div>
         </div>
@@ -160,11 +180,27 @@ export default function FileUpload({
       />
 
       {displayError && (
-        <p className="mt-4 text-sm text-red-500 font-medium flex items-center gap-1">
-          <XCircle size={14} />
-          {displayError}
-        </p>
+        <div className="mt-4 p-3 bg-red-50 border border-red-100 rounded-lg flex items-start gap-3 animate-in fade-in slide-in-from-top-1 duration-200">
+          <XCircle size={18} className="text-red-500 mt-0.5 shrink-0" />
+          <div>
+            <p className="text-sm text-red-800 font-bold leading-none mb-1">Upload Error</p>
+            <p className="text-xs text-red-600 font-medium">{displayError}</p>
+          </div>
+        </div>
       )}
+
+      <style jsx>{`
+        .animate-shake {
+          animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
+        }
+
+        @keyframes shake {
+          10%, 90% { transform: translate3d(-1px, 0, 0); }
+          20%, 80% { transform: translate3d(2px, 0, 0); }
+          30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
+          40%, 60% { transform: translate3d(4px, 0, 0); }
+        }
+      `}</style>
     </div>
   );
 }
