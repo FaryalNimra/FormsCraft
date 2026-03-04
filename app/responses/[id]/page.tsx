@@ -12,6 +12,7 @@ import {
     User,
     Mail,
     FileText,
+    File as FileIcon,
     BarChart3,
     ChevronDown,
     ChevronUp,
@@ -188,6 +189,23 @@ export default function ResponsesPage() {
             </div>
         );
     }
+
+    const getFileIcon = (url: string) => {
+        const ext = url.split('.').pop()?.toLowerCase();
+        if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext || '')) {
+            return <ImageIcon size={14} />;
+        }
+        if (ext === 'pdf') {
+            return <FileText size={14} className="text-red-500" />;
+        }
+        if (['doc', 'docx', 'txt'].includes(ext || '')) {
+            return <FileText size={14} className="text-blue-600" />;
+        }
+        if (['xls', 'xlsx'].includes(ext || '')) {
+            return <FileIcon size={14} className="text-green-600" />;
+        }
+        return <FileIcon size={14} />;
+    };
 
     const selectedResponse = filteredResponses[selectedResponseIndex];
 
@@ -410,9 +428,9 @@ export default function ResponsesPage() {
                                                                         href={response.answers[el.id].file_url!}
                                                                         target="_blank"
                                                                         rel="noopener noreferrer"
-                                                                        className="text-blue-600 hover:underline flex items-center gap-1"
+                                                                        className="text-blue-600 hover:underline flex items-center gap-1 text-xs font-bold uppercase tracking-tight"
                                                                     >
-                                                                        <ImageIcon size={12} />
+                                                                        {getFileIcon(response.answers[el.id].file_url!)}
                                                                         View File
                                                                     </a>
                                                                 ) : (
@@ -502,7 +520,7 @@ export default function ResponsesPage() {
                                                         rel="noopener noreferrer"
                                                         className="inline-flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors font-bold text-sm uppercase tracking-widest"
                                                     >
-                                                        <Download size={14} />
+                                                        {getFileIcon(selectedResponse.answers[el.id].file_url!)}
                                                         Download File
                                                     </a>
                                                 ) : (
