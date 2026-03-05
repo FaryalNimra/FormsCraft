@@ -346,7 +346,7 @@ export default function Home() {
                         <td className="px-4 py-4">
                           <div className="flex items-center gap-2">
                             <MessageSquare size={12} className="text-gray-300" />
-                            <span className="text-xs font-bold text-gray-900">{form.response_count}</span>
+                            <span className="text-sm font-bold text-gray-900">{form.response_count}</span>
                           </div>
                         </td>
                         <td className="px-6 py-4 text-right">

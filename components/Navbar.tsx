@@ -127,7 +127,7 @@ export default function Navbar() {
                   ))}
                 </div>
                 <div className="mt-3 pt-3 border-t border-gray-50 px-2">
-                  <p className="text-xs font-medium text-gray-400 leading-relaxed italic">Changes global primary colors across all projects.</p>
+                  <p className="text-sm font-medium text-gray-400 leading-relaxed italic">Changes global primary colors across all projects.</p>
                 </div>
               </div>
             )}

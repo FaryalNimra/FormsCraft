@@ -225,13 +225,13 @@ export default function ResponsesPage() {
                         <div className="flex flex-col items-start gap-0.5">
                             <h1 className="text-base font-bold text-gray-900 tracking-tight leading-tight">{form.title}</h1>
                             <div className="flex items-center gap-2 leading-none">
-                                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded uppercase tracking-widest ${form.status === 'published'
+                                <span className={`text-xs font-bold px-1.5 py-0.5 rounded uppercase tracking-widest ${form.status === 'published'
                                     ? 'bg-green-50 text-green-600'
                                     : 'bg-amber-50 text-amber-600'
                                     }`}>
                                     {form.status}
                                 </span>
-                                <span className="text-[10px] text-gray-400 font-bold uppercase tracking-tight">
+                                <span className="text-xs text-gray-400 font-bold uppercase tracking-tight">
                                     {responses.length} response{responses.length !== 1 ? 's' : ''}
                                 </span>
                             </div>
@@ -282,7 +282,7 @@ export default function ResponsesPage() {
                             <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
                                 <MessageSquare size={18} />
                             </div>
-                            <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">Total Responses</span>
+                            <span className="text-sm font-bold text-gray-400 uppercase tracking-widest">Total Responses</span>
                         </div>
                         <p className="text-4xl font-extrabold text-gray-900 tracking-tight">{responses.length}</p>
                     </div>
@@ -291,7 +291,7 @@ export default function ResponsesPage() {
                             <div className="w-9 h-9 rounded-xl bg-green-50 text-green-600 flex items-center justify-center">
                                 <BarChart3 size={18} />
                             </div>
-                            <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">Questions</span>
+                            <span className="text-sm font-bold text-gray-400 uppercase tracking-widest">Questions</span>
                         </div>
                         <p className="text-4xl font-extrabold text-gray-900 tracking-tight">{form.elements?.length || 0}</p>
                     </div>
@@ -300,7 +300,7 @@ export default function ResponsesPage() {
                             <div className="w-9 h-9 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center">
                                 <Clock size={18} />
                             </div>
-                            <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">Last Response</span>
+                            <span className="text-sm font-bold text-gray-400 uppercase tracking-widest">Last Response</span>
                         </div>
                         <p className="text-base font-bold text-gray-900">
                             {responses.length > 0
@@ -434,7 +434,7 @@ export default function ResponsesPage() {
                                                                         View File
                                                                     </a>
                                                                 ) : (
-                                                                    response.answers[el.id]?.answer || <span className="text-xs font-bold text-red-400 uppercase tracking-tighter">Nil</span>
+                                                                    response.answers[el.id]?.answer || <span className="text-sm font-bold text-red-400 uppercase tracking-tighter">Nil</span>
                                                                 )}
                                                             </span>
                                                         </td>
@@ -525,7 +525,7 @@ export default function ResponsesPage() {
                                                     </a>
                                                 ) : (
                                                     selectedResponse.answers[el.id]?.answer || (
-                                                        <span className="text-xs font-bold text-red-400 uppercase tracking-tighter">Nil</span>
+                                                        <span className="text-sm font-bold text-red-400 uppercase tracking-tighter">Nil</span>
                                                     )
                                                 )}
                                             </div>

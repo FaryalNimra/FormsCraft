@@ -44,7 +44,7 @@ export default function ShortAnswer({
     <div className={`bg-white rounded-xl p-6 shadow-sm border-2 transition-all ${error ? 'border-red-500 ring-4 ring-red-50' : 'border-gray-100'}`}>
 
 
-      <label htmlFor={id} className="block text-lg font-semibold text-gray-900 mb-4 break-words">
+      <label htmlFor={id} className="block text-base font-semibold text-gray-900 mb-4 break-words">
         {label}
         {required && <span className="text-red-500 ml-1">*</span>}
       </label>
@@ -61,12 +61,12 @@ export default function ShortAnswer({
       {(wordLimit || charLimit) && (
         <div className="flex justify-end mt-1.5 gap-2">
           {charLimit && (
-            <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md transition-colors ${value.length > charLimit ? 'text-red-500 bg-red-50' : 'text-gray-400 bg-gray-50'}`}>
+            <span className={`text-xs font-bold px-1.5 py-0.5 rounded-md transition-colors ${value.length > charLimit ? 'text-red-500 bg-red-50' : 'text-gray-400 bg-gray-50'}`}>
               {value.length} / {charLimit} chars
             </span>
           )}
           {wordLimit && (
-            <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md transition-colors ${isOverLimit ? 'text-red-500 bg-red-50' : wordCount >= wordLimit * 0.9 ? 'text-amber-500 bg-amber-50' : 'text-gray-400 bg-gray-50'
+            <span className={`text-xs font-bold px-1.5 py-0.5 rounded-md transition-colors ${isOverLimit ? 'text-red-500 bg-red-50' : wordCount >= wordLimit * 0.9 ? 'text-amber-500 bg-amber-50' : 'text-gray-400 bg-gray-50'
               }`}>
               {wordCount} / {wordLimit} words
             </span>
