@@ -15,7 +15,7 @@ export default function AuthLayout({
           <h1 className="text-3xl font-bold text-purple-600">FormCraft</h1>
           <p className="text-gray-500 mt-1">Build beautiful forms</p>
         </div>
-        
+
         {/* Auth Card */}
         {children}
       </div>

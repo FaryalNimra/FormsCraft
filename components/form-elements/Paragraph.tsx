@@ -50,7 +50,7 @@ export default function Paragraph({
 
     return (
         <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-200 transition-all">
-            <label htmlFor={id} className="block text-lg font-semibold text-gray-900 mb-4 leading-normal break-words">
+            <label htmlFor={id} className="block text-base font-semibold text-gray-900 mb-4 leading-normal break-words">
                 {label}
                 {required && <span className="text-red-600 ml-1">*</span>}
             </label>
@@ -66,12 +66,12 @@ export default function Paragraph({
             {(wordLimit || charLimit) && (
                 <div className="flex justify-end mt-2 gap-2">
                     {charLimit && (
-                        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md ${value.length > charLimit ? 'text-red-500 bg-red-50' : 'text-gray-400 bg-gray-50'}`}>
+                        <span className={`text-xs font-bold px-1.5 py-0.5 rounded-md ${value.length > charLimit ? 'text-red-500 bg-red-50' : 'text-gray-400 bg-gray-50'}`}>
                             {value.length} / {charLimit} chars
                         </span>
                     )}
                     {wordLimit && (
-                        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md ${isOverLimit ? 'text-red-500 bg-red-50' : 'text-gray-400 bg-gray-50'}`}>
+                        <span className={`text-xs font-bold px-1.5 py-0.5 rounded-md ${isOverLimit ? 'text-red-500 bg-red-50' : 'text-gray-400 bg-gray-50'}`}>
                             {wordCount} / {wordLimit} words
                         </span>
                     )}
