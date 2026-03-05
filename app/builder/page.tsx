@@ -76,6 +76,7 @@ function FormBuilder() {
     const [collectEmail, setCollectEmail] = useState(false);
     const [limitToOneResponse, setLimitToOneResponse] = useState(false);
     const [allowResponseEditing, setAllowResponseEditing] = useState(false);
+    const [notifyOnResponse, setNotifyOnResponse] = useState(true);
     const [isPreview, setIsPreview] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
     const [isPublishing, setIsPublishing] = useState(false);
@@ -137,7 +138,7 @@ function FormBuilder() {
         // Only load draft if we are NOT in edit mode (no editId) and no formId is set yet
         if (savedProgress && !formId && !editId) {
             try {
-                const { title: st, description: sd, elements: se, themeColor: stc, collectEmail: ce, limitToOneResponse: ltr, allowResponseEditing: are, logoUrl: sl } = JSON.parse(savedProgress);
+                const { title: st, description: sd, elements: se, themeColor: stc, collectEmail: ce, limitToOneResponse: ltr, allowResponseEditing: are, notifyOnResponse: nor, logoUrl: sl } = JSON.parse(savedProgress);
                 setTitle(st);
                 setDescription(sd);
                 setFormElements(se);
@@ -145,6 +146,7 @@ function FormBuilder() {
                 if (ce !== undefined) setCollectEmail(ce);
                 if (ltr !== undefined) setLimitToOneResponse(ltr);
                 if (are !== undefined) setAllowResponseEditing(are);
+                if (nor !== undefined) setNotifyOnResponse(nor);
                 if (sl) setLogoUrl(sl);
                 if (se.length > 0) setActiveElementId(se[0].id);
             } catch (e) {
@@ -178,6 +180,7 @@ function FormBuilder() {
                     if (form.collect_email !== undefined) setCollectEmail(form.collect_email);
                     if (form.limit_to_one_response !== undefined) setLimitToOneResponse(form.limit_to_one_response);
                     if (form.allow_response_editing !== undefined) setAllowResponseEditing(form.allow_response_editing);
+                    if (form.notify_on_response !== undefined) setNotifyOnResponse(form.notify_on_response);
                     if (form.created_at) setCreatedAt(form.created_at);
                     if (form.updated_at) setUpdatedAt(form.updated_at);
                     if (form.created_by_email) {
@@ -226,7 +229,7 @@ function FormBuilder() {
         }
     }, [editId]);
 
-    const triggerSave = useCallback(async (currentData: { id: string | null, title: string, description: string, elements: FormElement[], status: 'draft' | 'published' | 'in_progress', collect_email?: boolean, limit_to_one_response?: boolean, allow_response_editing?: boolean }) => {
+    const triggerSave = useCallback(async (currentData: { id: string | null, title: string, description: string, elements: FormElement[], status: 'draft' | 'published' | 'in_progress', collect_email?: boolean, limit_to_one_response?: boolean, allow_response_editing?: boolean, notify_on_response?: boolean }) => {
         setIsSaving(true);
         try {
             const saved = await saveForm({
@@ -289,7 +292,7 @@ function FormBuilder() {
             }
 
             // Still save to local storage as backup
-            const progress = { title, description, elements: formElements, themeColor, collectEmail, limitToOneResponse, allowResponseEditing, logoUrl };
+            const progress = { title, description, elements: formElements, themeColor, collectEmail, limitToOneResponse, allowResponseEditing, notifyOnResponse, logoUrl };
             localStorage.setItem('formcraft_progress', JSON.stringify(progress));
             setIsLocalSaved(true);
         }, 5000);
@@ -297,13 +300,14 @@ function FormBuilder() {
         return () => {
             if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
         };
-    }, [title, description, formElements, isMounted, formId, themeColor, expiresAt, collectEmail, limitToOneResponse, allowResponseEditing, status, triggerSave]);
+    }, [title, description, formElements, isMounted, formId, themeColor, expiresAt, collectEmail, limitToOneResponse, allowResponseEditing, notifyOnResponse, status, triggerSave]);
 
     const clearDraft = () => {
         localStorage.removeItem('formcraft_progress');
         setTitle('Untitled Form');
         setDescription('Collect valuable feedback with ease.');
         setLogoUrl(null);
+        setNotifyOnResponse(true);
         const initialId = crypto.randomUUID();
         setFormElements([{ id: initialId, type: 'short_answer', label: 'What is your name?', placeholder: 'e.g. John Doe', required: true }]);
         setActiveElementId(initialId);
@@ -334,6 +338,7 @@ function FormBuilder() {
                 collect_email: collectEmail,
                 limit_to_one_response: limitToOneResponse,
                 allow_response_editing: allowResponseEditing,
+                notify_on_response: notifyOnResponse,
                 logo_url: logoUrl || undefined
             });
 
@@ -1283,10 +1288,14 @@ function FormBuilder() {
 
                                     <div className="space-y-6">
                                         <div className="space-y-2">
-                                            <label className="block text-sm font-bold text-gray-400 uppercase tracking-widest mb-2">Form Title</label>
+                                            <div className="flex items-center justify-between mb-2">
+                                                <label className="block text-sm font-bold text-gray-400 uppercase tracking-widest">Form Title</label>
+                                                <span className={`text-[10px] font-bold tabular-nums ${title.length >= 30 ? 'text-red-500' : 'text-gray-400'}`}>{title.length}/30</span>
+                                            </div>
                                             <textarea
                                                 rows={1}
                                                 value={title}
+                                                maxLength={30}
                                                 onChange={(e) => {
                                                     setTitle(e.target.value);
                                                     const target = e.target as HTMLTextAreaElement;
@@ -1305,9 +1314,13 @@ function FormBuilder() {
                                         </div>
 
                                         <div className="space-y-2">
-                                            <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Form Description</label>
+                                            <div className="flex items-center justify-between mb-2">
+                                                <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest">Form Description</label>
+                                                <span className={`text-[10px] font-bold tabular-nums ${description.length >= 30 ? 'text-red-500' : 'text-gray-400'}`}>{description.length}/30</span>
+                                            </div>
                                             <textarea
                                                 value={description}
+                                                maxLength={30}
                                                 onChange={(e) => setDescription(e.target.value)}
                                                 onFocus={() => {
                                                     if (description === 'Collect valuable feedback with ease.') {
@@ -1479,6 +1492,21 @@ function FormBuilder() {
                                                                 style={allowResponseEditing ? { backgroundColor: themeColor } : {}}
                                                             >
                                                                 <div className={`absolute top-0.5 w-3 h-3 bg-white rounded-full transition-all ${allowResponseEditing ? 'left-[18px]' : 'left-0.5'}`}></div>
+                                                            </button>
+                                                        </div>
+
+                                                        <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-100">
+                                                            <div className="flex flex-col">
+                                                                <span className="text-xs font-bold text-gray-900 uppercase tracking-widest">New Response Notifications</span>
+                                                                <span className="text-[10px] text-gray-500 uppercase tracking-tight">Email owner on each new submission</span>
+                                                            </div>
+                                                            <button
+                                                                onClick={() => canEdit && setNotifyOnResponse(!notifyOnResponse)}
+                                                                disabled={!canEdit}
+                                                                className={`w-8 h-4 rounded-full relative transition-all ${notifyOnResponse ? '' : 'bg-gray-200'} disabled:opacity-50`}
+                                                                style={notifyOnResponse ? { backgroundColor: themeColor } : {}}
+                                                            >
+                                                                <div className={`absolute top-0.5 w-3 h-3 bg-white rounded-full transition-all ${notifyOnResponse ? 'left-[18px]' : 'left-0.5'}`}></div>
                                                             </button>
                                                         </div>
                                                     </div>

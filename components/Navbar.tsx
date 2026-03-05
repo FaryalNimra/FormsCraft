@@ -1,11 +1,14 @@
 'use client';
 
-import { Bell, ChevronDown, FileText, Check, LogOut, LogIn } from 'lucide-react';
+import { Bell, ChevronDown, FileText, Check, LogOut, LogIn, User as UserIcon } from 'lucide-react';
 import Link from 'next/link';
 import { useTheme } from './ThemeProvider';
 import { useAuth } from './auth/AuthProvider';
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import { getNotifications, Notification } from '@/lib/forms';
+
+const LAST_SEEN_KEY = 'formcraft_notif_last_seen';
 
 export default function Navbar() {
   const { theme, setTheme, availableThemes } = useTheme();
@@ -13,9 +16,14 @@ export default function Navbar() {
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  const [isNotifOpen, setIsNotifOpen] = useState(false);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const userMenuRef = useRef<HTMLDivElement>(null);
+  const notifRef = useRef<HTMLDivElement>(null);
 
+  // Close dropdowns on outside click
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
@@ -24,10 +32,74 @@ export default function Navbar() {
       if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
         setIsUserMenuOpen(false);
       }
+      if (notifRef.current && !notifRef.current.contains(event.target as Node)) {
+        setIsNotifOpen(false);
+      }
     }
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  // Fetch notifications
+  const fetchNotifications = useCallback(async () => {
+    if (!user) { setNotifications([]); setUnreadCount(0); return; }
+    try {
+      const lastSeen = localStorage.getItem(LAST_SEEN_KEY) || undefined;
+      const all = await getNotifications(); // all recent (up to 50)
+      setNotifications(all);
+
+      // Count unread
+      if (lastSeen) {
+        setUnreadCount(all.filter(n => n.submittedAt > lastSeen).length);
+      } else {
+        setUnreadCount(all.length);
+      }
+    } catch {
+      // fail silently
+    }
+  }, [user]);
+
+  // Poll every 30 seconds + on mount
+  useEffect(() => {
+    fetchNotifications();
+    const interval = setInterval(fetchNotifications, 30000);
+    return () => clearInterval(interval);
+  }, [fetchNotifications]);
+
+  const handleBellClick = () => {
+    setIsNotifOpen(prev => !prev);
+    if (!isNotifOpen) {
+      // Mark all as read
+      localStorage.setItem(LAST_SEEN_KEY, new Date().toISOString());
+      setUnreadCount(0);
+    }
+  };
+
+  const getGroupLabel = (iso: string): string => {
+    const date = new Date(iso);
+    const today = new Date();
+    const yesterday = new Date();
+    yesterday.setDate(today.getDate() - 1);
+    if (date.toDateString() === today.toDateString()) return 'Today';
+    if (date.toDateString() === yesterday.toDateString()) return 'Yesterday';
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: date.getFullYear() !== today.getFullYear() ? 'numeric' : undefined });
+  };
+
+  const getTimeStr = (iso: string): string => {
+    return new Date(iso).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+  };
+
+  // Group notifications by date label
+  const groupedNotifications = (() => {
+    const groups: { label: string; items: Notification[] }[] = [];
+    const seen = new Map<string, Notification[]>();
+    for (const n of notifications) {
+      const label = getGroupLabel(n.submittedAt);
+      if (!seen.has(label)) { seen.set(label, []); groups.push({ label, items: seen.get(label)! }); }
+      seen.get(label)!.push(n);
+    }
+    return groups;
+  })();
 
   const handleSignOut = async () => {
     await signOut();
@@ -68,9 +140,64 @@ export default function Navbar() {
         <div className="h-4 w-px bg-gray-100 mx-1"></div>
 
         <div className="flex items-center gap-3">
-          <button className="p-1.5 text-gray-400 hover:text-blue-600 rounded-lg transition-all">
+          <button className="p-1.5 text-gray-400 hover:text-blue-600 rounded-lg transition-all relative"
+              onClick={handleBellClick}
+            >
             <Bell size={18} />
+            {unreadCount > 0 && (
+              <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 flex items-center justify-center bg-red-500 text-white text-[10px] font-bold rounded-full px-1 leading-none">
+                {unreadCount > 99 ? '99+' : unreadCount}
+              </span>
+            )}
           </button>
+
+          {isNotifOpen && (
+            <div ref={notifRef} className="absolute right-16 top-14 w-80 bg-white rounded-xl shadow-xl border border-gray-100 overflow-hidden animate-in fade-in zoom-in duration-200 z-[80]">
+              <div className="px-4 py-3 border-b border-gray-100 bg-gray-50/80">
+                <h3 className="text-xs font-extrabold text-gray-900 uppercase tracking-widest">Notifications</h3>
+              </div>
+              <div className="max-h-80 overflow-y-auto">
+                {notifications.length === 0 ? (
+                  <div className="px-4 py-8 text-center">
+                    <Bell size={24} className="mx-auto text-gray-300 mb-2" />
+                    <p className="text-sm text-gray-400">No submissions yet</p>
+                  </div>
+                ) : (
+                  groupedNotifications.map(group => (
+                    <div key={group.label}>
+                      <div className="px-4 py-1.5 bg-gray-50 border-b border-gray-100">
+                        <span className="text-[10px] font-extrabold text-gray-400 uppercase tracking-widest">{group.label}</span>
+                      </div>
+                      {group.items.map(n => (
+                        <button
+                          key={n.id}
+                          onClick={() => {
+                            setIsNotifOpen(false);
+                            router.push(`/responses/${n.formId}`);
+                          }}
+                          className="w-full text-left px-4 py-3 hover:bg-blue-50/60 border-b border-gray-50 transition-colors"
+                        >
+                          <div className="flex items-start gap-3">
+                            <div className="mt-0.5 w-7 h-7 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center flex-shrink-0">
+                              <UserIcon size={14} />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm text-gray-900">
+                                <span className="font-semibold">{n.userEmail || 'Anonymous'}</span>
+                                <span className="text-gray-500"> submitted</span>
+                              </p>
+                              <p className="text-xs font-bold text-gray-700 truncate mt-0.5">{n.formTitle}</p>
+                              <p className="text-[10px] text-gray-400 mt-0.5">{getTimeStr(n.submittedAt)}</p>
+                            </div>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          )}
 
           <div className="relative" ref={dropdownRef}>
             <div

@@ -25,6 +25,7 @@ export interface Form {
     collect_email?: boolean;
     limit_to_one_response?: boolean;
     allow_response_editing?: boolean;
+    notify_on_response?: boolean;
     created_by?: string;
     created_at?: string;
     updated_at?: string;
@@ -48,6 +49,9 @@ export async function saveForm(form: Form) {
 
     // 1. Save Form Metadata (Updating the DRAFT state)
     // Even if a form is 'published', edits are saved to the primary table as a DRAFT.
+    // Always get the current user so we can persist their email
+    const { data: { user } } = await supabase.auth.getUser();
+
     const updatePayload: any = {
         title: form.title,
         description: form.description,
@@ -58,11 +62,12 @@ export async function saveForm(form: Form) {
         limit_to_one_response: form.limit_to_one_response || false,
         allow_response_editing: form.allow_response_editing || false,
         logo_url: form.logo_url || null,
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
+        // Always sync owner email so notification emails can be delivered
+        ...(user?.email ? { created_by_email: user.email } : {})
     };
 
     if (formId) {
-        // ... (update branch is actually fine in line 63, but it was being overshadowed by the mess below)
         const { error } = await supabase
             .from('forms')
             .update(updatePayload)
@@ -70,7 +75,6 @@ export async function saveForm(form: Form) {
 
         if (error) throw error;
     } else {
-        const { data: { user } } = await supabase.auth.getUser();
         if (!user) throw new Error('User not authenticated');
 
         const { data, error } = await supabase
@@ -150,6 +154,10 @@ export async function publishForm(form: Form) {
 
     const nextVersion = (latestVersion?.version_number || 0) + 1;
 
+    // Grab the creator email at publish time (user is authenticated here, no RLS issue)
+    const { data: { user: publishingUser } } = await supabase.auth.getUser();
+    const ownerEmailForSnapshot = publishingUser?.email || form.created_by_email || null;
+
     // 3. Create a snapshot of the form
     const snapshotContent = {
         title: form.title,
@@ -159,6 +167,8 @@ export async function publishForm(form: Form) {
         collect_email: form.collect_email,
         limit_to_one_response: form.limit_to_one_response,
         allow_response_editing: form.allow_response_editing,
+        notify_on_response: form.notify_on_response,
+        owner_email: ownerEmailForSnapshot,
         expires_at: form.expires_at,
         elements: form.elements
     };
@@ -240,6 +250,7 @@ export async function getForm(id: string, isViewer: boolean = false) {
             collect_email: snapshot.collect_email,
             limit_to_one_response: snapshot.limit_to_one_response,
             allow_response_editing: snapshot.allow_response_editing,
+            notify_on_response: snapshot.notify_on_response,
             expires_at: snapshot.expires_at,
             elements: snapshot.elements, // CRITICAL: This loading elements from snapshot
             version_number: versionData.version_number
@@ -372,7 +383,7 @@ export async function saveResponse(formId: string, responses: Record<string, any
     // 0. Get the current LIVE VERSION ID
     const { data: form, error: formInfoError } = await supabase
         .from('forms')
-        .select('live_version_id, status, allow_response_editing, limit_to_one_response')
+        .select('live_version_id, status, allow_response_editing, limit_to_one_response, title')
         .eq('id', formId)
         .single();
 
@@ -381,6 +392,29 @@ export async function saveResponse(formId: string, responses: Record<string, any
     // Safety check: if no live_version_id, only allow if status is 'published' (backward compatibility)
     if (!form.live_version_id && form.status !== 'published') {
         throw new Error("FORM_NOT_PUBLISHED");
+    }
+
+    // Notification defaults to ON unless explicitly disabled in live version content
+    let notifyOnResponse = true;
+    let snapshotOwnerEmail: string | null = null;
+    if (form.live_version_id) {
+        const { data: liveVersion, error: liveVersionError } = await supabase
+            .from('form_versions')
+            .select('content')
+            .eq('id', form.live_version_id)
+            .maybeSingle();
+
+        if (!liveVersionError && liveVersion?.content && typeof liveVersion.content === 'object') {
+            const content = liveVersion.content as Record<string, unknown>;
+            const maybeFlag = content.notify_on_response;
+            if (typeof maybeFlag === 'boolean') {
+                notifyOnResponse = maybeFlag;
+            }
+            // Owner email stored in snapshot at publish time (avoids RLS-blocked anon query)
+            if (typeof content.owner_email === 'string' && content.owner_email) {
+                snapshotOwnerEmail = content.owner_email;
+            }
+        }
     }
 
     // 1. Check for duplicate submission or update
@@ -481,7 +515,9 @@ export async function saveResponse(formId: string, responses: Record<string, any
         if (answersError) throw answersError;
     }
 
-    return { id: responseId };
+    const isUpdate = !!existingRespId;
+
+    return { id: responseId, isUpdate };
 }
 
 export async function getAllFormsWithStats() {
@@ -721,5 +757,61 @@ export async function deleteComment(id: string) {
 
     if (error) throw error;
     return { success: true };
+}
+
+// ============================================================
+// NOTIFICATIONS — In-app bell notifications for form creators
+// ============================================================
+
+export interface Notification {
+    id: string;
+    formId: string;
+    formTitle: string;
+    userEmail: string | null;
+    submittedAt: string;
+}
+
+/**
+ * Get recent submissions (notifications) for the current user's forms.
+ * Uses `lastSeenAt` to filter only new/unread submissions.
+ */
+export async function getNotifications(lastSeenAt?: string): Promise<Notification[]> {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return [];
+
+    // 1. Get all form IDs owned by this user
+    const { data: ownedForms, error: formsError } = await supabase
+        .from('forms')
+        .select('id, title')
+        .eq('created_by', user.id);
+
+    if (formsError || !ownedForms || ownedForms.length === 0) return [];
+
+    const formMap = new Map(ownedForms.map(f => [f.id, f.title]));
+    const formIds = ownedForms.map(f => f.id);
+
+    // 2. Query responses for those forms
+    let query = supabase
+        .from('responses')
+        .select('id, form_id, user_email, submitted_at')
+        .in('form_id', formIds)
+        .order('submitted_at', { ascending: false })
+        .limit(50);
+
+    if (lastSeenAt) {
+        query = query.gt('submitted_at', lastSeenAt);
+    }
+
+    const { data: responses, error: respError } = await query;
+
+    if (respError || !responses) return [];
+
+    return responses.map(r => ({
+        id: r.id,
+        formId: r.form_id,
+        formTitle: formMap.get(r.form_id) || 'Untitled Form',
+        userEmail: r.user_email,
+        submittedAt: r.submitted_at,
+    }));
 }
 
